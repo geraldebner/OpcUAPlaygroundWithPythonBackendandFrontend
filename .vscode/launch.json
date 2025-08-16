@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: FastAPI Backend (module)",
+      "type": "python",
+      "request": "launch",
+      "module": "backend.main",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: OPCUA Simulation Server",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/opcua_simserver.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: OPCUA Console Client",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/opcua_console_client.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
