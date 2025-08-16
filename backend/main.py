@@ -12,6 +12,38 @@ import time
 
 app = FastAPI()
 
+# Status endpoint for OPC UA server and backend
+import datetime
+start_time = datetime.datetime.utcnow()
+
+@app.get("/status")
+def get_status(db: Session = Depends(get_db)):
+    # OPC UA server status
+    opcua_connected = False
+    try:
+        # Try to read a known node value
+        test_node_id = "ns=2;s=Device1.SimValue1"
+        node = sim_client.get_node(test_node_id)
+        value = node.get_value()
+        opcua_connected = value is not None
+    except Exception:
+        opcua_connected = False
+    # Database status
+    db_status = True
+    try:
+        # Check if devices table exists
+        result = db.query(Device).first()
+        db_status = result is not None
+    except Exception:
+        db_status = False
+    # Uptime
+    uptime = (datetime.datetime.utcnow() - start_time).total_seconds()
+    return {
+        "opcua_connected": opcua_connected,
+        "db_status": db_status,
+        "uptime_seconds": int(uptime)
+    }
+
 # Get historical values filtered by device and time range
 @app.get("/historical_values")
 def get_historical_values(

@@ -2,12 +2,26 @@ import React, { useEffect, useState } from "react";
 import './App.css';
 
 function App() {
+  const [tab, setTab] = useState(0);
+  const [status, setStatus] = useState(null);
+  const loadStatus = () => {
+    fetch("http://localhost:8000/status")
+      .then(res => res.json())
+      .then(setStatus);
+  };
+
+  useEffect(() => {
+    if (tab === 3) {
+      loadStatus();
+      const interval = setInterval(loadStatus, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [tab]);
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [historical, setHistorical] = useState([]);
-  const [tab, setTab] = useState(0);
   const [values, setValues] = useState([]);
   const [paramValues, setParamValues] = useState([]);
   const [editValues, setEditValues] = useState({});
@@ -97,8 +111,34 @@ function App() {
         <button className={tab === 0 ? "active" : ""} onClick={() => setTab(0)}>Simulation Werte</button>
         <button className={tab === 1 ? "active" : ""} onClick={() => setTab(1)}>Parameter setzen</button>
         <button className={tab === 2 ? "active" : ""} onClick={() => setTab(2)}>Historische Daten</button>
+        <button className={tab === 3 ? "active" : ""} onClick={() => setTab(3)}>Status</button>
       </div>
   <div className="tab-content">
+        {tab === 3 && (
+          <div>
+            <h2>Status</h2>
+            {status ? (
+              <table className="modern-table">
+                <tbody>
+                  <tr>
+                    <td>OPC UA Server verbunden</td>
+                    <td>{status.opcua_connected ? "Ja" : "Nein"}</td>
+                  </tr>
+                  <tr>
+                    <td>Datenbank Status</td>
+                    <td>{status.db_status ? "OK" : "Fehler"}</td>
+                  </tr>
+                  <tr>
+                    <td>Backend Uptime (Sekunden)</td>
+                    <td>{status.uptime_seconds}</td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              <div>Lade Status...</div>
+            )}
+          </div>
+        )}
         {tab === 2 && (
           <div>
             <h2>Historische Daten</h2>
