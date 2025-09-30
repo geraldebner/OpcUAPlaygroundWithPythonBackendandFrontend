@@ -1,3 +1,45 @@
+
+# Utility to build hierarchical OPC UA data tree
+def build_opcua_tree():
+    # This is a static structure based on your provided hierarchy. In production, you may want to browse nodes dynamically.
+    tree = {
+        "AllgemeineParameter": [
+            {"name": "SkalierungDruckmessungMin", "node_id": "ns=2;s=SkalierungDruckmessungMin"},
+            {"name": "SkalierungDruckmessungMax", "node_id": "ns=2;s=SkalierungDruckmessungMax"},
+            {"name": "SkalierungDurchflussmessungMin", "node_id": "ns=2;s=SkalierungDurchflussmessungMin"},
+            {"name": "SkalierungDurchflussmessungMax", "node_id": "ns=2;s=SkalierungDurchflussmessungMax"},
+            {"name": "Fehlerbit", "node_id": "ns=2;s=Fehlerbit"}
+        ],
+        "Ventilkonfiguration": {
+            "VentilanzahlInVerwendung": {"node_id": "ns=2;s=VentilanzahlInVerwendung"},
+            "VentilSperre": {"node_id": "ns=2;s=VentilSperre"},
+            "PWM": {
+                "Anregung": {"node_id": "ns=2;s=PWM.Anregung"},
+                "Anregungszeit": {"node_id": "ns=2;s=PWM.Anregungszeit"},
+                "Zwischenerregung": {"node_id": "ns=2;s=PWM.Zwischenerregung"},
+                "Zwischenerregungszeit": {"node_id": "ns=2;s=PWM.Zwischenerregungszeit"},
+                "Halten": {"node_id": "ns=2;s=PWM.Halten"}
+            },
+            "KonfigÜbernehmen": {"node_id": "ns=2;s=KonfigÜbernehmen"}
+        },
+        # ... Add other blocks here, following your hierarchy ...
+    }
+    # For each leaf node, read the value from OPC UA
+    def read_node(node):
+        if isinstance(node, dict) and "node_id" in node:
+            try:
+                value = sim_client.get_node(node["node_id"]).get_value()
+            except Exception:
+                value = None
+            return {"name": node.get("name", ""), "node_id": node["node_id"], "value": value}
+        elif isinstance(node, list):
+            return [read_node(n) for n in node]
+        elif isinstance(node, dict):
+            return {k: read_node(v) for k, v in node.items()}
+        return node
+    return read_node(tree)
+
+
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +52,13 @@ import uvicorn
 import threading
 import time
 
+
 app = FastAPI()
+
+# Place this after app = FastAPI()
+@app.get("/opcua_tree")
+def get_opcua_tree():
+    return build_opcua_tree()
 
 # Status endpoint for OPC UA server and backend
 import datetime
@@ -189,41 +237,53 @@ def background_store_values():
     import datetime
     while True:
         db = SessionLocal()
-        for d in range(NUM_DEVICES):
-            device_name = f"Device{d+1}"
-            device = db.query(Device).filter_by(name=device_name).first()
-            if not device:
-                device = Device(name=device_name)
-                db.add(device)
-                db.commit()
-                db.refresh(device)
-            for i in range(NUM_VALUES):
-                # SimValue
-                sim_node_id = f"ns=2;s={device_name}.SimValue{i+1}"
-                sim_node = sim_client.get_node(sim_node_id)
-                sim_value = sim_node.get_value()
-                # Update current value
-                curr_sim = db.query(CurrentValue).filter_by(device_id=device.id, type="sim", index=i+1).first()
-                if curr_sim:
-                    curr_sim.value = sim_value
-                    curr_sim.node_id = sim_node_id
+        # List of hierarchical node paths to read (expand as needed)
+        nodes_to_read = [
+            ("AllgemeineParameter", [
+                "SkalierungDruckmessungMin",
+                "SkalierungDruckmessungMax",
+                "SkalierungDurchflussmessungMin",
+                "SkalierungDurchflussmessungMax",
+                "Fehlerbit"
+            ]),
+            ("Ventilkonfiguration", [
+                "VentilanzahlInVerwendung",
+                "VentilSperre",
+                "PWM.Anregung",
+                "PWM.Anregungszeit",
+                "PWM.Zwischenerregung",
+                "PWM.Zwischenerregungszeit",
+                "PWM.Halten",
+                "KonfigÜbernehmen"
+            ])
+            # Add more blocks/categories here
+        ]
+        for block, variables in nodes_to_read:
+            for var in variables:
+                node_id = f"ns=2;s={block}.{var}" if "." in var else f"ns=2;s={block}.{var}"
+                try:
+                    value = sim_client.get_node(node_id).get_value()
+                except Exception:
+                    value = None
+                # Use block and var as device/type/index for DB (customize as needed)
+                device_name = block
+                value_type = var
+                index = None
+                # Store in DB (simplified, you may want to adjust schema)
+                device = db.query(Device).filter_by(name=device_name).first()
+                if not device:
+                    device = Device(name=device_name)
+                    db.add(device)
+                    db.commit()
+                    db.refresh(device)
+                curr = db.query(CurrentValue).filter_by(device_id=device.id, type=value_type, index=0).first()
+                if curr:
+                    curr.value = value
+                    curr.node_id = node_id
                 else:
-                    curr_sim = CurrentValue(device_id=device.id, type="sim", index=i+1, node_id=sim_node_id, value=sim_value)
-                    db.add(curr_sim)
-                # Add historical value
-                db.add(HistoricalValue(device_id=device.id, type="sim", index=i+1, node_id=sim_node_id, value=sim_value, timestamp=datetime.datetime.utcnow().isoformat()))
-                # ParamValue
-                param_node_id = f"ns=2;s={device_name}.ParamValue{i+1}"
-                param_node = sim_client.get_node(param_node_id)
-                param_value = param_node.get_value()
-                curr_param = db.query(CurrentValue).filter_by(device_id=device.id, type="param", index=i+1).first()
-                if curr_param:
-                    curr_param.value = param_value
-                    curr_param.node_id = param_node_id
-                else:
-                    curr_param = CurrentValue(device_id=device.id, type="param", index=i+1, node_id=param_node_id, value=param_value)
-                    db.add(curr_param)
-                db.add(HistoricalValue(device_id=device.id, type="param", index=i+1, node_id=param_node_id, value=param_value, timestamp=datetime.datetime.utcnow().isoformat()))
+                    curr = CurrentValue(device_id=device.id, type=value_type, index=0, node_id=node_id, value=value)
+                    db.add(curr)
+                db.add(HistoricalValue(device_id=device.id, type=value_type, index=0, node_id=node_id, value=value, timestamp=datetime.datetime.utcnow().isoformat()))
         db.commit()
         db.close()
         time.sleep(5)
