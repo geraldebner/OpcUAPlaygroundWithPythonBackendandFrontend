@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build backend_csharp",
+      "type": "shell",
+      "command": "dotnet build",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/backend_csharp"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": ["$msCompile"]
+    }
+    ,
+    {
+      "label": "start frontend",
+      "type": "shell",
+      "command": "npm start",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "start opcua-frontend",
+      "type": "shell",
+      "command": "npm start",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/opcua-frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

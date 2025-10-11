@@ -14,7 +14,7 @@
       "name": "Python: OPCUA Simulation Server",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/opcua_simserver.py",
+      "program": "${workspaceFolder}/backend_python/opcua_simserver.py",
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -25,6 +25,39 @@
       "program": "${workspaceFolder}/opcua_console_client.py",
       "console": "integratedTerminal",
       "justMyCode": true
+    }
+    ,
+    {
+      "name": "Launch backend_csharp (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/backend_csharp/bin/Debug/net6.0/backend_csharp.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/backend_csharp",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:8000"
+      },
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "name": "Start frontend (frontend)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "start frontend",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Start frontend (opcua-frontend)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "start opcua-frontend",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/opcua-frontend"
     }
   ]
 }
