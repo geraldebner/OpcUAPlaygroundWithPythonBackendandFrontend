@@ -4,7 +4,8 @@ using Opc.UaFx;
 Console.WriteLine("OPC UA Console Client");
 Console.WriteLine("Type 'help' for commands. Example: read ns=2;s=Device1.SimValue1 | write ns=2;s=Device1.ParamValue1 123.45 | exit");
 
-var serverUrl = "opc.tcp://localhost:4840";
+// Allow server URL from CLI arg, then environment variable, otherwise default
+var serverUrl = args.Length > 0 ? args[0] : (Environment.GetEnvironmentVariable("OPCUA_SERVER_URL") ?? "opc.tcp://localhost:4840");
 using var client = new OpcClient(serverUrl);
 try
 {
@@ -58,14 +59,45 @@ while (true)
         if (parts.Length < 3) { Console.WriteLine("Usage: write <nodeId> <value>"); continue; }
         var nodeId = parts[1];
         var valueText = parts[2];
-        // Try numeric first
-        if (double.TryParse(valueText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var dbl))
+        // Infer type: bool, long, int, double, string (in that order)
+        bool written = false;
+        if (bool.TryParse(valueText, out var b))
         {
-            try { client.WriteNode(nodeId, dbl); Console.WriteLine("Wrote numeric value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+            try { client.WriteNode(nodeId, b); written = true; Console.WriteLine("Wrote bool value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+        }
+        else if (long.TryParse(valueText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var l))
+        {
+            try { client.WriteNode(nodeId, l); written = true; Console.WriteLine("Wrote long value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+        }
+        else if (int.TryParse(valueText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var i))
+        {
+            try { client.WriteNode(nodeId, i); written = true; Console.WriteLine("Wrote int value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+        }
+        else if (double.TryParse(valueText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var dbl))
+        {
+            try { client.WriteNode(nodeId, dbl); written = true; Console.WriteLine("Wrote double value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
         }
         else
         {
-            try { client.WriteNode(nodeId, valueText); Console.WriteLine("Wrote string value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+            try { client.WriteNode(nodeId, valueText); written = true; Console.WriteLine("Wrote string value."); } catch (Exception ex) { Console.WriteLine($"Write error: {ex.Message}"); }
+        }
+
+        // If written, try to read back and show the stored value
+        if (written)
+        {
+            try
+            {
+                var rawBack = client.ReadNode(nodeId);
+                if (rawBack is OpcValue ovBack)
+                {
+                    Console.WriteLine($"Read back: {ovBack.Value} (DataType={ovBack.DataType})");
+                }
+                else
+                {
+                    Console.WriteLine($"Read back: {rawBack}");
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"Read-back error: {ex.Message}"); }
         }
         continue;
     }
