@@ -45,7 +45,7 @@
     ,
     {
       "name": "Start frontend (frontend)",
-      "type": "chrome",
+      "type": "msedge",
       "request": "launch",
       "preLaunchTask": "start frontend",
       "url": "http://localhost:3000",

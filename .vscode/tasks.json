@@ -25,7 +25,7 @@
         "cwd": "${workspaceFolder}/frontend"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": ["$tsc-watch"]
     },
     {
       "label": "start opcua-frontend",
@@ -36,7 +36,7 @@
         "cwd": "${workspaceFolder}/opcua-frontend"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": ["$tsc-watch"]
     }
   ]
 }
