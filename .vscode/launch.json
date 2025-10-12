@@ -44,6 +44,18 @@
     }
     ,
     {
+      "name": "Launch OPCUA Console Client (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/opcua_console_client/bin/Debug/net6.0/opcua_console_client.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/opcua_console_client",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    }
+    ,
+    {
       "name": "Start frontend (frontend)",
       "type": "msedge",
       "request": "launch",
@@ -61,3 +73,4 @@
     }*/
   ]
 }
+
