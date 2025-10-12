@@ -27,6 +27,14 @@ function App() {
   const [editValues, setEditValues] = useState({});
   const [message, setMessage] = useState("");
 
+  const renderValue = (v: any) => {
+    if (v === null || v === undefined) return "";
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v); } catch { return String(v); }
+    }
+    return String(v);
+  };
+
   const loadValues = () => {
     fetch("http://localhost:8000/sim_values")
       .then(res => res.json())

@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: FastAPI Backend (module)",
+      "name": "Launch  FastAPI Backend (python)",
       "type": "python",
       "request": "launch",
       "module": "backend.main",
@@ -11,7 +11,7 @@
       "justMyCode": true
     },
     {
-      "name": "Python: OPCUA Simulation Server",
+      "name": "Launch OPCUA Simulation Server (python)",
       "type": "python",
       "request": "launch",
       "program": "${workspaceFolder}/backend_python/opcua_simserver.py",
@@ -50,7 +50,7 @@
       "preLaunchTask": "start frontend",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/frontend"
-    },
+    }/*,
     {
       "name": "Start frontend (opcua-frontend)",
       "type": "chrome",
@@ -58,6 +58,6 @@
       "preLaunchTask": "start opcua-frontend",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}/opcua-frontend"
-    }
+    }*/
   ]
 }
