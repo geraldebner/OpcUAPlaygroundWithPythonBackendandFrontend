@@ -38,5 +38,28 @@
       "isBackground": true,
       "problemMatcher": ["$tsc-watch"]
     }
+    ,
+    {
+      "label": "build opcua_console_client",
+      "type": "shell",
+      "command": "dotnet build",
+      "options": {
+        "cwd": "${workspaceFolder}/opcua_console_client"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "run opcua_console_client",
+      "type": "shell",
+      "command": "dotnet run --project opcua_console_client",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
   ]
 }

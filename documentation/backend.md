@@ -30,3 +30,29 @@ sim_client.connect()
 ```
 
 See `database.md` for schema and `frontend.md` for API usage.
+
+## Notes: C# Backend
+
+There is a functionally equivalent C# backend in `backend_csharp/` that exposes the same REST endpoints and persists to the same SQLite schema. It uses `Opc.UaFx.Client` for OPC UA interactions and Entity Framework Core for database access. Use the C# backend if you prefer .NET tooling or want to debug with Visual Studio / VS Code.
+
+## API example JSON shapes
+
+- `/sim_values` and `/param_values` return arrays of objects like:
+
+```json
+[
+	{ "device": 1, "type": "sim", "index": 1, "node_id": "ns=2;s=Device1.SimValue1", "value": 12.34 }
+]
+```
+
+- `/historical_values?deviceId=1&type=sim&index=1&limit=10` returns:
+
+```json
+{
+	"deviceId": 1,
+	"type": "sim",
+	"index": 1,
+	"values": [ { "timestamp": "2025-10-12T12:00:00Z", "value": 12.34 }, ... ]
+}
+```
+
