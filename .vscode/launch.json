@@ -53,6 +53,17 @@
       "cwd": "${workspaceFolder}/opcua_console_client",
       "stopAtEntry": false,
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Launch OPCUA Console Client Simpel (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/opcua_simple_console_client/bin/Debug/net9.0/opcua_simple_console_client.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}/opcua_simple_console_client",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
     }
     ,
     {
