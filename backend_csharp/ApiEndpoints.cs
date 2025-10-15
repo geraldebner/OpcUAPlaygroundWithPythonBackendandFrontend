@@ -21,7 +21,7 @@ public static class ApiEndpoints
 
         app.MapPost("/param_values", async (ParamValueIn input, OpcUaService opcS) =>
         {
-            var success = await opcS.WriteParamValue(input.Device, input.Index, input.Value);
+            var success = await opcS.WriteParamValue(input.Device, input.Index, System.Convert.ToUInt32(input.Value));
             return success ? Results.Json(new { status = "ok" }) : Results.BadRequest($"Write failed for Device{input.Device}.ParamValue{input.Index}");
         });
 

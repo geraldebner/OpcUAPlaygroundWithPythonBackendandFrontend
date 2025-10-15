@@ -6,9 +6,9 @@ public class OpcUaService
 {
     private readonly OpcClient _client;
     public bool IsConnected => _client.State == OpcClientState.Connected;
-    public const string ServerUrl = "opc.tcp://localhost:4840";
-    public const int NUM_DEVICES = 10;
-    public const int NUM_VALUES = 10;
+    public const string ServerUrl = "opc.tcp://172.22.0.2:4842";//"opc.tcp://localhost:4840";
+    public const int NUM_DEVICES = 1;
+    public const int NUM_VALUES = 1;
 
     public OpcUaService()
     {
@@ -42,7 +42,7 @@ public class OpcUaService
         {
             for (int i = 1; i <= NUM_VALUES; i++)
             {
-                var node = $"ns=2;s=Device{d}.SimValue{i}";
+                var node = $"ns=5;i=6882"; //$"ns=2;s=Device{d}.SimValue{i}";
                 object? val = null;
                 try
                 {
@@ -66,7 +66,8 @@ public class OpcUaService
         {
             for (int i = 1; i <= NUM_VALUES; i++)
             {
-                var node = $"ns=2;s=Device{d}.ParamValue{i}";
+                //var node =  $"ns=2;s=Device{d}.ParamValue{i}";
+                var node = $"ns=5;i=6882"; 
                 object? val = null;
                 try
                 {
@@ -83,9 +84,10 @@ public class OpcUaService
         return Task.FromResult(list);
     }
 
-    public Task<bool> WriteParamValue(int device, int index, double value)
+    public Task<bool> WriteParamValue(int device, int index, UInt32 value)
     {
-        var node = $"ns=2;s=Device{device}.ParamValue{index}";
+        //var node = $"ns=2;s=Device{device}.ParamValue{index}";
+        var node = $"ns=5;i=6882"; 
         try { _client.WriteNode(node, value); return Task.FromResult(true); } catch { return Task.FromResult(false); }
     }
 
