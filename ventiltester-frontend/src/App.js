@@ -18,9 +18,11 @@ function App() {
     return () => clearInterval(id);
   }, [autoRefresh, activeTab]);
 
+  const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
+
   async function fetchAll() {
     try {
-      const res = await axios.get('/api/parameters');
+      const res = await axios.get(`${API_BASE}/api/parameters`);
       const data = res.data || [];
       const norm = data.map(d => ({ index: d.index, groups: d.groups }));
       setBlocks(norm);
@@ -50,25 +52,25 @@ function App() {
     if (!b) return;
     const name = prompt('Name for dataset', `Snapshot_${selectedBlock}_${new Date().toISOString()}`) || '';
     const comment = prompt('Comment', '') || '';
-    await axios.post('/api/datasets', { name, comment, blockIndex: selectedBlock, block: b });
+    await axios.post(`${API_BASE}/api/datasets`, { name, comment, blockIndex: selectedBlock, block: b });
     fetchDatasets();
   }
 
   async function loadDataset(id) {
-    const res = await axios.get(`/api/datasets/${id}`);
+    const res = await axios.get(`${API_BASE}/api/datasets/${id}`);
     const b = res.data;
     setBlocks(prev => prev.map(pb => pb.index === b.index ? b : pb));
   }
 
   async function writeDatasetToOpc(id) {
-    await axios.post(`/api/datasets/${id}/write`);
+    await axios.post(`${API_BASE}/api/datasets/${id}/write`);
     alert('Requested write to OPC UA server');
   }
 
   async function writeBlockToOpc() {
     const b = blocks.find(x => x.index === selectedBlock);
     if (!b) return;
-    await axios.post(`/api/parameters/${selectedBlock}`, b);
+    await axios.post(`${API_BASE}/api/parameters/${selectedBlock}`, b);
     alert('Write requested');
   }
 

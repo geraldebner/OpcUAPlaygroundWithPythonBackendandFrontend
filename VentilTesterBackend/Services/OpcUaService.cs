@@ -19,6 +19,7 @@ public class OpcUaService : IDisposable
     private bool _connected = false;
     private readonly NodeMapping _mapping;
     private readonly ILogger<OpcUaService>? _logger;
+    private readonly System.Threading.CancellationTokenSource _cts = new System.Threading.CancellationTokenSource();
 
     // helper: cache of property info could be added if performance needed
 
@@ -28,6 +29,24 @@ public class OpcUaService : IDisposable
         _mapping = mapping;
         _logger = logger;
         TryConnect();
+        // start background reconnection loop so the service will recover if the simulation server
+        // is started after this backend. Runs until disposed.
+        Task.Run(async () =>
+        {
+            var token = _cts.Token;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if (!_connected)
+                    {
+                        TryConnect();
+                    }
+                }
+                catch { }
+                await Task.Delay(5000, token).ContinueWith(_ => { });
+            }
+        });
     }
 
     private void TryConnect()
@@ -38,11 +57,16 @@ public class OpcUaService : IDisposable
             _client = new OpcClient(endpoint);
             _client.Connect();
             _connected = true;
+            _logger?.LogInformation("Connected to OPC UA server at {Endpoint}", endpoint);
         }
         catch
         {
             // ignore and stay in simulated mode
             _client = null;
+            if (_connected)
+            {
+                _logger?.LogWarning("Lost connection to OPC UA server");
+            }
             _connected = false;
         }
     }
