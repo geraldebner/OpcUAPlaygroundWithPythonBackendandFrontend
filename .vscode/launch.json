@@ -21,9 +21,9 @@
       "name": "Run VentilTesterSimServer (Python)",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/backend_python/ventiltester_sim_server.py",
+      "program": "${workspaceFolder}/simserver_python/ventiltester_sim_server.py",
       "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}/backend_python"
+      "cwd": "${workspaceFolder}/simserver_python"
     },
     {
       "name": "Start ventiltester-frontend (npm)",
