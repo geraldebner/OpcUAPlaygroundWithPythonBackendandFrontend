@@ -47,6 +47,26 @@ if (app.Environment.IsDevelopment())
 // enable CORS
 app.UseCors("AllowLocalDev");
 
+// Request logging middleware: logs incoming HTTP requests and responses (method, path, status, duration)
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger("HttpRequestLogger");
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        logger?.LogInformation("Incoming HTTP {Method} {Path}{QueryString}", context.Request.Method, context.Request.Path, context.Request.QueryString);
+        await next();
+        sw.Stop();
+        logger?.LogInformation("HTTP {Method} {Path} responded {StatusCode} in {Elapsed}ms", context.Request.Method, context.Request.Path, context.Response.StatusCode, sw.ElapsedMilliseconds);
+    }
+    catch (Exception ex)
+    {
+        sw.Stop();
+        logger?.LogError(ex, "HTTP {Method} {Path} threw after {Elapsed}ms", context.Request.Method, context.Request.Path, sw.ElapsedMilliseconds);
+        throw;
+    }
+});
+
 app.UseRouting();
 app.UseAuthorization();
 

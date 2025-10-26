@@ -83,6 +83,7 @@ public class OpcUaService : IDisposable
 
     public Block ReadBlock(int index)
     {
+        _logger?.LogDebug("ReadBlock start for block {Index} (connected={Connected})", index, _connected);
         var block = new Block { Index = index };
 
         // If mapping present, use mapping to construct groups/params
@@ -101,10 +102,11 @@ public class OpcUaService : IDisposable
                         var value = node.Value?.ToString() ?? string.Empty;
                         var dtype = node.Value?.GetType().Name;
                         list.Add(new Parameter { Name = param, Value = value, DataType = dtype });
+                        _logger?.LogTrace("Read node {NodeId} -> {Param} = {Value} (type={Type})", nodeId, param, value, dtype);
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning(ex, "Failed to read node {NodeId}", nodeId);
+                        _logger?.LogWarning(ex, "Failed to read node {NodeId} for param {Param}", nodeId, param);
                         list.Add(new Parameter { Name = param, Value = string.Empty, DataType = null });
                     }
                 }
@@ -227,14 +229,20 @@ public class OpcUaService : IDisposable
             try
             {
                 // AllgemeineParameter
+                _logger?.LogDebug("WriteBlock: writing typed group AllgemeineParameter for block {Index}", index);
                 WriteTypedGroup(index, "AllgemeineParameter", block.AllgemeineParameter, mappedGroups);
                 // Ventilkonfiguration
+                _logger?.LogDebug("WriteBlock: writing typed group Ventilkonfiguration for block {Index}", index);
                 WriteTypedGroup(index, "Ventilkonfiguration", block.Ventilkonfiguration, mappedGroups);
                 // Langzeittest
+                _logger?.LogDebug("WriteBlock: writing typed group Konfiguration_Langzeittest for block {Index}", index);
                 WriteTypedGroup(index, "Konfiguration_Langzeittest", block.Konfiguration_Langzeittest, mappedGroups);
                 // Detailtest subgroups
+                _logger?.LogDebug("WriteBlock: writing typed group Konfiguration_Detailtest/Strom for block {Index}", index);
                 WriteTypedGroup(index, "Konfiguration_Detailtest/Strom", block.Konfiguration_Detailtest.Strom, mappedGroups);
+                _logger?.LogDebug("WriteBlock: writing typed group Konfiguration_Detailtest/Durchfluss for block {Index}", index);
                 WriteTypedGroup(index, "Konfiguration_Detailtest/Durchfluss", block.Konfiguration_Detailtest.Durchfluss, mappedGroups);
+                _logger?.LogDebug("WriteBlock: writing typed group Konfiguration_Detailtest/Kraft for block {Index}", index);
                 WriteTypedGroup(index, "Konfiguration_Detailtest/Kraft", block.Konfiguration_Detailtest.Kraft, mappedGroups);
             }
             catch { }
@@ -246,7 +254,10 @@ public class OpcUaService : IDisposable
                 foreach (var kvp in block.AllgemeineParameter.Items)
                 {
                     var nodeId = _mapping.GetNodeId(index, "AllgemeineParameter", kvp.Key);
-                    if (nodeId != null) _client.WriteNode(nodeId, kvp.Value);
+                    if (nodeId != null)
+                    {
+                        try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (AllgemeineParameter.{Key})", nodeId, kvp.Value, kvp.Key); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for AllgemeineParameter.{Key}", nodeId, kvp.Key); }
+                    }
                 }
             }
             catch { }
@@ -256,7 +267,10 @@ public class OpcUaService : IDisposable
                 foreach (var kvp in block.Ventilkonfiguration.Items)
                 {
                     var nodeId = _mapping.GetNodeId(index, "Ventilkonfiguration", kvp.Key) ?? _mapping.GetNodeId(index, "DB_VentilKonfiguration_1-4", kvp.Key);
-                    if (nodeId != null) _client.WriteNode(nodeId, kvp.Value);
+                    if (nodeId != null)
+                    {
+                        try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (Ventilkonfiguration.{Key})", nodeId, kvp.Value, kvp.Key); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for Ventilkonfiguration.{Key}", nodeId, kvp.Key); }
+                    }
                 }
             }
             catch { }
@@ -266,7 +280,10 @@ public class OpcUaService : IDisposable
                 foreach (var kvp in block.Konfiguration_Langzeittest.Items)
                 {
                     var nodeId = _mapping.GetNodeId(index, "Konfiguration_Langzeittest", kvp.Key);
-                    if (nodeId != null) _client.WriteNode(nodeId, kvp.Value);
+                    if (nodeId != null)
+                    {
+                        try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (Konfiguration_Langzeittest.{Key})", nodeId, kvp.Value, kvp.Key); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for Konfiguration_Langzeittest.{Key}", nodeId, kvp.Key); }
+                    }
                 }
             }
             catch { }
@@ -280,7 +297,10 @@ public class OpcUaService : IDisposable
                     {
                         nodeId = _mapping.GetNodeId(index, "Konfiguration_Detailtest/Strom", kvp.Key) ?? _mapping.GetNodeId(index, "Konfiguration_Detailtest/Durchfluss", kvp.Key) ?? _mapping.GetNodeId(index, "Konfiguration_Detailtest/Kraft", kvp.Key);
                     }
-                    if (nodeId != null) _client.WriteNode(nodeId, kvp.Value);
+                    if (nodeId != null)
+                    {
+                        try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (Konfiguration_Detailtest.{Key})", nodeId, kvp.Value, kvp.Key); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for Konfiguration_Detailtest.{Key}", nodeId, kvp.Key); }
+                    }
                 }
             }
             catch { }
@@ -299,8 +319,8 @@ public class OpcUaService : IDisposable
                     }
                     if (nodeId != null)
                     {
-                        try { _client.WriteNode(nodeId, param.Value); }
-                        catch { }
+                        try { _client.WriteNode(nodeId, param.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (group={Group})", nodeId, param.Value, groupKey); }
+                        catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for group {Group} param {Param}", nodeId, groupKey, param.Name); }
                     }
                 }
             }
@@ -329,6 +349,7 @@ public class OpcUaService : IDisposable
     /// </summary>
     public Parameter? ReadParameter(int blockIndex, string groupKey, string paramName)
     {
+        _logger?.LogDebug("ReadParameter requested block={Block} group={Group} name={Name} connected={Connected}", blockIndex, groupKey, paramName, _connected);
         // Try mapping lookup first
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         string? nodeId = null;
@@ -349,9 +370,10 @@ public class OpcUaService : IDisposable
                 var node = _client.ReadNode(nodeId);
                 var value = node.Value?.ToString() ?? string.Empty;
                 var dtype = node.Value?.GetType().Name;
+                _logger?.LogTrace("ReadParameter: node {NodeId} -> {Name} = {Value} (type={Type})", nodeId, paramName, value, dtype);
                 return new Parameter { Name = paramName, Value = value, DataType = dtype };
             }
-            catch { return new Parameter { Name = paramName, Value = string.Empty, DataType = null }; }
+            catch (Exception ex) { _logger?.LogWarning(ex, "ReadParameter failed for node {NodeId}", nodeId); return new Parameter { Name = paramName, Value = string.Empty, DataType = null }; }
         }
 
         // If mapped but not connected, return placeholder with empty value so UI knows the parameter exists
@@ -385,6 +407,7 @@ public class OpcUaService : IDisposable
     /// </summary>
     public bool WriteParameter(int blockIndex, string groupKey, string paramName, string value)
     {
+        _logger?.LogDebug("WriteParameter requested block={Block} group={Group} name={Name} value={Value} connected={Connected}", blockIndex, groupKey, paramName, value, _connected);
         if (!_connected || _client == null) return false;
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         string? nodeId = null;
@@ -400,13 +423,13 @@ public class OpcUaService : IDisposable
 
         if (!string.IsNullOrEmpty(nodeId))
         {
-            try { _client.WriteNode(nodeId, value); return true; } catch { return false; }
+            try { _client.WriteNode(nodeId, value); _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId); return false; }
         }
 
         // fallback using base format
         var baseFormat = _config.GetValue<string>("OpcUa:BaseNodeIdFormat") ?? "ns=2;s=VentilTester.Block{0}.{1}.{2}";
         var nodeIdFallback = string.Format(baseFormat, blockIndex, groupKey, paramName);
-        try { _client.WriteNode(nodeIdFallback, value); return true; } catch { return false; }
+        try { _client.WriteNode(nodeIdFallback, value); _logger?.LogTrace("WriteParameter: wrote fallback node {NodeId} <- {Value}", nodeIdFallback, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for fallback node {NodeId}", nodeIdFallback); return false; }
     }
 
     public void Dispose()
@@ -486,8 +509,8 @@ public class OpcUaService : IDisposable
                         // write using the underlying value (if null, skip)
                         if (raw != null)
                         {
-                            try { _client.WriteNode(nodeId, raw); }
-                            catch { }
+                            try { _client.WriteNode(nodeId, raw); _logger?.LogTrace("WriteTypedGroup: wrote node {NodeId} <- {Value} (prop={Prop})", nodeId, raw, prop.Name); }
+                            catch (Exception ex) { _logger?.LogWarning(ex, "WriteTypedGroup: failed to write node {NodeId} for prop {Prop}", nodeId, prop.Name); }
                         }
                     }
                 }
