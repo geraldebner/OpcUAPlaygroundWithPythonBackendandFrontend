@@ -146,3 +146,52 @@ opcua-frontend/build/
 backend/__pycache__/
 database.db
 database.db
+
+# .NET / Visual Studio
+bin/
+obj/
+**/bin/
+
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/.history/
+.vscode/launch.json
+
+# NuGet
+*.nupkg
+# The packages folder can be ignored because of PackageReference
+**/packages/
+
+# Rider
+.idea/
+
+# Runtime files
+*.pid
+*.seed
+
+# Logs
+*.log
+
+# Visual Studio cache/options
+*.VC.db
+*.VC.VC.opendb
+
+# IIS
+*.vspscc
+
+# dotnet watch
+.dotnetwatch
+
+# Ignore all Debug/Release build outputs
+**/bin/Debug/
+**/bin/Release/
+**/obj/Debug/
+**/obj/Release/
+Debug/
+Release/
+
+

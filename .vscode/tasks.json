@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build ventiltester_backend",
+      "type": "shell",
+      "command": "dotnet build",
+      "options": {
+        "cwd": "${workspaceFolder}/VentilTesterBackend"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [ "$msCompile" ]
+    }
+  ]
+}
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build backend_csharp",
+      "type": "shell",
+      "command": "dotnet build",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/backend_csharp"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": ["$msCompile"]
+    }
+    ,
+    {
+      "label": "start frontend",
+      "type": "shell",
+      "command": "npm start",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    },
+    {
+      "label": "start opcua-frontend",
+      "type": "shell",
+      "command": "npm start",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/opcua-frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"]
+    }
+    ,
+    {
+      "label": "build opcua_console_client",
+      "type": "shell",
+      "command": "dotnet build",
+      "options": {
+        "cwd": "${workspaceFolder}/opcua_console_client"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "run opcua_console_client",
+      "type": "shell",
+      "command": "dotnet run --project opcua_console_client",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataMapping>
+	<NamespaceUris>
+		<Uri>http://sigmatek.at/BinderCoV2/</Uri>
+	</NamespaceUris>
+	<Mappings>
+		<DB_AllgemeineParameter_1-4>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- DB_AllgemeineParameter_1-4 -->
+		<!--
+		================================================================================================================================================================================================-->
+
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 1 -->
+		<Block1>
+			<Mapping Label="Block1.DB_AllgemeineParameter_1.SkalierungDruckmessungMin"
+				NodeId="ns=1;i=6886" DataTypeId="6" />
+			<Mapping Label="Block1.DB_AllgemeineParameter_1.SkalierungDruckmessungMax"
+				NodeId="ns=1;i=6885" DataTypeId="6" />
+			<Mapping Label="Block1.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMin"
+				NodeId="ns=1;i=6884" DataTypeId="6" />
+			<Mapping Label="Block1.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMax"
+				NodeId="ns=1;i=6883" DataTypeId="6" />
+			<Mapping Label="Block1.DB_AllgemeineParameter_1.Fehlerbit" NodeId="ns=1;i=6882"
+				DataTypeId="7" />
+		</Block1>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 2 -->
+		<Block2>
+			<Mapping Label="Block2.DB_AllgemeineParameter_1.SkalierungDruckmessungMin"
+				NodeId="ns=1;i=7129" DataTypeId="6" />
+			<Mapping Label="Block2.DB_AllgemeineParameter_1.SkalierungDruckmessungMax"
+				NodeId="ns=1;i=7128" DataTypeId="6" />
+			<Mapping Label="Block2.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMin"
+				NodeId="ns=1;i=7127" DataTypeId="6" />
+			<Mapping Label="Block2.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMax"
+				NodeId="ns=1;i=7126" DataTypeId="6" />
+			<Mapping Label="Block2.DB_AllgemeineParameter_1.Fehlerbit" NodeId="ns=1;i=7125"
+				DataTypeId="7" />
+		</Block2>
+
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 3 -->
+		<Block3>
+			<Mapping Label="Block3.DB_AllgemeineParameter_1.SkalierungDruckmessungMin"
+				NodeId="ns=1;i=7372" DataTypeId="6" />
+			<Mapping Label="Block3.DB_AllgemeineParameter_1.SkalierungDruckmessungMax"
+				NodeId="ns=1;i=7371" DataTypeId="6" />
+			<Mapping Label="Block3.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMin"
+				NodeId="ns=1;i=7370" DataTypeId="6" />
+			<Mapping Label="Block3.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMax"
+				NodeId="ns=1;i=7369" DataTypeId="6" />
+			<Mapping Label="Block3.DB_AllgemeineParameter_1.Fehlerbit" NodeId="ns=1;i=7368"
+				DataTypeId="7" />
+		</Block3>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 4 -->
+		<Block4>
+			<Mapping Label="Block4.DB_AllgemeineParameter_1.SkalierungDruckmessungMin"
+				NodeId="ns=1;i=7615" DataTypeId="6" />
+			<Mapping Label="Block4.DB_AllgemeineParameter_1.SkalierungDruckmessungMax"
+				NodeId="ns=1;i=7614" DataTypeId="6" />
+			<Mapping Label="Block4.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMin"
+				NodeId="ns=1;i=7613" DataTypeId="6" />
+			<Mapping Label="Block4.DB_AllgemeineParameter_1.SkalierungDurchflussmessungMax"
+				NodeId="ns=1;i=7612" DataTypeId="6" />
+			<Mapping Label="Block4.DB_AllgemeineParameter_1.Fehlerbit" NodeId="ns=1;i=7611"
+				DataTypeId="7" />
+	</Block4>
+
+	</DB_AllgemeineParameter_1-4>
+
+	<!--
+		================================================================================================================================================================================================-->
+		<!-- DB_Ventilkonfiguration 1-4 -->
+		<!--
+		================================================================================================================================================================================================-->
+
+	<DB_Ventilkonfiguration_1-4>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 1 -->
+			<Block1>
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.VentilAnzahlInVerwendung"
+					NodeId="ns=1;i=7123" DataTypeId="4" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.VentilSperre" NodeId="ns=1;i=7124"
+					DataTypeId="7" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.PWM_Anregung" NodeId="ns=1;i=7118"
+					DataTypeId="4" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.PWM_Anregungszeit"
+					NodeId="ns=1;i=7119" DataTypeId="4" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.PWM_Zwischenerregung"
+					NodeId="ns=1;i=7121" DataTypeId="4" />
+
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.PWM_Zwischenerregungszeit"
+					NodeId="ns=1;i=7122" DataTypeId="4" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.PWM_Halten" NodeId="ns=1;i=7120"
+					DataTypeId="4" />
+				<Mapping Label="Block1.DB_VentilKonfiguration_1.KonfigUebernehmen"
+					NodeId="ns=1;i=7117" DataTypeId="1" />
+			</Block1>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 2 -->
+			<Block2>
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.VentilAnzahlInVerwendung"
+					NodeId="ns=1;i=7366" DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.VentilSperre" NodeId="ns=1;i=7367"
+					DataTypeId="7" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.PWM_Anregung" NodeId="ns=1;i=7361"
+					DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.PWM_Anregungszeit"
+					NodeId="ns=1;i=7362" DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.PWM_Zwischenerregung"
+					NodeId="ns=1;i=7364" DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.PWM_Zwischenerregungszeit"
+					NodeId="ns=1;i=7365" DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.PWM_Halten" NodeId="ns=1;i=7363"
+					DataTypeId="4" />
+				<Mapping Label="Block2.DB_VentilKonfiguration_1.KonfigUebernehmen"
+					NodeId="ns=1;i=7360" DataTypeId="1" />
+			</Block2>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 3 -->
+			<Block3>
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.VentilAnzahlInVerwendung"
+					NodeId="ns=1;i=7609" DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.VentilSperre" NodeId="ns=1;i=7610"
+					DataTypeId="7" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.PWM_Anregung" NodeId="ns=1;i=7604"
+					DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.PWM_Anregungszeit"
+					NodeId="ns=1;i=7605" DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.PWM_Zwischenerregung"
+					NodeId="ns=1;i=7607" DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.PWM_Zwischenerregungszeit"
+					NodeId="ns=1;i=7608" DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.PWM_Halten" NodeId="ns=1;i=7606"
+					DataTypeId="4" />
+				<Mapping Label="Block3.DB_VentilKonfiguration_1.KonfigUebernehmen"
+					NodeId="ns=1;i=7603" DataTypeId="1" />
+			</Block3>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 4 -->
+			<Block4>
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.VentilAnzahlInVerwendung"
+					NodeId="ns=1;i=7852" DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.VentilSperre" NodeId="ns=1;i=7853"
+					DataTypeId="7" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.PWM_Anregung" NodeId="ns=1;i=7847"
+					DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.PWM_Anregungszeit"
+					NodeId="ns=1;i=7848" DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.PWM_Zwischenerregung"
+					NodeId="ns=1;i=7850" DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.PWM_Zwischenerregungszeit"
+					NodeId="ns=1;i=7851" DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.PWM_Halten" NodeId="ns=1;i=7849"
+					DataTypeId="4" />
+				<Mapping Label="Block4.DB_VentilKonfiguration_1.KonfigUebernehmen"
+					NodeId="ns=1;i=7846" DataTypeId="1" />
+			</Block4>
+
+	</DB_Ventilkonfiguration_1-4>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- DB_Konfiguration Langzeittest 1-4 -->
+		<!--
+		================================================================================================================================================================================================-->
+
+	<DB_Konfiguration_Langzeittest_1-4>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 1 -->
+			<Block1>
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OeffnungszeitVentil"
+					NodeId="ns=1;i=6922" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.PausenzeitVentil"
+					NodeId="ns=1;i=6939" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_1"
+					NodeId="ns=1;i=6923" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_2"
+					NodeId="ns=1;i=6931" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_3"
+					NodeId="ns=1;i=6932" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_4"
+					NodeId="ns=1;i=6933" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_5"
+					NodeId="ns=1;i=6934" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_6"
+					NodeId="ns=1;i=6935" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_7"
+					NodeId="ns=1;i=6936" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_8"
+					NodeId="ns=1;i=6937" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_9"
+					NodeId="ns=1;i=6938" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_10"
+					NodeId="ns=1;i=6924" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_11"
+					NodeId="ns=1;i=6925" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_12"
+					NodeId="ns=1;i=6926" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_13"
+					NodeId="ns=1;i=6927" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_14"
+					NodeId="ns=1;i=6928" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_15"
+					NodeId="ns=1;i=6929" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.OffsetStartVentil_16"
+					NodeId="ns=1;i=6930" DataTypeId="4" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.AnzahlGesamtSchlagzahlen"
+					NodeId="ns=1;i=6917" DataTypeId="6" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.AnzahlSchlagzahlenDetailtest"
+					NodeId="ns=1;i=6918" DataTypeId="6" />
+				<Mapping Label="Block1.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwert"
+					NodeId="ns=1;i=6919" DataTypeId="4" />
+				<Mapping
+					Label="Block1.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMax"
+					NodeId="ns=1;i=6920" DataTypeId="4" />
+				<Mapping
+					Label="Block1.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMin"
+					NodeId="ns=1;i=6921" DataTypeId="4" />
+			</Block1>
+
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 2 -->
+			<Block2>
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OeffnungszeitVentil"
+					NodeId="ns=1;i=7165" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.PausenzeitVentil"
+					NodeId="ns=1;i=7182" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_1"
+					NodeId="ns=1;i=7166" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_2"
+					NodeId="ns=1;i=7174" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_3"
+					NodeId="ns=1;i=7175" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_4"
+					NodeId="ns=1;i=7176" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_5"
+					NodeId="ns=1;i=7177" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_6"
+					NodeId="ns=1;i=7178" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_7"
+					NodeId="ns=1;i=7179" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_8"
+					NodeId="ns=1;i=7180" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_9"
+					NodeId="ns=1;i=7181" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_10"
+					NodeId="ns=1;i=7167" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_11"
+					NodeId="ns=1;i=7168" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_12"
+					NodeId="ns=1;i=7169" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_13"
+					NodeId="ns=1;i=7170" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_14"
+					NodeId="ns=1;i=7171" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_15"
+					NodeId="ns=1;i=7172" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.OffsetStartVentil_16"
+					NodeId="ns=1;i=7173" DataTypeId="4" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.AnzahlGesamtSchlagzahlen"
+					NodeId="ns=1;i=7160" DataTypeId="6" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.AnzahlSchlagzahlenDetailtest"
+					NodeId="ns=1;i=7161" DataTypeId="6" />
+				<Mapping Label="Block2.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwert"
+					NodeId="ns=1;i=7162" DataTypeId="4" />
+				<Mapping
+					Label="Block2.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMax"
+					NodeId="ns=1;i=7163" DataTypeId="4" />
+				<Mapping
+					Label="Block2.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMin"
+					NodeId="ns=1;i=7164" DataTypeId="4" />
+			</Block2>
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 3 -->
+			<Block3>
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OeffnungszeitVentil"
+					NodeId="ns=1;i=7408" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.PausenzeitVentil"
+					NodeId="ns=1;i=7425" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_1"
+					NodeId="ns=1;i=7409" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_2"
+					NodeId="ns=1;i=7417" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_3"
+					NodeId="ns=1;i=7418" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_4"
+					NodeId="ns=1;i=7419" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_5"
+					NodeId="ns=1;i=7420" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_6"
+					NodeId="ns=1;i=7421" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_7"
+					NodeId="ns=1;i=7422" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_8"
+					NodeId="ns=1;i=7423" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_9"
+					NodeId="ns=1;i=7424" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_10"
+					NodeId="ns=1;i=7410" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_11"
+					NodeId="ns=1;i=7411" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_12"
+					NodeId="ns=1;i=7412" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_13"
+					NodeId="ns=1;i=7413" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_14"
+					NodeId="ns=1;i=7414" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_15"
+					NodeId="ns=1;i=7415" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.OffsetStartVentil_16"
+					NodeId="ns=1;i=7416" DataTypeId="4" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.AnzahlGesamtSchlagzahlen"
+					NodeId="ns=1;i=7403" DataTypeId="6" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.AnzahlSchlagzahlenDetailtest"
+					NodeId="ns=1;i=7404" DataTypeId="6" />
+				<Mapping Label="Block3.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwert"
+					NodeId="ns=1;i=7405" DataTypeId="4" />
+				<Mapping
+					Label="Block3.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMax"
+					NodeId="ns=1;i=7406" DataTypeId="4" />
+				<Mapping
+					Label="Block3.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMin"
+					NodeId="ns=1;i=7407" DataTypeId="4" />
+			</Block3>
+
+			<!--
+			================================================================================================================================================================================================-->
+			<!-- Block 4 -->
+			<Block4>
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OeffnungszeitVentil"
+					NodeId="ns=1;i=7651" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.PausenzeitVentil"
+					NodeId="ns=1;i=7668" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_1"
+					NodeId="ns=1;i=7652" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_2"
+					NodeId="ns=1;i=7660" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_3"
+					NodeId="ns=1;i=7661" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_4"
+					NodeId="ns=1;i=7662" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_5"
+					NodeId="ns=1;i=7663" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_6"
+					NodeId="ns=1;i=7664" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_7"
+					NodeId="ns=1;i=7665" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_8"
+					NodeId="ns=1;i=7666" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_9"
+					NodeId="ns=1;i=7667" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_10"
+					NodeId="ns=1;i=7653" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_11"
+					NodeId="ns=1;i=7654" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_12"
+					NodeId="ns=1;i=7655" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_13"
+					NodeId="ns=1;i=7656" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_14"
+					NodeId="ns=1;i=7657" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_15"
+					NodeId="ns=1;i=7658" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.OffsetStartVentil_16"
+					NodeId="ns=1;i=7659" DataTypeId="4" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.AnzahlGesamtSchlagzahlen"
+					NodeId="ns=1;i=7646" DataTypeId="6" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.AnzahlSchlagzahlenDetailtest"
+					NodeId="ns=1;i=7647" DataTypeId="6" />
+				<Mapping Label="Block4.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwert"
+					NodeId="ns=1;i=7648" DataTypeId="4" />
+				<Mapping
+					Label="Block4.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMax"
+					NodeId="ns=1;i=7649" DataTypeId="4" />
+				<Mapping
+					Label="Block4.DB_LangzeittestKonfiguration_1.Druckregelung_DruckSollwertMin"
+					NodeId="ns=1;i=7650" DataTypeId="4" />
+			</Block4>
+
+	</DB_Konfiguration_Langzeittest_1-4>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- DB_Konfiguration Detailtest 1-4 -->
+		<!--
+		================================================================================================================================================================================================-->
+<DB_Konfiguration_Detailtest_1-4>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 1 -->
+		<Block1>
+			<Strom>
+		<!-- Strom -->
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_Aktiv" NodeId="ns=1;i=6897"
+			DataTypeId="1" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruck"
+			NodeId="ns=1;i=6900" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMax"
+			NodeId="ns=1;i=6901" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMin"
+			NodeId="ns=1;i=6902" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_Messdauer"
+			NodeId="ns=1;i=6898" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_Wiederholungen"
+			NodeId="ns=1;i=6903" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Strommessung_MinStromfluss"
+			NodeId="ns=1;i=6899" DataTypeId="4" />
+</Strom>
+<Durchfluss>
+		<!-- Durchfluss -->
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Durchflussmessung_Aktiv"
+			NodeId="ns=1;i=6887" DataTypeId="1" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Durchflussmessung_SollwertDruck"
+			NodeId="ns=1;i=6890" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Durchflussmessung_Messdauer"
+			NodeId="ns=1;i=6888" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Durchflussmessung_Wiederholungen"
+			NodeId="ns=1;i=6891" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Durchflussmessung_MinDurchfluss"
+			NodeId="ns=1;i=6889" DataTypeId="4" />
+</Durchfluss>
+		<!-- Kraft -->
+		<Kraft>
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Kraftmessung_Aktiv" NodeId="ns=1;i=6892"
+			DataTypeId="1" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Kraftmessung_SollwertDruck"
+			NodeId="ns=1;i=6895" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Kraftmessung_Messdauer"
+			NodeId="ns=1;i=6893" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Kraftmessung_Wiederholungen"
+			NodeId="ns=1;i=6896" DataTypeId="4" />
+		<Mapping Label="Block1.DB_DetailtestKonfiguration_1.Kraftmessung_MinKraft"
+			NodeId="ns=1;i=6894" DataTypeId="4" />
+
+		</Kraft>
+		</Block1>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 2 -->
+
+		<Block2>
+		<!-- Strom -->
+			<Strom>
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_Aktiv" NodeId="ns=1;i=7140"
+			DataTypeId="1" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruck"
+			NodeId="ns=1;i=7143" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMax"
+			NodeId="ns=1;i=7144" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMin"
+			NodeId="ns=1;i=7145" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_Messdauer"
+			NodeId="ns=1;i=7141" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_Wiederholungen"
+			NodeId="ns=1;i=7146" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Strommessung_MinStromfluss"
+			NodeId="ns=1;i=7142" DataTypeId="4" />
+
+			</Strom>
+			<Durchfluss>
+		<!-- Durchfluss -->
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Durchflussmessung_Aktiv"
+			NodeId="ns=1;i=7130" DataTypeId="1" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Durchflussmessung_SollwertDruck"
+			NodeId="ns=1;i=7133" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Durchflussmessung_Messdauer"
+			NodeId="ns=1;i=7131" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Durchflussmessung_Wiederholungen"
+			NodeId="ns=1;i=7134" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Durchflussmessung_MinDurchfluss"
+			NodeId="ns=1;i=7132" DataTypeId="4" />
+
+			</Durchfluss>
+			<Kraft>
+		<!-- Kraft -->
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Kraftmessung_Aktiv" NodeId="ns=1;i=7135"
+			DataTypeId="1" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Kraftmessung_SollwertDruck"
+			NodeId="ns=1;i=7138" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Kraftmessung_Messdauer"
+			NodeId="ns=1;i=7136" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Kraftmessung_Wiederholungen"
+			NodeId="ns=1;i=7139" DataTypeId="4" />
+		<Mapping Label="Block2.DB_DetailtestKonfiguration_1.Kraftmessung_MinKraft"
+			NodeId="ns=1;i=7137" DataTypeId="4" />
+
+			</Kraft>
+		</Block2>
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 3 -->
+
+		<Block3>
+			<Strom>
+		<!-- Strom -->
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_Aktiv" NodeId="ns=1;i=7383"
+			DataTypeId="1" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruck"
+			NodeId="ns=1;i=7386" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMax"
+			NodeId="ns=1;i=7387" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMin"
+			NodeId="ns=1;i=7388" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_Messdauer"
+			NodeId="ns=1;i=7384" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_Wiederholungen"
+			NodeId="ns=1;i=7389" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Strommessung_MinStromfluss"
+			NodeId="ns=1;i=7385" DataTypeId="4" />
+
+			</Strom>
+			<Durchfluss>
+		<!-- Durchfluss -->
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Durchflussmessung_Aktiv"
+			NodeId="ns=1;i=7373" DataTypeId="1" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Durchflussmessung_SollwertDruck"
+			NodeId="ns=1;i=7376" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Durchflussmessung_Messdauer"
+			NodeId="ns=1;i=7374" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Durchflussmessung_Wiederholungen"
+			NodeId="ns=1;i=7377" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Durchflussmessung_MinDurchfluss"
+			NodeId="ns=1;i=7375" DataTypeId="4" />
+
+			</Durchfluss>
+			<Kraft>
+
+		<!-- Kraft -->
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Kraftmessung_Aktiv" NodeId="ns=1;i=7378"
+			DataTypeId="1" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Kraftmessung_SollwertDruck"
+			NodeId="ns=1;i=7381" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Kraftmessung_Messdauer"
+			NodeId="ns=1;i=7379" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Kraftmessung_Wiederholungen"
+			NodeId="ns=1;i=7382" DataTypeId="4" />
+		<Mapping Label="Block3.DB_DetailtestKonfiguration_1.Kraftmessung_MinKraft"
+			NodeId="ns=1;i=7380" DataTypeId="4" />
+
+
+			</Kraft>
+		</Block3>
+
+		<!--
+		================================================================================================================================================================================================-->
+		<!-- Block 4 -->
+
+		<Block4>
+			<Strom>
+		<!-- Strom -->
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_Aktiv" NodeId="ns=1;i=7626"
+			DataTypeId="1" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruck"
+			NodeId="ns=1;i=7629" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMax"
+			NodeId="ns=1;i=7630" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_SollwertDruckMin"
+			NodeId="ns=1;i=7631" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_Messdauer"
+			NodeId="ns=1;i=7627" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_Wiederholungen"
+			NodeId="ns=1;i=7632" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Strommessung_MinStromfluss"
+			NodeId="ns=1;i=7628" DataTypeId="4" />
+
+			</Strom>
+			<Durchfluss>
+				
+		<!-- Durchfluss -->
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Durchflussmessung_Aktiv"
+			NodeId="ns=1;i=7616" DataTypeId="1" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Durchflussmessung_SollwertDruck"
+			NodeId="ns=1;i=7619" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Durchflussmessung_Messdauer"
+			NodeId="ns=1;i=7617" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Durchflussmessung_Wiederholungen"
+			NodeId="ns=1;i=7620" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Durchflussmessung_MinDurchfluss"
+			NodeId="ns=1;i=7618" DataTypeId="4" />
+			</Durchfluss>
+			<Kraft>
+
+		<!-- Kraft -->
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Kraftmessung_Aktiv" NodeId="ns=1;i=7621"
+			DataTypeId="1" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Kraftmessung_SollwertDruck"
+			NodeId="ns=1;i=7624" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Kraftmessung_Messdauer"
+			NodeId="ns=1;i=7622" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Kraftmessung_Wiederholungen"
+			NodeId="ns=1;i=7625" DataTypeId="4" />
+		<Mapping Label="Block4.DB_DetailtestKonfiguration_1.Kraftmessung_MinKraft"
+			NodeId="ns=1;i=7623" DataTypeId="4" />
+
+			</Kraft>
+		</Block4>
+		</DB_Konfiguration_Detailtest_1-4>
+	</Mappings>
+</DataMapping>

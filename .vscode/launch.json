@@ -1,8 +1,56 @@
 {
+  // VS Code launch configurations for VentilTester solution
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: FastAPI Backend (module)",
+      "name": "Launch VentilTesterBackend (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build ventiltester_backend",
+      "program": "${workspaceFolder}/VentilTesterBackend/bin/Debug/net6.0/VentilTesterBackend.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/VentilTesterBackend",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      }
+    },
+    {
+      "name": "Run VentilTesterSimServer (Python)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend_python/ventiltester_sim_server.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/backend_python"
+    },
+    {
+      "name": "Start ventiltester-frontend (npm)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [ "start" ],
+      "cwd": "${workspaceFolder}/ventiltester-frontend",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack: Backend + SimServer + Frontend",
+      "configurations": [
+        "Launch VentilTesterBackend (.NET)",
+        "Run VentilTesterSimServer (Python)",
+        "Start ventiltester-frontend (npm)"
+      ]
+    }
+  ]
+}
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch  FastAPI Backend (python)",
       "type": "python",
       "request": "launch",
       "module": "backend.main",
@@ -11,10 +59,10 @@
       "justMyCode": true
     },
     {
-      "name": "Python: OPCUA Simulation Server",
+      "name": "Launch OPCUA Simulation Server (python)",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/opcua_simserver.py",
+      "program": "${workspaceFolder}/backend_python/opcua_simserver.py",
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -26,5 +74,62 @@
       "console": "integratedTerminal",
       "justMyCode": true
     }
+    ,
+    {
+      "name": "Launch backend_csharp (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/backend_csharp/bin/Debug/net6.0/backend_csharp.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/backend_csharp",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:8000"
+      },
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "name": "Launch OPCUA Console Client (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/opcua_console_client/bin/Debug/net6.0/opcua_console_client.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/opcua_console_client",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Launch OPCUA Console Client Simpel (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build backend_csharp",
+      "program": "${workspaceFolder}/opcua_simple_console_client/bin/Debug/net9.0/opcua_simple_console_client.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}/opcua_simple_console_client",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "name": "Start frontend (frontend)",
+      "type": "msedge",
+      "request": "launch",
+      "preLaunchTask": "start frontend",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend"
+    }/*,
+    {
+      "name": "Start frontend (opcua-frontend)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "start opcua-frontend",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/opcua-frontend"
+    }*/
   ]
 }
+

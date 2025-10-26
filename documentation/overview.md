@@ -8,6 +8,7 @@ This project is a full-stack teaching application for industrial data simulation
 - **Frontend**: Modern web UI for monitoring, parameter setting, historical data, and system status.
 - **Database**: Stores current and historical values.
 - **Console Client & Browse Script**: For direct OPC UA interaction and exploration.
+ - **C# Backend & Console Client**: A parallel .NET implementation of the backend and a REPL console client using `Opc.UaFx.Client`.
 
 ## Architecture Diagram
 
