@@ -21,6 +21,23 @@ Components
   - Path: `backend_csharp/`
 - React Frontends
   - Paths: `frontend/` and `opcua-frontend/`
+- Grafana Frontend
+  - Path: `grafana-frontend/` (Docker Compose to provision a JSON API datasource and a sample dashboard)
+  - How to run Grafana (local, Docker Desktop on Windows):
+
+    
+  ```powershell
+  cd grafana-frontend
+  # start Grafana (provisions datasource + dashboard)
+  docker compose up -d
+
+  # tail logs (optional)
+  docker compose logs -f grafana
+  ```
+
+  Notes:
+  - The provisioned datasource is configured to reach the backend at `http://host.docker.internal:8000`.
+  - Open Grafana at [http://localhost:3000](http://localhost:3000). The sample dashboard UID is `opcua-sample-dashboard`.
 - C# Console Client
   - Path: `opcua_console_client/`
 

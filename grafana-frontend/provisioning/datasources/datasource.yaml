@@ -1,0 +1,11 @@
+apiVersion: 1
+datasources:
+  - name: OPCUA JSON API
+    uid: opcuajson
+    type: marcusolsson-json-datasource
+    access: proxy
+  # From inside the Grafana container, use host.docker.internal to reach the host machine
+    url: http://host.docker.internal:8000
+    jsonData: {}
+    editable: true
+    isDefault: true

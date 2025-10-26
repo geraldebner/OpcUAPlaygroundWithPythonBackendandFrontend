@@ -3,8 +3,8 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind to port 8000 so the frontend can talk to this backend without changes
-builder.WebHost.UseUrls("http://localhost:8000");
+// Bind to port 8000 on all interfaces so containerized Grafana can reach the backend via host.docker.internal
+builder.WebHost.UseUrls("http://0.0.0.0:8000");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => c.SwaggerDoc("v1", new OpenApiInfo { Title = "OPC UA C# Backend", Version = "v1" }));

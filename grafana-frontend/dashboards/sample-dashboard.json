@@ -1,0 +1,112 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "iteration": 169773,
+  "links": [],
+  "panels": [
+    {
+      "type": "table",
+      "title": "Live Simulation Values",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+          "method": "GET",
+          "url": "/sim_values",
+          "format": "json",
+          "headers": []
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Parameter Values",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+          "method": "GET",
+          "url": "/param_values",
+          "format": "json",
+          "headers": []
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 2,
+      "options": {},
+      "title": "Historical Values (value over time)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "marcusolsson-json-datasource", "uid": "opcuajson" },
+          "method": "GET",
+          "url": "/historical_timeseries?device_name=${device}&type=sim&start=${__from:date:iso}&end=${__to:date:iso}",
+          "format": "json",
+          "headers": []
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "Change Parameters (frontend)",
+      "id": 4,
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 16 },
+      "options": {
+        "content": "<p>The dashboard is read-only for parameter changes. You can either use the React frontend UI or the simple backend parameter editor:</p>\n<p><a href=\"http://host.docker.internal:3000\" target=\"_blank\">Open Frontend (Parameter UI)</a></p>\n<p><a href=\"http://host.docker.internal:8000/param_editor\" target=\"_blank\">Open Backend Param Editor</a> (lightweight form that posts to /param_values)</p>",
+        "mode": "html"
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 40,
+  "style": "dark",
+  "tags": ["opcua"],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "device",
+        "label": "Device",
+        "hide": 0,
+        "query": {
+          "refId": "DeviceQuery",
+          "datasource": {
+            "type": "marcusolsson-json-datasource",
+            "uid": "opcuajson"
+          },
+          "method": "GET",
+          "url": "/data",
+          "format": "json"
+        },
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "current": {
+          "text": "Device1",
+          "value": "Device1"
+        }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OPC UA Sample Dashboard",
+  "uid": "opcua-sample-dashboard"
+}

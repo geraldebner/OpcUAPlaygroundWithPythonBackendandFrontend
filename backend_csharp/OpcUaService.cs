@@ -167,54 +167,69 @@ public class BackgroundStoreService : BackgroundService
     public BackgroundStoreService(IServiceProvider sp) { _sp = sp; }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            using var scope = _sp.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var opc = scope.ServiceProvider.GetRequiredService<OpcUaService>();
-            for (int d = 1; d <= OpcUaService.NUM_DEVICES; d++)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var deviceName = $"Device{d}";
-                var device = await db.Devices.FirstOrDefaultAsync(x => x.Name == deviceName);
-                if (device == null)
+                using var scope = _sp.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var opc = scope.ServiceProvider.GetRequiredService<OpcUaService>();
+                for (int d = 1; d <= OpcUaService.NUM_DEVICES; d++)
                 {
-                    device = new Device { Name = deviceName };
-                    db.Devices.Add(device);
-                    await db.SaveChangesAsync();
-                }
-                for (int i = 1; i <= OpcUaService.NUM_VALUES; i++)
-                {
-                    var simNode = $"ns=2;s={deviceName}.SimValue{i}";
-                    var simVal = await opc.ReadValue(simNode);
-                    var currSim = await db.CurrentValues.FirstOrDefaultAsync(c => c.DeviceId == device.Id && c.Type == "sim" && c.Index == i);
-                    if (currSim != null)
+                    var deviceName = $"Device{d}";
+                    var device = await db.Devices.FirstOrDefaultAsync(x => x.Name == deviceName);
+                    if (device == null)
                     {
-                        currSim.Value = OpcUaService.ToDouble(simVal);
-                        currSim.NodeId = simNode;
+                        device = new Device { Name = deviceName };
+                        db.Devices.Add(device);
+                        await db.SaveChangesAsync();
                     }
-                    else
+                    for (int i = 1; i <= OpcUaService.NUM_VALUES; i++)
                     {
-                        db.CurrentValues.Add(new CurrentValue { DeviceId = device.Id, Type = "sim", Index = i, NodeId = simNode, Value = OpcUaService.ToDouble(simVal) });
-                    }
-                    db.HistoricalValues.Add(new HistoricalValue { DeviceId = device.Id, Type = "sim", Index = i, NodeId = simNode, Value = OpcUaService.ToDouble(simVal), Timestamp = DateTime.UtcNow.ToString("o") });
+                        var simNode = $"ns=2;s={deviceName}.SimValue{i}";
+                        var simVal = await opc.ReadValue(simNode);
+                        var currSim = await db.CurrentValues.FirstOrDefaultAsync(c => c.DeviceId == device.Id && c.Type == "sim" && c.Index == i);
+                        if (currSim != null)
+                        {
+                            currSim.Value = OpcUaService.ToDouble(simVal);
+                            currSim.NodeId = simNode;
+                        }
+                        else
+                        {
+                            db.CurrentValues.Add(new CurrentValue { DeviceId = device.Id, Type = "sim", Index = i, NodeId = simNode, Value = OpcUaService.ToDouble(simVal) });
+                        }
+                        db.HistoricalValues.Add(new HistoricalValue { DeviceId = device.Id, Type = "sim", Index = i, NodeId = simNode, Value = OpcUaService.ToDouble(simVal), Timestamp = DateTime.UtcNow.ToString("o") });
 
-                    var paramNode = $"ns=2;s={deviceName}.ParamValue{i}";
-                    var paramVal = await opc.ReadValue(paramNode);
-                    var currParam = await db.CurrentValues.FirstOrDefaultAsync(c => c.DeviceId == device.Id && c.Type == "param" && c.Index == i);
-                    if (currParam != null)
-                    {
-                        currParam.Value = OpcUaService.ToDouble(paramVal);
-                        currParam.NodeId = paramNode;
+                        var paramNode = $"ns=2;s={deviceName}.ParamValue{i}";
+                        var paramVal = await opc.ReadValue(paramNode);
+                        var currParam = await db.CurrentValues.FirstOrDefaultAsync(c => c.DeviceId == device.Id && c.Type == "param" && c.Index == i);
+                        if (currParam != null)
+                        {
+                            currParam.Value = OpcUaService.ToDouble(paramVal);
+                            currParam.NodeId = paramNode;
+                        }
+                        else
+                        {
+                            db.CurrentValues.Add(new CurrentValue { DeviceId = device.Id, Type = "param", Index = i, NodeId = paramNode, Value = OpcUaService.ToDouble(paramVal) });
+                        }
+                        db.HistoricalValues.Add(new HistoricalValue { DeviceId = device.Id, Type = "param", Index = i, NodeId = paramNode, Value = OpcUaService.ToDouble(paramVal), Timestamp = DateTime.UtcNow.ToString("o") });
                     }
-                    else
-                    {
-                        db.CurrentValues.Add(new CurrentValue { DeviceId = device.Id, Type = "param", Index = i, NodeId = paramNode, Value = OpcUaService.ToDouble(paramVal) });
-                    }
-                    db.HistoricalValues.Add(new HistoricalValue { DeviceId = device.Id, Type = "param", Index = i, NodeId = paramNode, Value = OpcUaService.ToDouble(paramVal), Timestamp = DateTime.UtcNow.ToString("o") });
+                }
+                await db.SaveChangesAsync();
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation requested - exit gracefully
+                    break;
                 }
             }
-            await db.SaveChangesAsync();
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Graceful shutdown requested, nothing to do
         }
     }
 
