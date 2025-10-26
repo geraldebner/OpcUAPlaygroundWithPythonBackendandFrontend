@@ -11,6 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opcua_simple_console_client
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opcua_client_browser", "opcua_client_browser\opcua_client_browser.csproj", "{732AB144-1563-4C6D-83EE-3470F7A46677}"
 EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +70,18 @@ Global
 		{732AB144-1563-4C6D-83EE-3470F7A46677}.Release|x64.Build.0 = Release|Any CPU
 		{732AB144-1563-4C6D-83EE-3470F7A46677}.Release|x86.ActiveCfg = Release|Any CPU
 		{732AB144-1563-4C6D-83EE-3470F7A46677}.Release|x86.Build.0 = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|x64.Build.0 = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Debug|x86.Build.0 = Debug|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|x64.ActiveCfg = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|x64.Build.0 = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|x86.ActiveCfg = Release|Any CPU
+		{F5C1A427-FA41-483F-B71B-1C6D825C8684}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
