@@ -1,4 +1,52 @@
 {
+  // VS Code launch configurations for VentilTester solution
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch VentilTesterBackend (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build ventiltester_backend",
+      "program": "${workspaceFolder}/VentilTesterBackend/bin/Debug/net6.0/VentilTesterBackend.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/VentilTesterBackend",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      }
+    },
+    {
+      "name": "Run VentilTesterSimServer (Python)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend_python/ventiltester_sim_server.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/backend_python"
+    },
+    {
+      "name": "Start ventiltester-frontend (npm)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [ "start" ],
+      "cwd": "${workspaceFolder}/ventiltester-frontend",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack: Backend + SimServer + Frontend",
+      "configurations": [
+        "Launch VentilTesterBackend (.NET)",
+        "Run VentilTesterSimServer (Python)",
+        "Start ventiltester-frontend (npm)"
+      ]
+    }
+  ]
+}
+{
   "version": "0.2.0",
   "configurations": [
     {
