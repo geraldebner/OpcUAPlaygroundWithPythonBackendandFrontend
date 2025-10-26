@@ -6,6 +6,7 @@ function App() {
   const [blocks, setBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(1);
   const [datasets, setDatasets] = useState([]);
+  const [edits, setEdits] = useState({});
   const [activeTab, setActiveTab] = useState('live'); // 'live' or 'stored'
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -26,6 +27,41 @@ function App() {
       const data = res.data || [];
       const norm = data.map(d => ({ index: d.index, groups: d.groups }));
       setBlocks(norm);
+      // initialize per-parameter edit buffer
+      const newEdits = {};
+      for (const d of data) {
+        const idx = d.index;
+        // typed groups
+        if (d.AllgemeineParameter && d.AllgemeineParameter.Items) {
+          for (const [name, val] of Object.entries(d.AllgemeineParameter.Items)) {
+            newEdits[`${idx}||AllgemeineParameter||${name}`] = val;
+          }
+        }
+        if (d.Ventilkonfiguration && d.Ventilkonfiguration.Items) {
+          for (const [name, val] of Object.entries(d.Ventilkonfiguration.Items)) {
+            newEdits[`${idx}||Ventilkonfiguration||${name}`] = val;
+          }
+        }
+        if (d.Konfiguration_Langzeittest && d.Konfiguration_Langzeittest.Items) {
+          for (const [name, val] of Object.entries(d.Konfiguration_Langzeittest.Items)) {
+            newEdits[`${idx}||Konfiguration_Langzeittest||${name}`] = val;
+          }
+        }
+        if (d.Konfiguration_Detailtest && d.Konfiguration_Detailtest.Items) {
+          for (const [name, val] of Object.entries(d.Konfiguration_Detailtest.Items)) {
+            newEdits[`${idx}||Konfiguration_Detailtest||${name}`] = val;
+          }
+        }
+        // generic groups
+        if (d.groups) {
+          for (const [g, list] of Object.entries(d.groups)) {
+            for (const p of list) {
+              newEdits[`${idx}||${g}||${p.name}`] = p.value;
+            }
+          }
+        }
+      }
+      setEdits(newEdits);
     } catch (e) {
       console.error(e);
     }
@@ -45,6 +81,44 @@ function App() {
       g[group] = list;
       return { ...b, groups: g };
     }));
+  }
+
+  function getEditKey(blockIndex, group, name) {
+    return `${blockIndex}||${group}||${name}`;
+  }
+
+  async function readParam(blockIndex, group, name) {
+    try {
+      const res = await axios.get(`${API_BASE}/api/parameters/${blockIndex}/value`, { params: { group, name } });
+      const p = res.data;
+      // update blocks state with new live value
+      setBlocks(prev => prev.map(b => {
+        if (b.index !== blockIndex) return b;
+        const g = { ...(b.groups || {}) };
+        if (!g[group]) g[group] = [];
+        const list = g[group].map(item => item.name === p.name ? { ...item, value: p.value } : item);
+        g[group] = list;
+        return { ...b, groups: g };
+      }));
+      // update edit buffer
+      setEdits(prev => ({ ...prev, [getEditKey(blockIndex, group, p.name)]: p.value }));
+    } catch (e) {
+      console.error('Read param failed', e);
+      alert('Read failed. See console.');
+    }
+  }
+
+  async function writeParam(blockIndex, group, name) {
+    try {
+      const key = getEditKey(blockIndex, group, name);
+      const value = edits[key] ?? '';
+      await axios.post(`${API_BASE}/api/parameters/${blockIndex}/value`, { value }, { params: { group, name } });
+      // refresh live value
+      await readParam(blockIndex, group, name);
+    } catch (e) {
+      console.error('Write param failed', e);
+      alert('Write failed. See console.');
+    }
   }
 
   async function saveDataset() {
@@ -119,24 +193,21 @@ function App() {
                 <h4>AllgemeineParameter</h4>
                 <table className="param-table">
                   <tbody>
-                    {b.AllgemeineParameter && Object.entries(b.AllgemeineParameter.Items || {}).map(([name, val], i) => (
+                    {b.AllgemeineParameter && Object.entries(b.AllgemeineParameter.Items || {}).map(([name, val], i) => {
+                      const key = getEditKey(b.index, 'AllgemeineParameter', name);
+                      return (
                       <tr key={name}>
                         <td className="param-name">{name}</td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
                         <td>
-                          <input value={val} onChange={e => {
-                            // update typed dict locally
-                            const newBlocks = blocks.map(bb => {
-                              if (bb.index !== b.index) return bb;
-                              const copy = { ...bb };
-                              copy.AllgemeineParameter = copy.AllgemeineParameter || { Items: {} };
-                              copy.AllgemeineParameter.Items = { ...copy.AllgemeineParameter.Items, [name]: e.target.value };
-                              return copy;
-                            });
-                            setBlocks(newBlocks);
-                          }} />
+                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                         </td>
-                      </tr>
-                    ))}
+                        <td style={{display:'flex',gap:6}}>
+                          <button onClick={() => readParam(b.index, 'AllgemeineParameter', name)}>Read</button>
+                          <button onClick={() => writeParam(b.index, 'AllgemeineParameter', name)}>Write</button>
+                        </td>
+                      </tr>);
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -145,23 +216,21 @@ function App() {
                 <h4>Ventilkonfiguration</h4>
                 <table className="param-table">
                   <tbody>
-                    {b.Ventilkonfiguration && Object.entries(b.Ventilkonfiguration.Items || {}).map(([name, val], i) => (
+                    {b.Ventilkonfiguration && Object.entries(b.Ventilkonfiguration.Items || {}).map(([name, val], i) => {
+                      const key = getEditKey(b.index, 'Ventilkonfiguration', name);
+                      return (
                       <tr key={name}>
                         <td className="param-name">{name}</td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
                         <td>
-                          <input value={val} onChange={e => {
-                            const newBlocks = blocks.map(bb => {
-                              if (bb.index !== b.index) return bb;
-                              const copy = { ...bb };
-                              copy.Ventilkonfiguration = copy.Ventilkonfiguration || { Items: {} };
-                              copy.Ventilkonfiguration.Items = { ...copy.Ventilkonfiguration.Items, [name]: e.target.value };
-                              return copy;
-                            });
-                            setBlocks(newBlocks);
-                          }} />
+                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                         </td>
-                      </tr>
-                    ))}
+                        <td style={{display:'flex',gap:6}}>
+                          <button onClick={() => readParam(b.index, 'Ventilkonfiguration', name)}>Read</button>
+                          <button onClick={() => writeParam(b.index, 'Ventilkonfiguration', name)}>Write</button>
+                        </td>
+                      </tr>);
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -170,23 +239,21 @@ function App() {
                 <h4>Konfiguration_Langzeittest</h4>
                 <table className="param-table">
                   <tbody>
-                    {b.Konfiguration_Langzeittest && Object.entries(b.Konfiguration_Langzeittest.Items || {}).map(([name, val], i) => (
+                    {b.Konfiguration_Langzeittest && Object.entries(b.Konfiguration_Langzeittest.Items || {}).map(([name, val], i) => {
+                      const key = getEditKey(b.index, 'Konfiguration_Langzeittest', name);
+                      return (
                       <tr key={name}>
                         <td className="param-name">{name}</td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
                         <td>
-                          <input value={val} onChange={e => {
-                            const newBlocks = blocks.map(bb => {
-                              if (bb.index !== b.index) return bb;
-                              const copy = { ...bb };
-                              copy.Konfiguration_Langzeittest = copy.Konfiguration_Langzeittest || { Items: {} };
-                              copy.Konfiguration_Langzeittest.Items = { ...copy.Konfiguration_Langzeittest.Items, [name]: e.target.value };
-                              return copy;
-                            });
-                            setBlocks(newBlocks);
-                          }} />
+                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                         </td>
-                      </tr>
-                    ))}
+                        <td style={{display:'flex',gap:6}}>
+                          <button onClick={() => readParam(b.index, 'Konfiguration_Langzeittest', name)}>Read</button>
+                          <button onClick={() => writeParam(b.index, 'Konfiguration_Langzeittest', name)}>Write</button>
+                        </td>
+                      </tr>);
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -195,23 +262,21 @@ function App() {
                 <h4>Konfiguration_Detailtest</h4>
                 <table className="param-table">
                   <tbody>
-                    {b.Konfiguration_Detailtest && Object.entries(b.Konfiguration_Detailtest.Items || {}).map(([name, val], i) => (
+                    {b.Konfiguration_Detailtest && Object.entries(b.Konfiguration_Detailtest.Items || {}).map(([name, val], i) => {
+                      const key = getEditKey(b.index, 'Konfiguration_Detailtest', name);
+                      return (
                       <tr key={name}>
                         <td className="param-name">{name}</td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
                         <td>
-                          <input value={val} onChange={e => {
-                            const newBlocks = blocks.map(bb => {
-                              if (bb.index !== b.index) return bb;
-                              const copy = { ...bb };
-                              copy.Konfiguration_Detailtest = copy.Konfiguration_Detailtest || { Items: {} };
-                              copy.Konfiguration_Detailtest.Items = { ...copy.Konfiguration_Detailtest.Items, [name]: e.target.value };
-                              return copy;
-                            });
-                            setBlocks(newBlocks);
-                          }} />
+                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                         </td>
-                      </tr>
-                    ))}
+                        <td style={{display:'flex',gap:6}}>
+                          <button onClick={() => readParam(b.index, 'Konfiguration_Detailtest', name)}>Read</button>
+                          <button onClick={() => writeParam(b.index, 'Konfiguration_Detailtest', name)}>Write</button>
+                        </td>
+                      </tr>);
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -222,14 +287,22 @@ function App() {
                   <h4>{g}</h4>
                   <table className="param-table">
                     <tbody>
-                      {b.groups[g].map((p, i) => (
+                      {b.groups[g].map((p, i) => {
+                        const key = getEditKey(b.index, g, p.name);
+                        const live = p.value;
+                        return (
                         <tr key={p.name}>
                           <td className="param-name">{p.name}</td>
+                          <td style={{fontSize:12,color:'#333'}}>Live: <code>{live}</code></td>
                           <td>
-                            <input value={p.value} onChange={e => onParamChange(b.index, g, i, e.target.value)} />
+                            <input value={edits[key] ?? live} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                           </td>
-                        </tr>
-                      ))}
+                          <td style={{display:'flex',gap:6}}>
+                            <button onClick={() => readParam(b.index, g, p.name)}>Read</button>
+                            <button onClick={() => writeParam(b.index, g, p.name)}>Write</button>
+                          </td>
+                        </tr>);
+                      })}
                     </tbody>
                   </table>
                 </div>

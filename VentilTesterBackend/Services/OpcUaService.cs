@@ -323,6 +323,92 @@ public class OpcUaService : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Read a single parameter value for a given block/group/parameter name.
+    /// Returns null when the parameter cannot be resolved (no mapping and no reachable node).
+    /// </summary>
+    public Parameter? ReadParameter(int blockIndex, string groupKey, string paramName)
+    {
+        // Try mapping lookup first
+        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
+        string? nodeId = null;
+        if (mappedGroups != null && mappedGroups.Count > 0)
+        {
+            nodeId = _mapping.GetNodeId(blockIndex, groupKey, paramName);
+            if (nodeId == null && groupKey.Contains('/'))
+            {
+                var main = groupKey.Split('/')[0];
+                nodeId = _mapping.GetNodeId(blockIndex, main, paramName);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(nodeId) && _connected && _client != null)
+        {
+            try
+            {
+                var node = _client.ReadNode(nodeId);
+                var value = node.Value?.ToString() ?? string.Empty;
+                var dtype = node.Value?.GetType().Name;
+                return new Parameter { Name = paramName, Value = value, DataType = dtype };
+            }
+            catch { return new Parameter { Name = paramName, Value = string.Empty, DataType = null }; }
+        }
+
+        // If mapped but not connected, return placeholder with empty value so UI knows the parameter exists
+        if (!string.IsNullOrEmpty(nodeId))
+        {
+            return new Parameter { Name = paramName, Value = string.Empty, DataType = null };
+        }
+
+        // fallback try base format
+        var baseFormat = _config.GetValue<string>("OpcUa:BaseNodeIdFormat") ?? "ns=2;s=VentilTester.Block{0}.{1}.{2}";
+        var nodeIdFallback = string.Format(baseFormat, blockIndex, groupKey, paramName);
+        if (_connected && _client != null)
+        {
+            try
+            {
+                var node = _client.ReadNode(nodeIdFallback);
+                var value = node.Value?.ToString() ?? string.Empty;
+                var dtype = node.Value?.GetType().Name;
+                return new Parameter { Name = paramName, Value = value, DataType = dtype };
+            }
+            catch { return null; }
+        }
+
+        // cannot resolve
+        return null;
+    }
+
+    /// <summary>
+    /// Write a single parameter value for a given block/group/parameter name.
+    /// Returns true when write was attempted/succeeded and false when not possible (e.g. disconnected).
+    /// </summary>
+    public bool WriteParameter(int blockIndex, string groupKey, string paramName, string value)
+    {
+        if (!_connected || _client == null) return false;
+        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
+        string? nodeId = null;
+        if (mappedGroups != null && mappedGroups.Count > 0)
+        {
+            nodeId = _mapping.GetNodeId(blockIndex, groupKey, paramName);
+            if (nodeId == null && groupKey.Contains('/'))
+            {
+                var main = groupKey.Split('/')[0];
+                nodeId = _mapping.GetNodeId(blockIndex, main, paramName);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(nodeId))
+        {
+            try { _client.WriteNode(nodeId, value); return true; } catch { return false; }
+        }
+
+        // fallback using base format
+        var baseFormat = _config.GetValue<string>("OpcUa:BaseNodeIdFormat") ?? "ns=2;s=VentilTester.Block{0}.{1}.{2}";
+        var nodeIdFallback = string.Format(baseFormat, blockIndex, groupKey, paramName);
+        try { _client.WriteNode(nodeIdFallback, value); return true; } catch { return false; }
+    }
+
     public void Dispose()
     {
         try
