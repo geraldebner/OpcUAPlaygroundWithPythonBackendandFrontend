@@ -34,7 +34,7 @@ function App() {
         // typed groups
         if (d.AllgemeineParameter && d.AllgemeineParameter.Items) {
           for (const [name, val] of Object.entries(d.AllgemeineParameter.Items)) {
-            newEdits[`${idx}||AllgemeineParameter||${name}`] = val;
+            newEdits[`${idx}||AllgemeineParameterXX||${name}`] = val;
           }
         }
         if (d.Ventilkonfiguration && d.Ventilkonfiguration.Items) {
@@ -188,98 +188,7 @@ function App() {
             <div key={b.index} className="block-card">
               <h3>Block {b.index}</h3>
 
-              {/* Typed groups first */}
-              <div className="group-card">
-                <h4>AllgemeineParameter</h4>
-                <table className="param-table">
-                  <tbody>
-                    {b.AllgemeineParameter && Object.entries(b.AllgemeineParameter.Items || {}).map(([name, val], i) => {
-                      const key = getEditKey(b.index, 'AllgemeineParameter', name);
-                      return (
-                      <tr key={name}>
-                        <td className="param-name">{name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
-                        <td>
-                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
-                        </td>
-                        <td style={{display:'flex',gap:6}}>
-                          <button onClick={() => readParam(b.index, 'AllgemeineParameter', name)}>Read</button>
-                          <button onClick={() => writeParam(b.index, 'AllgemeineParameter', name)}>Write</button>
-                        </td>
-                      </tr>);
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="group-card">
-                <h4>Ventilkonfiguration</h4>
-                <table className="param-table">
-                  <tbody>
-                    {b.Ventilkonfiguration && Object.entries(b.Ventilkonfiguration.Items || {}).map(([name, val], i) => {
-                      const key = getEditKey(b.index, 'Ventilkonfiguration', name);
-                      return (
-                      <tr key={name}>
-                        <td className="param-name">{name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
-                        <td>
-                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
-                        </td>
-                        <td style={{display:'flex',gap:6}}>
-                          <button onClick={() => readParam(b.index, 'Ventilkonfiguration', name)}>Read</button>
-                          <button onClick={() => writeParam(b.index, 'Ventilkonfiguration', name)}>Write</button>
-                        </td>
-                      </tr>);
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="group-card">
-                <h4>Konfiguration_Langzeittest</h4>
-                <table className="param-table">
-                  <tbody>
-                    {b.Konfiguration_Langzeittest && Object.entries(b.Konfiguration_Langzeittest.Items || {}).map(([name, val], i) => {
-                      const key = getEditKey(b.index, 'Konfiguration_Langzeittest', name);
-                      return (
-                      <tr key={name}>
-                        <td className="param-name">{name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
-                        <td>
-                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
-                        </td>
-                        <td style={{display:'flex',gap:6}}>
-                          <button onClick={() => readParam(b.index, 'Konfiguration_Langzeittest', name)}>Read</button>
-                          <button onClick={() => writeParam(b.index, 'Konfiguration_Langzeittest', name)}>Write</button>
-                        </td>
-                      </tr>);
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="group-card">
-                <h4>Konfiguration_Detailtest</h4>
-                <table className="param-table">
-                  <tbody>
-                    {b.Konfiguration_Detailtest && Object.entries(b.Konfiguration_Detailtest.Items || {}).map(([name, val], i) => {
-                      const key = getEditKey(b.index, 'Konfiguration_Detailtest', name);
-                      return (
-                      <tr key={name}>
-                        <td className="param-name">{name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{val}</code></td>
-                        <td>
-                          <input value={edits[key] ?? val} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
-                        </td>
-                        <td style={{display:'flex',gap:6}}>
-                          <button onClick={() => readParam(b.index, 'Konfiguration_Detailtest', name)}>Read</button>
-                          <button onClick={() => writeParam(b.index, 'Konfiguration_Detailtest', name)}>Write</button>
-                        </td>
-                      </tr>);
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              
 
               {/* fallback: render generic groups if present */}
               {b.groups && Object.keys(b.groups).length > 0 && Object.keys(b.groups).map(g => (

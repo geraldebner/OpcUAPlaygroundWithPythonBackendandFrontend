@@ -68,4 +68,34 @@ public class ParametersController : ControllerBase
         if (!ok) return StatusCode(500, "Write failed or server unreachable");
         return Ok();
     }
+
+    /// <summary>
+    /// Read all parameters for a specific group in a block.
+    /// Example: GET /api/parameters/1/group/AllgemeineParameter
+    /// For subgroup keys with slashes use the catch-all route, e.g. /api/parameters/1/group/Konfiguration_Detailtest/Strom
+    /// </summary>
+    [HttpGet("{index}/group/{*groupKey}")]
+    public ActionResult<List<Parameter>> GetGroup(int index, string groupKey)
+    {
+        if (index < 1 || index > 4) return BadRequest("block index must be 1..4");
+        if (string.IsNullOrEmpty(groupKey)) return BadRequest("groupKey required");
+        var list = _opc.ReadGroup(index, groupKey);
+        return list;
+    }
+
+    /// <summary>
+    /// Write multiple parameters for a specific group in a block.
+    /// POST body: JSON array of { name: string, value: string }
+    /// Example: POST /api/parameters/1/group/AllgemeineParameter
+    /// </summary>
+    [HttpPost("{index}/group/{*groupKey}")]
+    public ActionResult WriteGroup(int index, string groupKey, [FromBody] List<Parameter> parameters)
+    {
+        if (index < 1 || index > 4) return BadRequest("block index must be 1..4");
+        if (string.IsNullOrEmpty(groupKey)) return BadRequest("groupKey required");
+        if (parameters == null || parameters.Count == 0) return BadRequest("body must be an array of parameters");
+        var ok = _opc.WriteGroup(index, groupKey, parameters);
+        if (!ok) return StatusCode(500, "Write failed or server unreachable");
+        return Ok();
+    }
 }

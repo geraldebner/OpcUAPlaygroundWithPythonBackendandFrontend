@@ -432,6 +432,130 @@ public class OpcUaService : IDisposable
         try { _client.WriteNode(nodeIdFallback, value); _logger?.LogTrace("WriteParameter: wrote fallback node {NodeId} <- {Value}", nodeIdFallback, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for fallback node {NodeId}", nodeIdFallback); return false; }
     }
 
+    /// <summary>
+    /// Read all parameters for a given block and group key. Group key may include subgroups like "Konfiguration_Detailtest/Strom".
+    /// Returns an empty list when the group cannot be resolved.
+    /// </summary>
+    public List<Parameter> ReadGroup(int blockIndex, string groupKey)
+    {
+        _logger?.LogDebug("ReadGroup requested block={Block} group={Group} connected={Connected}", blockIndex, groupKey, _connected);
+        var result = new List<Parameter>();
+        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
+        if (mappedGroups == null || mappedGroups.Count == 0)
+        {
+            _logger?.LogDebug("ReadGroup: no mapping available for block {Block}", blockIndex);
+            return result;
+        }
+
+        // try exact match
+        if (!mappedGroups.TryGetValue(groupKey, out var entries))
+        {
+            // try main key if groupKey contains '/'
+            if (groupKey.Contains('/'))
+            {
+                var main = groupKey.Split('/')[0];
+                mappedGroups.TryGetValue(main, out entries);
+            }
+        }
+
+        if (entries == null || entries.Count == 0)
+        {
+            _logger?.LogDebug("ReadGroup: no entries found for group {Group} in block {Block}", groupKey, blockIndex);
+            return result;
+        }
+
+        foreach (var (param, nodeId) in entries)
+        {
+            if (string.IsNullOrEmpty(nodeId))
+            {
+                result.Add(new Parameter { Name = param, Value = string.Empty, DataType = null });
+                continue;
+            }
+
+            if (_connected && _client != null)
+            {
+                try
+                {
+                    var node = _client.ReadNode(nodeId);
+                    var value = node.Value?.ToString() ?? string.Empty;
+                    var dtype = node.Value?.GetType().Name;
+                    result.Add(new Parameter { Name = param, Value = value, DataType = dtype });
+                    _logger?.LogTrace("ReadGroup: node {NodeId} -> {Param} = {Value}", nodeId, param, value);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "ReadGroup: failed to read node {NodeId} for param {Param}", nodeId, param);
+                    result.Add(new Parameter { Name = param, Value = string.Empty, DataType = null });
+                }
+            }
+            else
+            {
+                // mapping present but not connected: expose names with empty values
+                result.Add(new Parameter { Name = param, Value = string.Empty, DataType = null });
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Write a list of parameters for a given block/group. Returns true when all writes succeeded (best-effort).
+    /// </summary>
+    public bool WriteGroup(int blockIndex, string groupKey, IEnumerable<Parameter> values)
+    {
+        _logger?.LogDebug("WriteGroup requested block={Block} group={Group} connected={Connected}", blockIndex, groupKey, _connected);
+        if (!_connected || _client == null) return false;
+
+        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
+        if (mappedGroups == null || mappedGroups.Count == 0)
+        {
+            _logger?.LogDebug("WriteGroup: no mapping for block {Block}", blockIndex);
+            return false;
+        }
+
+        // find entries for group
+        if (!mappedGroups.TryGetValue(groupKey, out var entries))
+        {
+            if (groupKey.Contains('/'))
+            {
+                var main = groupKey.Split('/')[0];
+                mappedGroups.TryGetValue(main, out entries);
+            }
+        }
+
+        if (entries == null || entries.Count == 0)
+        {
+            _logger?.LogDebug("WriteGroup: no entries found for group {Group} in block {Block}", groupKey, blockIndex);
+            return false;
+        }
+
+        var allOk = true;
+        var mapByParam = entries.ToDictionary(e => e.Param, e => e.NodeId, StringComparer.OrdinalIgnoreCase);
+        foreach (var p in values)
+        {
+            var paramName = p.Name;
+            if (!mapByParam.TryGetValue(paramName, out var nodeId) || string.IsNullOrEmpty(nodeId))
+            {
+                _logger?.LogWarning("WriteGroup: no node mapping for param {Param} in group {Group} block {Block}", paramName, groupKey, blockIndex);
+                allOk = false;
+                continue;
+            }
+
+            try
+            {
+                _client.WriteNode(nodeId, p.Value);
+                _logger?.LogTrace("WriteGroup: wrote node {NodeId} <- {Value} (param={Param})", nodeId, p.Value, paramName);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "WriteGroup: failed to write node {NodeId} for param {Param}", nodeId, paramName);
+                allOk = false;
+            }
+        }
+
+        return allOk;
+    }
+
     public void Dispose()
     {
         try

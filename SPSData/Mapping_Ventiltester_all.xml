@@ -612,23 +612,30 @@
 		<!-- DB_Kommandos 1-4 -->
 		<!--
 		================================================================================================================================================================================================-->
-
+		
 		<!--
 		================================================================================================================================================================================================-->
+		<DB_Kommands>
 		<!-- Block 1 -->
-
+		<Block1>
 		<!-- Langzeittest -->
+		<Langzeittest>
 		<Mapping Label="Block1.DB_Kommandos_1.Langzeittest_Start" NodeId="ns=1;i=6915"
 			DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Langzeittest_Stop" NodeId="ns=1;i=6916" DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Langzeittest_Pause" NodeId="ns=1;i=6914"
 			DataTypeId="1" />
+		</Langzeittest>
 
+		<Detailtest>
 		<!-- Detailtest -->
 		<Mapping Label="Block1.DB_Kommandos_1.Detailtest_Start" NodeId="ns=1;i=6905" DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Detailtest_Stop" NodeId="ns=1;i=6906" DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Detailtest_Pause" NodeId="ns=1;i=6904" DataTypeId="1" />
 
+		</Detailtest>
+
+	    <Einzeltest>	
 		<!-- Einzeltest -->
 		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_Ventilnummer" NodeId="ns=1;i=6913"
 			DataTypeId="4" />
@@ -642,22 +649,30 @@
 		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=1;i=6908"
 			DataTypeId="1" />
 
+		</Einzeltest>
+		</Block1>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 2 -->
 
+		<Block2>
+			<Langzeittest>
 		<!-- Langzeittest -->
 		<Mapping Label="Block2.DB_Kommandos_1.Langzeittest_Start" NodeId="ns=1;i=7158"
 			DataTypeId="1" />
 		<Mapping Label="Block2.DB_Kommandos_1.Langzeittest_Stop" NodeId="ns=1;i=7159" DataTypeId="1" />
 		<Mapping Label="Block2.DB_Kommandos_1.Langzeittest_Pause" NodeId="ns=1;i=7157"
 			DataTypeId="1" />
+			</Langzeittest>
+			<Detailtest>
 
 		<!-- Detailtest -->
 		<Mapping Label="Block2.DB_Kommandos_1.Detailtest_Start" NodeId="ns=1;i=7148" DataTypeId="1" />
 		<Mapping Label="Block2.DB_Kommandos_1.Detailtest_Stop" NodeId="ns=1;i=7149" DataTypeId="1" />
 		<Mapping Label="Block2.DB_Kommandos_1.Detailtest_Pause" NodeId="ns=1;i=7147" DataTypeId="1" />
 
+			</Detailtest>
+		<Einzeltest>
 		<!-- Einzeltest -->
 		<Mapping Label="Block2.DB_Kommandos_1.Einzeltest_Ventilnummer" NodeId="ns=1;i=7156"
 			DataTypeId="4" />
@@ -671,22 +686,28 @@
 		<Mapping Label="Block2.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=1;i=7151"
 			DataTypeId="1" />
 
+		</Einzeltest>
+		</Block2>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 3 -->
-
+		<Block3>
+			<Langzeittest>	 
 		<!-- Langzeittest -->
 		<Mapping Label="Block3.DB_Kommandos_1.Langzeittest_Start" NodeId="ns=1;i=7401"
 			DataTypeId="1" />
 		<Mapping Label="Block3.DB_Kommandos_1.Langzeittest_Stop" NodeId="ns=1;i=7402" DataTypeId="1" />
 		<Mapping Label="Block3.DB_Kommandos_1.Langzeittest_Pause" NodeId="ns=1;i=7400"
 			DataTypeId="1" />
-
+			</Langzeittest>
+			<Detailtest>
 		<!-- Detailtest -->
 		<Mapping Label="Block3.DB_Kommandos_1.Detailtest_Start" NodeId="ns=1;i=7391" DataTypeId="1" />
 		<Mapping Label="Block3.DB_Kommandos_1.Detailtest_Stop" NodeId="ns=1;i=7392" DataTypeId="1" />
 		<Mapping Label="Block3.DB_Kommandos_1.Detailtest_Pause" NodeId="ns=1;i=7390" DataTypeId="1" />
 
+			</Detailtest>
+			<Einzeltest>
 		<!-- Einzeltest -->
 		<Mapping Label="Block3.DB_Kommandos_1.Einzeltest_Ventilnummer" NodeId="ns=1;i=7399"
 			DataTypeId="4" />
@@ -700,10 +721,14 @@
 		<Mapping Label="Block3.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=1;i=7394"
 			DataTypeId="1" />
 
+			</Einzeltest>
+		</Block3>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 4 -->
 
+		<Block4>
+			<Langzeittest>
 		<!-- Langzeittest -->
 		<Mapping Label="Block4.DB_Kommandos_1.Langzeittest_Start" NodeId="ns=1;i=7644"
 			DataTypeId="1" />
@@ -711,11 +736,18 @@
 		<Mapping Label="Block4.DB_Kommandos_1.Langzeittest_Pause" NodeId="ns=1;i=7643"
 			DataTypeId="1" />
 
+			</Langzeittest>
+			<Detailtest>
+				
+
 		<!-- Detailtest -->
 		<Mapping Label="Block4.DB_Kommandos_1.Detailtest_Start" NodeId="ns=1;i=7634" DataTypeId="1" />
 		<Mapping Label="Block4.DB_Kommandos_1.Detailtest_Stop" NodeId="ns=1;i=7635" DataTypeId="1" />
 		<Mapping Label="Block4.DB_Kommandos_1.Detailtest_Pause" NodeId="ns=1;i=7633" DataTypeId="1" />
 
+				
+			</Detailtest>
+			<Einzeltest>
 		<!-- Einzeltest -->
 		<Mapping Label="Block4.DB_Kommandos_1.Einzeltest_Ventilnummer" NodeId="ns=1;i=7642"
 			DataTypeId="4" />
@@ -729,6 +761,8 @@
 		<Mapping Label="Block4.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=1;i=7637"
 			DataTypeId="1" />
 
+			</Einzeltest>
+		</Block4>
 
 		<!--
 		================================================================================================================================================================================================-->
