@@ -769,10 +769,11 @@
 		<!-- DB_Daten Langzeittest 1-4 -->
 		<!--
 		================================================================================================================================================================================================-->
-
+		<DB_Daten_Langzeittest_1-4>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 1 -->
+		<Block1>
 		<Mapping Label="Block1.DB_Daten_Langzeittest_1.AktuellerPlatzzaehler" NodeId="ns=1;i=7100"
 			DataTypeId="6" />
 		<Mapping Label="Block1.DB_Daten_Langzeittest_1.ZaehlerVentil_1" NodeId="ns=1;i=7101"
@@ -808,9 +809,14 @@
 		<Mapping Label="Block1.DB_Daten_Langzeittest_1.ZaehlerVentil_16" NodeId="ns=1;i=7108"
 			DataTypeId="6" />
 
+		</Block1>
+
+
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 2 -->
+
+		<Block2>
 		<Mapping Label="Block2.DB_Daten_Langzeittest_1.AktuellerPlatzzaehler" NodeId="ns=1;i=7343"
 			DataTypeId="6" />
 		<Mapping Label="Block2.DB_Daten_Langzeittest_1.ZaehlerVentil_1" NodeId="ns=1;i=7344"
@@ -846,6 +852,8 @@
 		<Mapping Label="Block2.DB_Daten_Langzeittest_1.ZaehlerVentil_16" NodeId="ns=1;i=7351"
 			DataTypeId="6" />
 
+		</Block2>
+		<Block3>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 3 -->
@@ -884,9 +892,12 @@
 		<Mapping Label="Block3.DB_Daten_Langzeittest_1.ZaehlerVentil_16" NodeId="ns=1;i=7594"
 			DataTypeId="6" />
 
+		</Block3>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 4 -->
+
+		<Block4>
 		<Mapping Label="Block4.DB_Daten_Langzeittest_1.AktuellerPlatzzaehler" NodeId="ns=1;i=7829"
 			DataTypeId="6" />
 		<Mapping Label="Block4.DB_Daten_Langzeittest_1.ZaehlerVentil_1" NodeId="ns=1;i=7830"
@@ -921,16 +932,23 @@
 			DataTypeId="6" />
 		<Mapping Label="Block4.DB_Daten_Langzeittest_1.ZaehlerVentil_16" NodeId="ns=1;i=7837"
 			DataTypeId="6" />
+		</Block4>
+		</DB_Daten_Langzeittest_1-4>
 
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- DB_Daten Strommessung 1-4 -->
 		<!--
-		================================================================================================================================================================================================-->
+		========================================================================================================================================================================================-->
 
+
+		<DB_Daten_Strommessung_1-4>
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 1 -->
+
+		<Block1>
+			<Ventil1>
 
 		<!-- Ventil 1 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.pMesskurven"
@@ -942,6 +960,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.DatenReady"
 			NodeId="ns=1;i=7036" DataTypeId="6" />
 
+		</Ventil1>
+		<Ventil2>
 		<!-- Ventil 2 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.pMesskurven"
 			NodeId="ns=1;i=7069" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -951,7 +971,8 @@
 			NodeId="ns=1;i=7071" DataTypeId="7" />
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.DatenReady"
 			NodeId="ns=1;i=7068" DataTypeId="6" />
-
+		</Ventil2>
+		<Ventil3>
 		<!-- Ventil 3 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.pMesskurven"
 			NodeId="ns=1;i=7073" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -961,6 +982,10 @@
 			NodeId="ns=1;i=7075" DataTypeId="7" />
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.DatenReady"
 			NodeId="ns=1;i=7072" DataTypeId="6" />
+
+
+		</Ventil3>
+				<Ventil4>
 
 		<!-- Ventil 4 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.pMesskurven"
@@ -972,6 +997,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.DatenReady"
 			NodeId="ns=1;i=7076" DataTypeId="6" />
 
+		</Ventil4>
+		<Ventil5>
 		<!-- Ventil 5 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.pMesskurven"
 			NodeId="ns=1;i=7081" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -981,7 +1008,8 @@
 			NodeId="ns=1;i=7083" DataTypeId="7" />
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.DatenReady"
 			NodeId="ns=1;i=7080" DataTypeId="6" />
-
+		</Ventil5>
+		<Ventil6>
 		<!-- Ventil 6 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.pMesskurven"
 			NodeId="ns=1;i=7085" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -992,6 +1020,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.DatenReady"
 			NodeId="ns=1;i=7084" DataTypeId="6" />
 
+		</Ventil6>
+		<Ventil7>
 		<!-- Ventil 7 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.pMesskurven"
 			NodeId="ns=1;i=7089" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1001,6 +1031,8 @@
 			NodeId="ns=1;i=7091" DataTypeId="7" />
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.DatenReady"
 				NodeId="ns=1;i=7817" DataTypeId="6" />
+		</Ventil7>
+		<Ventil8>
 
 		<!-- Ventil 8 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.pMesskurven"
@@ -1012,6 +1044,9 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.DatenReady"
 			NodeId="ns=1;i=7092" DataTypeId="6" />
 
+		</Ventil8>
+		<Ventil9>
+
 		<!-- Ventil 9 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.pMesskurven"
 			NodeId="ns=1;i=7097" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1022,6 +1057,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.DatenReady"
 			NodeId="ns=1;i=7096" DataTypeId="6" />
 
+		</Ventil9>
+		<Ventil10>
 
 		<!-- Ventil 10 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.pMesskurven"
@@ -1033,6 +1070,9 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.DatenReady"
 			NodeId="ns=1;i=7040" DataTypeId="6" />
 
+		</Ventil10>
+		<Ventil11>
+
 		<!-- Ventil 11 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.pMesskurven"
 			NodeId="ns=1;i=7045" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1043,6 +1083,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.DatenReady"
 			NodeId="ns=1;i=7044" DataTypeId="6" />
 
+		</Ventil11>
+		<Ventil12>
 		<!-- Ventil 12 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.pMesskurven"
 			NodeId="ns=1;i=7049" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1052,6 +1094,9 @@
 			NodeId="ns=1;i=7051" DataTypeId="7" />
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.DatenReady"
 			NodeId="ns=1;i=7048" DataTypeId="6" />
+
+		</Ventil12>
+		<Ventil13>
 
 		<!-- Ventil 13 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.pMesskurven"
@@ -1063,6 +1108,9 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.DatenReady"
 			NodeId="ns=1;i=7052" DataTypeId="6" />
 
+		</Ventil13>
+		<Ventil14>
+
 		<!-- Ventil 14 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.pMesskurven"
 			NodeId="ns=1;i=7057" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1073,6 +1121,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.DatenReady"
 			NodeId="ns=1;i=7056" DataTypeId="6" />
 
+		</Ventil14>
+		<Ventil15>
 		<!-- Ventil 15 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.pMesskurven"
 			NodeId="ns=1;i=7061" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1083,6 +1133,8 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.DatenReady"
 			NodeId="ns=1;i=7060" DataTypeId="6" />
 
+		</Ventil15>
+		<Ventil16>
 		<!-- Ventil 16 -->
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.pMesskurven"
 			NodeId="ns=1;i=7065" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1093,11 +1145,15 @@
 		<Mapping Label="Block1.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.DatenReady"
 			NodeId="ns=1;i=7064" DataTypeId="6" />
 
+		</Ventil16>
+		</Block1>
 
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 2 -->
 
+		<Block2>
+			<Ventil1>
 		<!-- Ventil 1 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.pMesskurven"
 			NodeId="ns=1;i=7280" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1108,6 +1164,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.DatenReady"
 			NodeId="ns=1;i=7279" DataTypeId="6" />
 
+		</Ventil1>
+			<Ventil2>
 		<!-- Ventil 2 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.pMesskurven"
 			NodeId="ns=1;i=7312" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1118,6 +1176,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.DatenReady"
 			NodeId="ns=1;i=7311" DataTypeId="6" />
 
+		</Ventil2>
+			<Ventil3>
 		<!-- Ventil 3 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.pMesskurven"
 			NodeId="ns=1;i=7316" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1127,6 +1187,9 @@
 			NodeId="ns=1;i=7318" DataTypeId="7" />
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.DatenReady"
 			NodeId="ns=1;i=7315" DataTypeId="6" />
+
+		</Ventil3>
+			<Ventil4>
 
 		<!-- Ventil 4 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.pMesskurven"
@@ -1138,6 +1201,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.DatenReady"
 			NodeId="ns=1;i=7319" DataTypeId="6" />
 
+		</Ventil4>
+			<Ventil5>
 		<!-- Ventil 5 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.pMesskurven"
 			NodeId="ns=1;i=7324" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1148,6 +1213,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.DatenReady"
 			NodeId="ns=1;i=7323" DataTypeId="6" />
 
+		</Ventil5>
+			<Ventil6>
 		<!-- Ventil 6 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.pMesskurven"
 			NodeId="ns=1;i=7328" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1158,6 +1225,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.DatenReady"
 			NodeId="ns=1;i=7327" DataTypeId="6" />
 
+		</Ventil6>
+		<Ventil7>
 		<!-- Ventil 7 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.pMesskurven"
 			NodeId="ns=1;i=7332" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1168,6 +1237,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.DatenReady"
 			NodeId="ns=1;i=7331" DataTypeId="6" />
 
+		</Ventil7>
+		<Ventil8>
 		<!-- Ventil 8 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.pMesskurven"
 			NodeId="ns=1;i=7336" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1178,6 +1249,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.DatenReady"
 			NodeId="ns=1;i=7335" DataTypeId="6" />
 
+		</Ventil8>
+		<Ventil9>
 		<!-- Ventil 9 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.pMesskurven"
 			NodeId="ns=1;i=7340" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1188,6 +1261,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.DatenReady"
 			NodeId="ns=1;i=7339" DataTypeId="6" />
 
+		</Ventil9>
+		<Ventil10>
 		<!-- Ventil 10 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.pMesskurven"
 			NodeId="ns=1;i=7284" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1198,6 +1273,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.DatenReady"
 			NodeId="ns=1;i=7283" DataTypeId="6" />
 
+		</Ventil10>
+		<Ventil11>
 		<!-- Ventil 11 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.pMesskurven"
 			NodeId="ns=1;i=7288" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1208,6 +1285,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.DatenReady"
 			NodeId="ns=1;i=7287" DataTypeId="6" />
 
+		</Ventil11>
+		<Ventil12>
 		<!-- Ventil 12 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.pMesskurven"
 			NodeId="ns=1;i=7292" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1218,6 +1297,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.DatenReady"
 			NodeId="ns=1;i=7291" DataTypeId="6" />
 
+		</Ventil12>	
+		<Ventil13>
 		<!-- Ventil 13 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.pMesskurven"
 			NodeId="ns=1;i=7296" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1228,6 +1309,8 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.DatenReady"
 			NodeId="ns=1;i=7295" DataTypeId="6" />
 
+		</Ventil13>
+		<Ventil14>
 		<!-- Ventil 14 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.pMesskurven"
 			NodeId="ns=1;i=7300" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1237,6 +1320,9 @@
 			NodeId="ns=1;i=7302" DataTypeId="7" />
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.DatenReady"
 			NodeId="ns=1;i=7299" DataTypeId="6" />
+
+		</Ventil14>
+		<Ventil15>
 
 		<!-- Ventil 15 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.pMesskurven"
@@ -1248,6 +1334,9 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.DatenReady"
 			NodeId="ns=1;i=7303" DataTypeId="6" />
 
+		</Ventil15>
+		<Ventil16>
+
 		<!-- Ventil 16 -->
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.pMesskurven"
 			NodeId="ns=1;i=7308" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1258,11 +1347,15 @@
 		<Mapping Label="Block2.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.DatenReady"
 			NodeId="ns=1;i=7307" DataTypeId="6" />
 
+		</Ventil16>
+		</Block2>
 
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 3 -->
 
+		<Block3>
+		<Ventil1>
 		<!-- Ventil 1 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.pMesskurven"
 			NodeId="ns=1;i=7523" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1272,6 +1365,8 @@
 			NodeId="ns=1;i=7525" DataTypeId="7" />
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.DatenReady"
 			NodeId="ns=1;i=7522" DataTypeId="6" />
+		</Ventil1>		
+		<Ventil2>
 
 		<!-- Ventil 2 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.pMesskurven"
@@ -1283,6 +1378,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.DatenReady"
 			NodeId="ns=1;i=7554" DataTypeId="6" />
 
+		</Ventil2>
+		<Ventil3>
 		<!-- Ventil 3 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.pMesskurven"
 			NodeId="ns=1;i=7559" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1293,6 +1390,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.DatenReady"
 			NodeId="ns=1;i=7558" DataTypeId="6" />
 
+		</Ventil3>
+		<Ventil4>
 		<!-- Ventil 4 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.pMesskurven"
 			NodeId="ns=1;i=7563" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1303,6 +1402,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.DatenReady"
 			NodeId="ns=1;i=7562" DataTypeId="6" />
 
+		</Ventil4>
+		<Ventil5>
 		<!-- Ventil 5 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.pMesskurven"
 			NodeId="ns=1;i=7567" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1312,7 +1413,8 @@
 			NodeId="ns=1;i=7569" DataTypeId="7" />
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.DatenReady"
 			NodeId="ns=1;i=7566" DataTypeId="6" />
-
+		</Ventil5>
+		<Ventil6>
 		<!-- Ventil 6 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.pMesskurven"
 			NodeId="ns=1;i=7571" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1323,6 +1425,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.DatenReady"
 			NodeId="ns=1;i=7570" DataTypeId="6" />
 
+		</Ventil6>
+		<Ventil7>
 		<!-- Ventil 7 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.pMesskurven"
 			NodeId="ns=1;i=7575" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1333,6 +1437,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.DatenReady"
 			NodeId="ns=1;i=7574" DataTypeId="6" />
 
+		</Ventil7>
+		<Ventil8>
 		<!-- Ventil 8 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.pMesskurven"
 			NodeId="ns=1;i=7579" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1343,6 +1449,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.DatenReady"
 			NodeId="ns=1;i=7578" DataTypeId="6" />
 
+		</Ventil8>
+		<Ventil9>
 		<!-- Ventil 9 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.pMesskurven"
 			NodeId="ns=1;i=7583" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1353,6 +1461,9 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.DatenReady"
 			NodeId="ns=1;i=7582" DataTypeId="6" />
 		<!-- Ventil 10 -->
+		</Ventil9>
+		<Ventil10>
+
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.pMesskurven"
 			NodeId="ns=1;i=7527" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.pSchaltpunkte"
@@ -1362,6 +1473,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.DatenReady"
 			NodeId="ns=1;i=7526" DataTypeId="6" />
 
+		</Ventil10>
+		<Ventil11>
 		<!-- Ventil 11 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.pMesskurven"
 			NodeId="ns=1;i=7531" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1372,6 +1485,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.DatenReady"
 			NodeId="ns=1;i=7530" DataTypeId="6" />
 
+		</Ventil11>
+		<Ventil12>
 		<!-- Ventil 12 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.pMesskurven"
 			NodeId="ns=1;i=7535" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1382,6 +1497,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.DatenReady"
 			NodeId="ns=1;i=7534" DataTypeId="6" />
 
+		</Ventil12>
+		<Ventil13>
 		<!-- Ventil 13 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.pMesskurven"
 			NodeId="ns=1;i=7539" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1392,6 +1509,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.DatenReady"
 			NodeId="ns=1;i=7538" DataTypeId="6" />
 
+		</Ventil13>
+		<Ventil14>
 		<!-- Ventil 14 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.pMesskurven"
 			NodeId="ns=1;i=7543" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1402,6 +1521,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.DatenReady"
 			NodeId="ns=1;i=7542" DataTypeId="6" />
 
+		</Ventil14>
+		<Ventil15>
 		<!-- Ventil 15 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.pMesskurven"
 			NodeId="ns=1;i=7547" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1412,6 +1533,8 @@
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.DatenReady"
 			NodeId="ns=1;i=7546" DataTypeId="6" />
 
+		</Ventil15>
+		<Ventil16>
 		<!-- Ventil 16 -->
 		<Mapping Label="Block3.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.pMesskurven"
 			NodeId="ns=1;i=7551" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1423,10 +1546,14 @@
 			NodeId="ns=1;i=7550" DataTypeId="6" />
 
 
+		</Ventil16>		</Block3>	
+
 		<!--
 		================================================================================================================================================================================================-->
 		<!-- Block 4 -->
 
+		<Block4>
+		<Ventil1>
 		<!-- Ventil 1 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.pMesskurven"
 			NodeId="ns=1;i=7766" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1437,6 +1564,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext1.DatenReady"
 			NodeId="ns=1;i=7765" DataTypeId="6" />
 
+		</Ventil1>
+		<Ventil2>
 		<!-- Ventil 2 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.pMesskurven"
 			NodeId="ns=1;i=7798" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1447,6 +1576,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext2.DatenReady"
 			NodeId="ns=1;i=7797" DataTypeId="6" />
 
+		</Ventil2>
+		<Ventil3>
 		<!-- Ventil 3 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.pMesskurven"
 			NodeId="ns=1;i=7802" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1457,6 +1588,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext3.DatenReady"
 			NodeId="ns=1;i=7801" DataTypeId="6" />
 
+		</Ventil3>
+		<Ventil4>
 		<!-- Ventil 4 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.pMesskurven"
 			NodeId="ns=1;i=7806" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1467,6 +1600,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext4.DatenReady"
 			NodeId="ns=1;i=7805" DataTypeId="6" />
 
+		</Ventil4>
+		<Ventil5>
 		<!-- Ventil 5 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.pMesskurven"
 			NodeId="ns=1;i=7810" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1477,6 +1612,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext5.DatenReady"
 			NodeId="ns=1;i=7809" DataTypeId="6" />
 
+		</Ventil5>
+		<Ventil6>
 		<!-- Ventil 6 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.pMesskurven"
 			NodeId="ns=1;i=7814" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1487,6 +1624,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext6.DatenReady"
 			NodeId="ns=1;i=7813" DataTypeId="6" />
 
+		</Ventil6>
+		<Ventil7>
 		<!-- Ventil 7 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.pMesskurven"
 			NodeId="ns=1;i=7818" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1497,6 +1636,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext7.DatenReady"
 			NodeId="	ns=1;i=7817" DataTypeId="6" />
 
+		</Ventil7>
+		<Ventil8>
 		<!-- Ventil 8 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.pMesskurven"
 			NodeId="ns=1;i=7822" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1507,6 +1648,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext8.DatenReady"
 			NodeId="ns=1;i=7821" DataTypeId="6" />
 
+		</Ventil8>
+		<Ventil9>
 		<!-- Ventil 9 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.pMesskurven"
 			NodeId="ns=1;i=7826" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1517,6 +1660,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext9.DatenReady"
 			NodeId="ns=1;i=7825" DataTypeId="6" />
 
+		</Ventil9>
+		<Ventil10>
 		<!-- Ventil 10 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.pMesskurven"
 			NodeId="ns=1;i=7770" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1527,6 +1672,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext10.DatenReady"
 			NodeId="ns=1;i=7769" DataTypeId="6" />
 
+		</Ventil10>
+		<Ventil11>
 		<!-- Ventil 11 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.pMesskurven"
 			NodeId="ns=1;i=7774" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1537,6 +1684,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext11.DatenReady"
 			NodeId="ns=1;i=7773" DataTypeId="6" />
 
+		</Ventil11>
+		<Ventil12>
 		<!-- Ventil 12 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.pMesskurven"
 			NodeId="ns=1;i=7778" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1547,6 +1696,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext12.DatenReady"
 			NodeId="ns=1;i=7777" DataTypeId="6" />
 
+		</Ventil12>
+		<Ventil13>
 		<!-- Ventil 13 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.pMesskurven"
 			NodeId="ns=1;i=7782" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1557,6 +1708,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext13.DatenReady"
 			NodeId="ns=1;i=7781" DataTypeId="6" />
 
+		</Ventil13>
+		<Ventil14>
 		<!-- Ventil 14 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.pMesskurven"
 			NodeId="ns=1;i=7786" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1567,6 +1720,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext14.DatenReady"
 			NodeId="ns=1;i=7785" DataTypeId="6" />
 
+		</Ventil14>
+		<Ventil15>
 		<!-- Ventil 15 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.pMesskurven"
 			NodeId="ns=1;i=7790" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1577,6 +1732,8 @@
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext15.DatenReady"
 			NodeId="ns=1;i=7789" DataTypeId="6" />
 
+		</Ventil15>
+		<Ventil16>
 		<!-- Ventil 16 -->
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.pMesskurven"
 			NodeId="ns=1;i=7794" Count="1000" DataTypeId="4" MemoryAccessMode="1" />
@@ -1586,6 +1743,9 @@
 			NodeId="ns=1;i=7796" DataTypeId="7" />
 		<Mapping Label="Block4.DB_Daten_Detailtest_1.DB_Strommessung1.DB_Ventil_Ext16.DatenReady"
 			NodeId="ns=1;i=7793" DataTypeId="6" />
+
+		</Ventil16>		</Block4>
+		</DB_Daten_Strommessung_1-4>
 
 		<!--
 		================================================================================================================================================================================================-->
