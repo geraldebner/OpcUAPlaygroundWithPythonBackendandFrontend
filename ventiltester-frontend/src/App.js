@@ -29,7 +29,11 @@ function App() {
   return (
     <div className="app-root">
       <header>
-        <h2>VentilTester</h2>
+        <div className="header-left">
+          {/* Place the provided logo file `binder_logo.png` into the frontend `public/` folder */}
+          <img src="/binder_logo.svg" alt="binder+co" className="header-logo" />
+          <h2>VentilTester</h2>
+        </div>
       </header>
       <section className="controls">
         <div className="tabs">
