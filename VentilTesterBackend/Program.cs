@@ -72,4 +72,26 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Log all registered endpoints (helpful for debugging routing issues)
+try
+{
+    var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("EndpointLogger");
+    var endpoints = app.Services.GetService<Microsoft.AspNetCore.Routing.EndpointDataSource>()?.Endpoints;
+    if (endpoints != null)
+    {
+        foreach (var ep in endpoints)
+        {
+            if (ep is Microsoft.AspNetCore.Routing.RouteEndpoint re)
+            {
+                logger?.LogInformation("Endpoint: {Pattern} => {DisplayName}", re.RoutePattern.RawText, re.DisplayName);
+            }
+            else
+            {
+                logger?.LogInformation("Endpoint: {Endpoint}", ep.DisplayName ?? ep.ToString());
+            }
+        }
+    }
+}
+catch { }
+
 app.Run();

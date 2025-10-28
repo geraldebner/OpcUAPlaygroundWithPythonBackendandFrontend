@@ -3,18 +3,21 @@ import axios from "axios";
 import "./App.css";
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
-const API_BASE = (window as any).__API_BASE || process.env.REACT_APP_API_BASE || "http://localhost:5000";
+const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
 
 type Parameter = { name: string; value: string };
 type Group = { [groupKey: string]: Parameter[] };
 type Block = { index: number; groups?: Group; AllgemeineParameter?: any; /* other typed groups may exist */ };
 
 export default function App() {
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'>('parameters');
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
   const [edits, setEdits] = useState<Record<string, Record<string, string>>>({});
   const [loadingParam, setLoadingParam] = useState<Record<string, Record<string, boolean>>>({});
+  const [cmdLoading, setCmdLoading] = useState<Record<string, boolean>>({});
+  const [einzelVentil, setEinzelVentil] = useState<string>("");
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -38,6 +41,29 @@ export default function App() {
       if ((data || []).length && selectedBlock == null) setSelectedBlock(data[0].index ?? 1);
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async function executeCommand(testType: string, action: string, payload?: string) {
+    if (selectedBlock == null) return;
+    const key = `${testType}::${action}`;
+    setCmdLoading(prev => ({ ...(prev||{}), [key]: true }));
+    try {
+      const url = `${API_BASE}/api/commands/${selectedBlock}/${encodeURIComponent(testType)}/${encodeURIComponent(action)}`;
+      const body = payload ? JSON.stringify({ value: payload }) : undefined;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body
+      });
+      if (!res.ok) throw new Error(`Command failed ${res.status}`);
+      // optionally show success - here we just log and clear state
+      console.log('command ok', testType, action);
+    } catch (e) {
+      console.error(e);
+      alert(`Command ${testType}/${action} failed: ${e}`);
+    } finally {
+      setCmdLoading(prev => ({ ...(prev||{}), [key]: false }));
     }
   }
 
@@ -155,20 +181,52 @@ export default function App() {
           {blocks.map(b => <option key={b.index} value={b.index}>{b.index}</option>)}
         </select>
         <button onClick={() => selectedBlock != null && fetchBlock(selectedBlock)} style={{ marginLeft: 8 }}>Refresh</button>
+        <span style={{ marginLeft: 16 }}>
+          <button onClick={() => setSelectedTab('parameters')} disabled={selectedTab==='parameters'}>Parameters</button>
+          <button onClick={() => setSelectedTab('commands')} disabled={selectedTab==='commands'} style={{ marginLeft: 8 }}>Commands</button>
+        </span>
       </div>
 
       {!currentBlock && <div>No block selected or block not loaded.</div>}
 
-      {currentBlock && currentBlock.groups && Object.keys(currentBlock.groups).map(groupKey => (
+      {selectedTab === 'parameters' && currentBlock && currentBlock.groups && Object.keys(currentBlock.groups).map(groupKey => (
         <div key={groupKey} style={{ marginBottom: 16, borderTop: "1px solid #ddd", paddingTop: 8 }}>
           <h4>{groupKey}</h4>
           {(currentBlock.groups![groupKey] || []).map((p: Parameter) => renderParameterRow(groupKey, p))}
         </div>
       ))}
 
+      {selectedTab === 'commands' && (
+        <div style={{ marginTop: 8 }}>
+          <h3>Commands</h3>
+          <div style={{ marginBottom: 12 }}>
+            <h4>Langzeittest</h4>
+            <button onClick={() => executeCommand('Langzeittest', 'Start')} disabled={!!cmdLoading['Langzeittest::Start']}>Start</button>
+            <button onClick={() => executeCommand('Langzeittest', 'Stop')} disabled={!!cmdLoading['Langzeittest::Stop']} style={{ marginLeft: 8 }}>Stop</button>
+            <button onClick={() => executeCommand('Langzeittest', 'Pause')} disabled={!!cmdLoading['Langzeittest::Pause']} style={{ marginLeft: 8 }}>Pause</button>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <h4>Detailtest</h4>
+            <button onClick={() => executeCommand('Detailtest', 'Start')} disabled={!!cmdLoading['Detailtest::Start']}>Start</button>
+            <button onClick={() => executeCommand('Detailtest', 'Stop')} disabled={!!cmdLoading['Detailtest::Stop']} style={{ marginLeft: 8 }}>Stop</button>
+            <button onClick={() => executeCommand('Detailtest', 'Pause')} disabled={!!cmdLoading['Detailtest::Pause']} style={{ marginLeft: 8 }}>Pause</button>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <h4>Einzeltest</h4>
+            <label>Ventilnummer: </label>
+            <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ marginLeft: 8, marginRight: 8 }} />
+            <button onClick={() => executeCommand('Einzeltest', 'Start', einzelVentil)} disabled={!!cmdLoading['Einzeltest::Start']}>Start</button>
+            <button onClick={() => executeCommand('Einzeltest', 'Stop', einzelVentil)} disabled={!!cmdLoading['Einzeltest::Stop']} style={{ marginLeft: 8 }}>Stop</button>
+            <button onClick={() => executeCommand('Einzeltest', 'Pause', einzelVentil)} disabled={!!cmdLoading['Einzeltest::Pause']} style={{ marginLeft: 8 }}>Pause</button>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginTop: 20 }}>
         <h5>Debug</h5>
-        <pre style={{ maxHeight: 240, overflow: "auto" }}>{JSON.stringify({ selectedBlock, currentBlock, edits }, null, 2)}</pre>
+        <pre style={{ maxHeight: 240, overflow: "auto" }}>{JSON.stringify({ selectedTab, selectedBlock, currentBlock, edits }, null, 2)}</pre>
       </div>
     </div>
   );

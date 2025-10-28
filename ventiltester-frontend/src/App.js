@@ -8,7 +8,10 @@ function App() {
   const [datasets, setDatasets] = useState([]);
   const [edits, setEdits] = useState({});
   const [activeTab, setActiveTab] = useState('live'); // 'live' or 'stored'
+  const [activeTabExtra, setActiveTabExtra] = useState('live'); // compatibility variable
+  const [einzelVentil, setEinzelVentil] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => { fetchAll(); fetchDatasets(); }, []);
 
@@ -20,6 +23,42 @@ function App() {
   }, [autoRefresh, activeTab]);
 
   const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
+
+  // Ping server to check reachability
+  async function pingServer() {
+    try {
+      await axios.get(`${API_BASE}/api/commands/ping`);
+      return true;
+    } catch (e) {
+      console.warn('Ping failed', e);
+      return false;
+    }
+  }
+
+  // Centralized command sender with basic feedback
+  async function sendCommand(params) {
+    if (sending) return;
+    setSending(true);
+    try {
+      const alive = await pingServer();
+      if (!alive) {
+        alert('Backend unreachable (ping failed).');
+        return;
+      }
+      const res = await axios.post(`${API_BASE}/api/commands`, null, { params });
+      if (res.status >= 200 && res.status < 300) {
+        alert('Command sent successfully');
+      } else {
+        alert('Command failed: ' + res.status);
+      }
+    } catch (err) {
+      console.error('sendCommand error', err);
+      const msg = err?.response?.data ?? err.message ?? String(err);
+      alert('Command error: ' + msg);
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function fetchAll() {
     try {
@@ -157,6 +196,7 @@ function App() {
         <div className="tabs">
           <button className={activeTab==='live'? 'active':''} onClick={() => setActiveTab('live')}>Live</button>
           <button className={activeTab==='stored'? 'active':''} onClick={() => setActiveTab('stored')}>Stored</button>
+          <button className={activeTab==='commands'? 'active':''} onClick={() => setActiveTab('commands')} style={{marginLeft:8}}>Commands</button>
         </div>
 
         <div>
@@ -178,6 +218,31 @@ function App() {
         {activeTab === 'stored' && (
           <div className="actions">
             <button onClick={fetchDatasets}>Refresh list</button>
+          </div>
+        )}
+        {activeTab === 'commands' && (
+          <div className="actions">
+            <div style={{display:'flex',gap:8,flexDirection:'column'}}>
+              <div>
+                <b>Langzeittest</b>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Start' })}>Start</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Stop' })}>Stop</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Pause' })}>Pause</button>
+              </div>
+              <div style={{marginTop:8}}>
+                <b>Detailtest</b>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Start' })}>Start</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Stop' })}>Stop</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Pause' })}>Pause</button>
+              </div>
+              <div style={{marginTop:8}}>
+                <b>Einzeltest</b>
+                <label style={{marginLeft:8}}>Ventilnummer: <input value={einzelVentil} onChange={e=>setEinzelVentil(e.target.value)} style={{marginLeft:8}} /></label>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Start', value: einzelVentil })}>Start</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Stop', value: einzelVentil })}>Stop</button>
+                <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Pause', value: einzelVentil })}>Pause</button>
+              </div>
+            </div>
           </div>
         )}
       </section>

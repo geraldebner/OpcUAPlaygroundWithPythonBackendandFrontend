@@ -556,6 +556,116 @@ public class OpcUaService : IDisposable
         return allOk;
     }
 
+    /// <summary>
+    /// Execute a command mapped in the DB_Kommands section (e.g. Langzeittest Start/Stop/Pause, Detailtest Start/Stop/Pause, Einzeltest Start/Stop/Pause).
+    /// If a payload value is provided it will attempt to write that value to a matching parameter (e.g. Einzeltest_Ventilnummer) before triggering the command.
+    /// The method will search the loaded mapping entries for a best-match node id for the requested testType/action.
+    /// </summary>
+    public bool ExecuteCommand(int blockIndex, string testType, string action, string? payload = null)
+    {
+        _logger?.LogDebug("ExecuteCommand requested block={Block} testType={TestType} action={Action} payloadProvided={HasPayload} connected={Connected}", blockIndex, testType, action, payload != null, _connected);
+        if (!_connected || _client == null) return false;
+
+        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
+        if (mappedGroups == null || mappedGroups.Count == 0)
+        {
+            _logger?.LogDebug("ExecuteCommand: no mapping for block {Block}", blockIndex);
+            return false;
+        }
+
+        // Log available mapping groups for easier debugging
+        try
+        {
+            foreach (var g in mappedGroups)
+            {
+                _logger?.LogTrace("ExecuteCommand: mapping group '{Group}' contains {Count} entries", g.Key, g.Value.Count);
+            }
+        }
+        catch { }
+
+        // Optionally write payload to a parameter first (common for Einzeltest: Ventilnummer)
+        if (!string.IsNullOrEmpty(payload))
+        {
+            // try find a parameter name that contains Ventilnummer or Einzeltest_Ventilnummer
+            var found = false;
+            foreach (var kv in mappedGroups)
+            {
+                foreach (var (param, nodeId) in kv.Value)
+                {
+                    if (string.IsNullOrEmpty(nodeId)) continue;
+                    if (param.IndexOf("Ventilnummer", StringComparison.OrdinalIgnoreCase) >= 0 || param.IndexOf("Einzeltest_Ventilnummer", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        try
+                        {
+                            _logger?.LogTrace("ExecuteCommand: attempting payload write to node {NodeId} for param {Param} with value '{Payload}'", nodeId, param, payload);
+                            _client.WriteNode(nodeId, payload);
+                            _logger?.LogTrace("ExecuteCommand: wrote payload to node {NodeId} <- {Value} (param={Param})", nodeId, payload, param);
+                            found = true;
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex, "ExecuteCommand: failed writing payload to node {NodeId} for param {Param}", nodeId, param);
+                            return false;
+                        }
+                    }
+                }
+                if (found) break;
+            }
+            if (!found)
+            {
+                _logger?.LogDebug("ExecuteCommand: payload provided but no Ventilnummer mapping found for block {Block}", blockIndex);
+            }
+        }
+
+        // Now trigger the action node. We'll search mapping entries for a parameter name that matches pattern like "{testType}_{action}" or ends with "_{action}" and contains testType.
+        string targetParamExact = $"{testType}_{action}";
+        string targetAction = action;
+
+        string? actionNodeId = null;
+        foreach (var kv in mappedGroups)
+        {
+            foreach (var (param, nodeId) in kv.Value)
+            {
+                if (string.IsNullOrEmpty(nodeId)) continue;
+                // log candidate
+                _logger?.LogTrace("ExecuteCommand: checking mapping param='{Param}' node='{NodeId}'", param, nodeId);
+                // exact match
+                if (string.Equals(param, targetParamExact, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: exact match found param={Param} node={NodeId}", param, nodeId); break; }
+                // contains both testType and action
+                if (param.IndexOf(testType, StringComparison.OrdinalIgnoreCase) >= 0 && param.EndsWith("_" + targetAction, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: match found by containing testType and action param={Param} node={NodeId}", param, nodeId); break; }
+                // ends with action only (fallback)
+                if (param.EndsWith("_" + targetAction, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: fallback match found param={Param} node={NodeId}", param, nodeId); break; }
+            }
+            if (!string.IsNullOrEmpty(actionNodeId)) break;
+        }
+
+        if (string.IsNullOrEmpty(actionNodeId))
+        {
+            _logger?.LogWarning("ExecuteCommand: could not find node mapping for action {Action} of testType {TestType} in block {Block}", action, testType, blockIndex);
+            return false;
+        }
+
+        // Write a trigger value. Many command nodes are boolean (1/0) or integer. We'll attempt 1 or true.
+        try
+        {
+            // try writing integer 1 first
+            try { _logger?.LogTrace("ExecuteCommand: attempting integer trigger write to {NodeId}", actionNodeId); _client.WriteNode(actionNodeId, 1); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- 1", actionNodeId); return true; }
+            catch (Exception exInt) { _logger?.LogTrace(exInt, "ExecuteCommand: integer write failed for {NodeId}", actionNodeId); }
+            // try boolean true
+            try { _logger?.LogTrace("ExecuteCommand: attempting boolean trigger write to {NodeId}", actionNodeId); _client.WriteNode(actionNodeId, true); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- true", actionNodeId); return true; }
+            catch (Exception exBool) { _logger?.LogTrace(exBool, "ExecuteCommand: boolean write failed for {NodeId}", actionNodeId); }
+            // try string
+            try { _logger?.LogTrace("ExecuteCommand: attempting string trigger write to {NodeId} value={Action}", actionNodeId, action); _client.WriteNode(actionNodeId, action); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- {Action}", actionNodeId, action); return true; }
+            catch (Exception ex) { _logger?.LogWarning(ex, "ExecuteCommand: failed writing to action node {NodeId}", actionNodeId); return false; }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "ExecuteCommand: unexpected error writing action node {NodeId}", actionNodeId);
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         try
