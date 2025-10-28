@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
@@ -6,6 +6,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
   const [measurements, setMeasurements] = useState({});
   const [ltData, setLtData] = useState(null);
   const [einzelVentil, setEinzelVentil] = useState('');
+  const [liveData, setLiveData] = useState(null);
 
   async function pingServer() {
     try {
@@ -38,6 +39,41 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
       alert('Command error: ' + msg);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function fetchLiveData() {
+    try {
+      const res = await axios.get(`${apiBase}/api/parameters`);
+      const data = res.data || [];
+      const block = data.find(b => b.index === selectedBlock) || null;
+      setLiveData(block);
+    } catch (e) {
+      console.error('fetchLiveData', e);
+    }
+  }
+
+  useEffect(() => {
+    // load live data when component mounts or selectedBlock changes
+    fetchLiveData();
+  }, [selectedBlock]);
+
+  async function readSingleParameter(group, name) {
+    try {
+      const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { params: { group, name } });
+      const p = res.data;
+      // update liveData locally
+      setLiveData(prev => {
+        if (!prev) return prev;
+        const g = { ...(prev.groups || {}) };
+        if (!g[group]) return prev;
+        const list = g[group].map(item => item.name === p.name ? { ...item, value: p.value } : item);
+        g[group] = list;
+        return { ...prev, groups: g };
+      });
+    } catch (e) {
+      console.error('readSingleParameter', e);
+      alert('Read failed. See console.');
     }
   }
 
@@ -121,6 +157,35 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+        <div style={{borderTop:'1px solid #eee', marginTop:12, paddingTop:12}}>
+          <h4>Live Data (Daten / Kommando groups)</h4>
+          <div style={{marginBottom:8}}>
+            <button onClick={fetchLiveData}>Refresh Live Data</button>
+          </div>
+          {liveData && liveData.groups && (
+            Object.keys(liveData.groups).filter(g => {
+              const n = (g||'').toLowerCase();
+              return n.includes('daten') || n.includes('strom') || n.includes('kommand');
+            }).map(g => (
+              <div key={g} className="group-card">
+                <h4>{g}</h4>
+                <table className="param-table">
+                  <tbody>
+                    {liveData.groups[g].map((p, i) => (
+                      <tr key={p.name}>
+                        <td className="param-name">{p.name}</td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{String(p.value)}</code></td>
+                        <td>
+                          <button onClick={() => readSingleParameter(g, p.name)}>Read</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
           )}
         </div>
       </div>
