@@ -33,7 +33,7 @@ class VentilTesterSimServer:
         # Objects folder
         self.objects = self.server.get_objects_node()
 
-        # will hold ua.Node objects keyed by (ns,i)
+        # will hold ua.Node objects keyed by (ns,i) -> (var, dtype, label)
         self.nodes = {}
 
         if mapping_path is None:
@@ -99,7 +99,8 @@ class VentilTesterSimServer:
                 ua_nodeid = ua.NodeId(ident, ns)
                 var = self.objects.add_variable(ua_nodeid, name, initial)
                 var.set_writable()
-                self.nodes[(ns, ident)] = (var, dtype)
+                # store label too for specialized behavior
+                self.nodes[(ns, ident)] = (var, dtype, label)
             except Exception as e:
                 print(f"Failed to create node {nodeid}: {e}")
 
@@ -112,8 +113,46 @@ class VentilTesterSimServer:
 
     def _update_loop(self):
         while not self._stop.is_set():
-            for (ns, ident), (var, dtype) in list(self.nodes.items()):
+            for (ns, ident), (var, dtype, label) in list(self.nodes.items()):
                 try:
+                    # specialized behavior based on label/group keywords
+                    lbl = (label or '').lower()
+                    # Langzeittest counters -> increase slowly (double)
+                    if 'langzeittest' in lbl or 'langzeit' in lbl:
+                        try:
+                            cur = float(var.get_value() or 0.0)
+                            var.set_value(cur + random.uniform(0.0, 1.0))
+                        except Exception:
+                            # fallback to random
+                            var.set_value(random.uniform(0.0, 10.0))
+                        continue
+
+                    # Strommessung values -> fluctuate (double)
+                    if 'strom' in lbl or 'strommess' in lbl:
+                        try:
+                            cur = float(var.get_value() or 0.0)
+                            var.set_value(max(0.0, cur + random.uniform(-0.2, 0.2)))
+                        except Exception:
+                            var.set_value(random.uniform(0.0, 10.0))
+                        continue
+
+                    # Status / DatenReady flags (by name)
+                    if 'status' in lbl:
+                        # cycle through some states occasionally
+                        if random.random() < 0.02:
+                            var.set_value(random.choice(['idle', 'running', 'error', 'done']))
+                        continue
+                    if 'datenready' in lbl or 'daten_ready' in lbl or 'daten ready' in lbl:
+                        # sometimes set true when measurements updated
+                        if random.random() < 0.1:
+                            var.set_value(True)
+                        else:
+                            # occasionally false
+                            if random.random() < 0.02:
+                                var.set_value(False)
+                        continue
+
+                    # default handling based on dtype
                     if dtype == '6':
                         # double, random small variation
                         val = (var.get_value() or 0.0) + random.uniform(-0.5, 0.5)

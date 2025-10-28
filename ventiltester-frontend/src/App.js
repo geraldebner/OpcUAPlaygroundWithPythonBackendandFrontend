@@ -12,6 +12,8 @@ function App() {
   const [einzelVentil, setEinzelVentil] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [sending, setSending] = useState(false);
+  const [measurements, setMeasurements] = useState({});
+  const [ltData, setLtData] = useState(null);
 
   useEffect(() => { fetchAll(); fetchDatasets(); }, []);
 
@@ -197,6 +199,7 @@ function App() {
           <button className={activeTab==='live'? 'active':''} onClick={() => setActiveTab('live')}>Live</button>
           <button className={activeTab==='stored'? 'active':''} onClick={() => setActiveTab('stored')}>Stored</button>
           <button className={activeTab==='commands'? 'active':''} onClick={() => setActiveTab('commands')} style={{marginLeft:8}}>Commands</button>
+          <button className={activeTab==='measurements'? 'active':''} onClick={() => setActiveTab('measurements')} style={{marginLeft:8}}>Measurements</button>
         </div>
 
         <div>
@@ -245,6 +248,38 @@ function App() {
             </div>
           </div>
         )}
+        {activeTab === 'measurements' && (
+          <div className="actions">
+            <div style={{display:'flex',gap:8,flexDirection:'column'}}>
+              <div>
+                <b>Langzeittest (block)</b>
+                <button style={{marginLeft:8}} onClick={async ()=>{
+                  const res = await axios.get(`${API_BASE}/api/langzeittest/${selectedBlock}`);
+                  setLtData(res.data);
+                }}>Refresh</button>
+              </div>
+              <div style={{marginTop:8}}>
+                <b>Strommessung</b>
+                <button style={{marginLeft:8}} onClick={async ()=>{
+                  const res = await axios.get(`${API_BASE}/api/strommessung/status/${selectedBlock}`);
+                  setMeasurements(prev=>({ ...prev, status: res.data }));
+                }}>Block Status</button>
+                <button style={{marginLeft:8}} onClick={async ()=>{
+                  const res = await axios.get(`${API_BASE}/api/strommessung/status`);
+                  setMeasurements(prev=>({ ...prev, allStatus: res.data }));
+                }}>All Status</button>
+                <button style={{marginLeft:8}} onClick={async ()=>{
+                  const res = await axios.get(`${API_BASE}/api/strommessung/block/${selectedBlock}`);
+                  setMeasurements(prev=>({ ...prev, block: res.data }));
+                }}>Block Data</button>
+                <button style={{marginLeft:8}} onClick={async ()=>{
+                  const res = await axios.get(`${API_BASE}/api/strommessung/all`);
+                  setMeasurements(prev=>({ ...prev, all: res.data }));
+                }}>All Data</button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <main className="main-grid">
@@ -252,6 +287,15 @@ function App() {
           {blocks.filter(b => b.index === selectedBlock).map(b => (
             <div key={b.index} className="block-card">
               <h3>Block {b.index}</h3>
+
+              {activeTab === 'measurements' && ltData && ltData.blockIndex === b.index && (
+                <div style={{padding:8}}>
+                  <h4>Langzeittest - Ventils</h4>
+                  <ul>
+                    {ltData.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+                  </ul>
+                </div>
+              )}
 
               
 
@@ -313,6 +357,47 @@ function App() {
                 <button onClick={saveDataset} style={{marginLeft:8}}>Save current as dataset</button>
               </div>
             </>
+          )}
+
+          {activeTab === 'measurements' && (
+            <div style={{padding:8}}>
+              <h3>Measurements</h3>
+              {measurements.status && (
+                <div>
+                  <h4>Block Status</h4>
+                  <div>Block {measurements.status.blockIndex}: Status={measurements.status.status} DatenReady={String(measurements.status.datenReady)}</div>
+                </div>
+              )}
+              {measurements.allStatus && (
+                <div>
+                  <h4>All Status</h4>
+                  <ul>
+                    {measurements.allStatus.map(s => <li key={s.blockIndex}>Block {s.blockIndex}: {s.status} (DatenReady={String(s.datenReady)})</li>)}
+                  </ul>
+                </div>
+              )}
+              {measurements.block && (
+                <div>
+                  <h4>Block Data</h4>
+                  <ul>
+                    {measurements.block.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+                  </ul>
+                </div>
+              )}
+              {measurements.all && (
+                <div>
+                  <h4>All Blocks</h4>
+                  {measurements.all.map(b => (
+                    <div key={b.blockIndex} style={{marginBottom:8}}>
+                      <b>Block {b.blockIndex}</b>
+                      <ul>
+                        {b.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </aside>
       </main>
