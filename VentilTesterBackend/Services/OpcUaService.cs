@@ -20,6 +20,7 @@ public class OpcUaService : IDisposable
     private readonly NodeMapping _mapping;
     private readonly ILogger<OpcUaService>? _logger;
     private readonly System.Threading.CancellationTokenSource _cts = new System.Threading.CancellationTokenSource();
+    private readonly string _endpoint;
 
     // helper: cache of property info could be added if performance needed
 
@@ -28,6 +29,7 @@ public class OpcUaService : IDisposable
         _config = config;
         _mapping = mapping;
         _logger = logger;
+        _endpoint = _config.GetValue<string>("OpcUa:EndpointUrl") ?? "opc.tcp://localhost:4840";
         TryConnect();
         // start background reconnection loop so the service will recover if the simulation server
         // is started after this backend. Runs until disposed.
@@ -48,6 +50,16 @@ public class OpcUaService : IDisposable
             }
         });
     }
+
+    /// <summary>
+    /// Indicates whether the service currently has a live connection to an OPC UA server.
+    /// </summary>
+    public bool IsConnected => _connected;
+
+    /// <summary>
+    /// The endpoint URL this service attempts to connect to (from configuration).
+    /// </summary>
+    public string Endpoint => _endpoint;
 
     private void TryConnect()
     {

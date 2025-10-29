@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
+import StatusView from "./components/StatusView";
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -10,7 +11,7 @@ type Group = { [groupKey: string]: Parameter[] };
 type Block = { index: number; groups?: Group; AllgemeineParameter?: any; /* other typed groups may exist */ };
 
 export default function App() {
-  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'>('parameters');
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'>('parameters');
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [currentBlock, setCurrentBlock] = useState<Block | null>(null);
@@ -26,6 +27,10 @@ export default function App() {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    // nothing specific for status here - StatusView handles its own loading
+  }, [selectedTab]);
 
   useEffect(() => {
     if (selectedBlock != null) fetchBlock(selectedBlock);
@@ -79,6 +84,8 @@ export default function App() {
       setCurrentBlock(null);
     }
   }
+
+  
 
   function initEditsFromBlock(block: Block) {
     const newEdits: Record<string, Record<string, string>> = {};
@@ -184,6 +191,7 @@ export default function App() {
         <span style={{ marginLeft: 16 }}>
           <button onClick={() => setSelectedTab('parameters')} disabled={selectedTab==='parameters'}>Parameters</button>
           <button onClick={() => setSelectedTab('commands')} disabled={selectedTab==='commands'} style={{ marginLeft: 8 }}>Commands</button>
+          <button onClick={() => setSelectedTab('status')} disabled={selectedTab==='status'} style={{ marginLeft: 8 }}>Status</button>
         </span>
       </div>
 
@@ -222,6 +230,10 @@ export default function App() {
             <button onClick={() => executeCommand('Einzeltest', 'Pause', einzelVentil)} disabled={!!cmdLoading['Einzeltest::Pause']} style={{ marginLeft: 8 }}>Pause</button>
           </div>
         </div>
+      )}
+
+      {selectedTab === 'status' && (
+        <StatusView />
       )}
 
       <div style={{ marginTop: 20 }}>

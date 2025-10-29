@@ -3,6 +3,7 @@ import axios from 'axios';
 import './App.css';
 import ParametersView from './components/ParametersView';
 import CommandsMeasurementsView from './components/CommandsMeasurementsView';
+import StatusView from './components/StatusView';
 
 function App() {
   const [blocks, setBlocks] = useState([]);
@@ -39,6 +40,7 @@ function App() {
         <div className="tabs">
           <button className={topTab==='parameters'? 'active':''} onClick={() => setTopTab('parameters')}>Parameters</button>
           <button className={topTab==='commands'? 'active':''} onClick={() => setTopTab('commands')} style={{marginLeft:8}}>Commands & Measurements</button>
+          <button className={topTab==='status'? 'active':''} onClick={() => setTopTab('status')} style={{marginLeft:8}}>Status</button>
         </div>
 
         <div>
@@ -56,6 +58,9 @@ function App() {
           )}
           {topTab === 'commands' && (
             <CommandsMeasurementsView apiBase={API_BASE} selectedBlock={selectedBlock} />
+          )}
+          {topTab === 'status' && (
+            <StatusView />
           )}
         </div>
       </main>

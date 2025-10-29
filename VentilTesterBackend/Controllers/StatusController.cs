@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using VentilTesterBackend.Services;
+using VentilTesterBackend.Data;
 
 namespace VentilTesterBackend.Controllers;
 
@@ -9,9 +10,11 @@ public class StatusController : ControllerBase
 {
     private readonly OpcUaService _opc;
     private readonly NodeMapping _mapping;
+    private readonly AppDbContext _db;
 
-    public StatusController(OpcUaService opc, NodeMapping mapping)
+    public StatusController(AppDbContext db, OpcUaService opc, NodeMapping mapping)
     {
+        _db = db;
         _opc = opc;
         _mapping = mapping;
     }
@@ -20,8 +23,15 @@ public class StatusController : ControllerBase
     public ActionResult<object> Get()
     {
         // Provide a quick health/status summary
-        var connected = _opc != null; // best-effort; OpcUaService logs connection
-        return new { backend = "ok", opcua = connected };
+        bool dbOk = false;
+        try { dbOk = _db.Database.CanConnect(); } catch { dbOk = false; }
+
+        var opc = new {
+            connected = _opc?.IsConnected ?? false,
+            endpoint = _opc?.Endpoint ?? string.Empty
+        };
+
+        return new { backend = "ok", opcua = opc, database = new { connected = dbOk } };
     }
 
     [HttpGet("sample/{blockIndex}")]
