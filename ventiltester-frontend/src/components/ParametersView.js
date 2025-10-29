@@ -60,7 +60,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
 
   async function fetchDatasets() {
     try {
-      const res = await axios.get('/api/datasets');
+      const res = await axios.get(`${apiBase}/api/datasets`);
       setDatasets(res.data || []);
     } catch (e) {
       console.error('fetchDatasets', e);
@@ -100,8 +100,66 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     if (!b) return;
     const name = prompt('Name for dataset', `Snapshot_${selectedBlock}_${new Date().toISOString()}`) || '';
     const comment = prompt('Comment', '') || '';
+    // send as legacy dataset shape to /api/datasets (supports { block: ... } for backwards compatibility)
     await axios.post(`${apiBase}/api/datasets`, { name, comment, blockIndex: selectedBlock, block: b });
     fetchDatasets();
+  }
+
+  async function loadDataset(id) {
+    try {
+      const res = await axios.get(`${apiBase}/api/datasets/${id}`);
+      const payload = res.data?.payload;
+      if (!payload) { alert('Dataset has no payload'); return; }
+      let obj = null;
+      try { obj = JSON.parse(payload); } catch { obj = payload; }
+      // set loaded block into UI for selectedBlock
+      // update blocks and edits for the selected block
+      setBlocks(prev => {
+        const others = prev.filter(x => x.index !== selectedBlock);
+        return [...others, { index: selectedBlock, groups: obj.groups || obj }];
+      });
+      // populate edits from loaded block
+      const newEdits = { ...edits };
+      const groups = obj.groups || obj;
+      if (groups) {
+        for (const [g, list] of Object.entries(groups)) {
+          for (const p of list) {
+            newEdits[`${selectedBlock}||${g}||${p.name}`] = p.value;
+          }
+        }
+      }
+      setEdits(newEdits);
+      alert('Dataset loaded into UI (preview)');
+    } catch (e) {
+      console.error('loadDataset', e);
+      alert('Load dataset failed');
+    }
+  }
+
+  async function writeDatasetToOpc(id) {
+    if (!confirm('Write this parameter set to the OPC UA device?')) return;
+    try {
+      const res = await axios.post(`${apiBase}/api/datasets/${id}/write`);
+      if (res.status >= 200 && res.status < 300) {
+        alert('Dataset written to OPC UA');
+      } else {
+        alert('Write failed: ' + res.status);
+      }
+    } catch (e) {
+      console.error('writeDatasetToOpc', e);
+      alert('Write dataset failed');
+    }
+  }
+
+  async function deleteDataset(id) {
+    if (!confirm('Delete dataset?')) return;
+    try {
+      await axios.delete(`${apiBase}/api/datasets/${id}`);
+      fetchDatasets();
+    } catch (e) {
+      console.error('deleteDataset', e);
+      alert('Delete failed');
+    }
   }
 
   async function writeBlockToOpc(selectedBlock) {
@@ -177,8 +235,9 @@ export default function ParametersView({ apiBase, selectedBlock }) {
                   <small>{new Date(ds.createdAt).toLocaleString()}</small>
                 </div>
                 <div className="dataset-actions">
-                  <button onClick={() => {/* load handled by parent if needed */}}>Load into UI</button>
-                  <button onClick={() => {/* write handled by parent if needed */}}>Write to OPC</button>
+                  <button onClick={() => loadDataset(ds.id)}>Load into UI</button>
+                  <button onClick={() => writeDatasetToOpc(ds.id)}>Write to OPC</button>
+                  <button style={{marginLeft:8}} onClick={() => deleteDataset(ds.id)}>Delete</button>
                 </div>
               </li>
             ))}
