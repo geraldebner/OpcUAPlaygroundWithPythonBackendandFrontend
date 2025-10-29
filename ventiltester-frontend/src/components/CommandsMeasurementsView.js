@@ -7,6 +7,11 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
   const [ltData, setLtData] = useState(null);
   const [einzelVentil, setEinzelVentil] = useState('');
   const [liveData, setLiveData] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
+  const [snapshotName, setSnapshotName] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalJson, setModalJson] = useState('');
+  const [modalTitle, setModalTitle] = useState('');
 
   async function pingServer() {
     try {
@@ -77,6 +82,106 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
+  async function listSnapshots() {
+    try {
+      const res = await axios.get(`${apiBase}/api/measurementsets`, { params: { blockIndex: selectedBlock } });
+      setSnapshots(res.data || []);
+    } catch (e) {
+      console.error('listSnapshots', e);
+      alert('Failed to list snapshots');
+    }
+  }
+
+  async function saveSnapshot() {
+    try {
+      const payloadObj = measurements.block || liveData || {};
+      if (!payloadObj || Object.keys(payloadObj).length === 0) {
+        alert('No block data available to save. Refresh Block Data or Live Data first.');
+        return;
+      }
+      const body = {
+        name: snapshotName && snapshotName.length ? snapshotName : `Snapshot ${new Date().toISOString()}`,
+        blockIndex: selectedBlock,
+        jsonPayload: JSON.stringify(payloadObj),
+      };
+      const res = await axios.post(`${apiBase}/api/measurementsets`, body);
+      if (res.status >= 200 && res.status < 300) {
+        alert('Snapshot saved');
+        setSnapshotName('');
+        listSnapshots();
+      } else {
+        alert('Save failed: ' + res.status);
+      }
+    } catch (e) {
+      console.error('saveSnapshot', e);
+      alert('Save snapshot failed');
+    }
+  }
+
+  async function loadSnapshot(id) {
+    try {
+      const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
+      const payload = res.data?.payload;
+      if (!payload) {
+        alert('Snapshot has no payload');
+        return;
+      }
+      let obj = null;
+      try { obj = JSON.parse(payload); } catch { obj = payload; }
+      // If the payload contains ventils or block-like structure, set it to measurements.block for preview
+      setMeasurements(prev => ({ ...prev, block: obj }));
+      alert('Snapshot loaded into Block Data preview');
+    } catch (e) {
+      console.error('loadSnapshot', e);
+      alert('Load snapshot failed');
+    }
+  }
+
+  async function previewSnapshot(id, name) {
+    try {
+      const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
+      const payload = res.data?.payload;
+      if (!payload) { alert('Snapshot has no payload'); return; }
+      let pretty = payload;
+      try { pretty = JSON.stringify(JSON.parse(payload), null, 2); } catch { /* keep as-is */ }
+      setModalTitle(name || `Snapshot ${id}`);
+      setModalJson(pretty);
+      setShowModal(true);
+    } catch (e) {
+      console.error('previewSnapshot', e);
+      alert('Preview failed');
+    }
+  }
+
+  async function restoreSnapshot(id) {
+    if (!confirm('Restore this snapshot to the device? This will write values to the OPC UA server.')) return;
+    try {
+      const res = await axios.post(`${apiBase}/api/measurementsets/${id}/restore`);
+      if (res.status >= 200 && res.status < 300) {
+        alert('Snapshot restored to device');
+        // optional: refresh live data
+        fetchLiveData();
+      } else {
+        alert('Restore failed: ' + res.status);
+      }
+    } catch (e) {
+      console.error('restoreSnapshot', e);
+      const msg = e?.response?.data ?? e.message ?? String(e);
+      alert('Restore error: ' + JSON.stringify(msg));
+    }
+  }
+
+  async function deleteSnapshot(id) {
+    if (!confirm('Delete snapshot?')) return;
+    try {
+      await axios.delete(`${apiBase}/api/measurementsets/${id}`);
+      listSnapshots();
+    } catch (e) {
+      console.error('deleteSnapshot', e);
+      alert('Delete failed');
+    }
+  }
+
   return (
     <div>
       <div className="actions">
@@ -100,6 +205,17 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Stop', value: einzelVentil })}>Stop</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Pause', value: einzelVentil })}>Pause</button>
           </div>
+          {showModal && (
+            <div style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>
+              <div style={{background:'#fff',padding:16,width:'80%',height:'80%',overflow:'auto',boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                  <h4 style={{margin:0}}>{modalTitle}</h4>
+                  <button onClick={()=>setShowModal(false)}>Close</button>
+                </div>
+                <pre style={{whiteSpace:'pre-wrap',wordBreak:'break-word',fontSize:12}}>{modalJson}</pre>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -111,6 +227,29 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/status`); setMeasurements(prev=>({ ...prev, allStatus: res.data })); }}>All Status</button>
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/block/${selectedBlock}`); setMeasurements(prev=>({ ...prev, block: res.data })); }}>Block Data</button>
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/all`); setMeasurements(prev=>({ ...prev, all: res.data })); }}>All Data</button>
+        </div>
+
+        <div style={{marginTop:10, padding:8, borderTop:'1px dashed #ccc'}}>
+          <h5>Snapshots</h5>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input placeholder="Snapshot name" value={snapshotName} onChange={e=>setSnapshotName(e.target.value)} />
+            <button onClick={saveSnapshot}>Save Snapshot</button>
+            <button onClick={listSnapshots}>List Snapshots</button>
+          </div>
+          <div style={{marginTop:8}}>
+            {snapshots.length === 0 && <div style={{fontSize:12,color:'#666'}}>No snapshots. Click "List Snapshots" to refresh.</div>}
+            {snapshots.map(s => (
+              <div key={s.id} style={{display:'flex',gap:8,alignItems:'center',padding:'6px 0',borderBottom:'1px solid #eee'}}>
+                <div style={{flex:1}}><b>{s.name}</b> <span style={{color:'#666'}}>({new Date(s.createdAt).toLocaleString()})</span></div>
+                <div>
+                  <button onClick={()=>previewSnapshot(s.id, s.name)}>Preview</button>
+                  <button style={{marginLeft:6}} onClick={()=>loadSnapshot(s.id)}>Load</button>
+                  <button style={{marginLeft:6}} onClick={()=>restoreSnapshot(s.id)}>Restore</button>
+                  <button style={{marginLeft:6}} onClick={()=>deleteSnapshot(s.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {ltData && ltData.blockIndex === selectedBlock && (

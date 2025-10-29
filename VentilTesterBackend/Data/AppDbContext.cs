@@ -10,4 +10,5 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<ParameterSet> ParameterSets { get; set; } = null!;
+    public DbSet<MeasurementSet> MeasurementSets { get; set; } = null!;
 }
