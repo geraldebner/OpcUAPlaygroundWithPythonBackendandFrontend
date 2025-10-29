@@ -1,0 +1,80 @@
+' Detailed backend class diagram (VentilTesterBackend)
+@startuml
+!theme plain
+
+package "Controllers" {
+  class ParametersController {
+    +GetAllParameters()
+    +GetValue(blockIndex:int, group:string, name:string)
+    +WriteValue(blockIndex:int, group:string, name:string, payload:object)
+  }
+
+  class CommandsController {
+    +PostCommand(index:int, testType:string, action:string, value?:string)
+    +Ping()
+  }
+
+  class LangzeittestController {
+    +GetLangzeittest(blockIndex:int)
+  }
+
+  class StrommessungController {
+    +GetStatus()
+    +GetBlock(blockIndex:int)
+    +GetAll()
+  }
+}
+
+package "Services" {
+  class OpcUaService {
+    -client: OpcUaClient
+    +Connect()
+    +Read(nodeId:string): object
+    +Write(nodeId:string, value:object)
+    +ExecuteCommand(index:int, testType:string, action:string, payload?:string)
+  }
+
+  class NodeMapping {
+    -mappingFile:string
+    +Load()
+    +GetBlocks(): List<Block>
+    +FindNode(blockIndex:int, group:string, name:string): string
+  }
+
+  class DatasetService {
+    +SaveDataset(name:string, data:object)
+    +LoadDataset(name:string): object
+  }
+}
+
+package "Data" {
+  class AppDbContext {
+    +Datasets: DbSet<Dataset>
+  }
+
+  class Dataset {
+    -id: int
+    -name: string
+    -json: string
+  }
+
+  class Models {
+    +LangzeittestData
+    +StrommessungData
+  }
+}
+
+' Relationships
+ParametersController ..> OpcUaService : uses
+ParametersController ..> NodeMapping : uses
+CommandsController ..> OpcUaService : uses
+LangzeittestController ..> OpcUaService : uses
+StrommessungController ..> OpcUaService : uses
+
+DatasetService ..> AppDbContext : uses
+AppDbContext *-- Dataset
+
+NodeMapping *-- Models
+OpcUaService ..> NodeMapping : resolves nodeIds
+
+@enduml

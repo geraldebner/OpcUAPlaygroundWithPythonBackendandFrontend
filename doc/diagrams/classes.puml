@@ -1,0 +1,38 @@
+' Class diagram (simplified) for key backend components
+@startuml
+!theme plain
+
+class OpcUaService {
+  +Connect()
+  +ReadValue(blockIndex:int, group:string, name:string): object
+  +WriteValue(blockIndex:int, group:string, name:string, value:object)
+  +ExecuteCommand(index:int, testType:string, action:string, payload?:string)
+}
+
+class NodeMapping {
+  +Load(mappingPath:string)
+  +GetBlocks(): List<Block>
+}
+
+class Block {
+  -index:int
+  -name:string
+  -groups:List<Group>
+}
+
+class Group {
+  -name:string
+  -items:List<Item>
+}
+
+class Item {
+  -name:string
+  -nodeId:string
+}
+
+OpcUaService --> NodeMapping : uses
+NodeMapping *-- Block
+Block *-- Group
+Group *-- Item
+
+@enduml

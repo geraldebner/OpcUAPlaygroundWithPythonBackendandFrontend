@@ -1,0 +1,28 @@
+' Component diagram for VentilTester system
+@startuml
+!theme plain
+
+package "Frontend" {
+  [React App] as Frontend
+}
+
+package "Backend" {
+  [ASP.NET Web API] as Backend
+  [OpcUaService] as OpcUaService
+  [NodeMapping] as NodeMapping
+  [Controllers] as Controllers
+  [AppDb (SQLite)] as Database
+}
+
+package "Simulator" {
+  [Python OPC UA Simulator] as Simulator
+}
+
+Frontend -down-> Backend : HTTP (REST) /api/...
+Backend -down-> OpcUaService : uses
+OpcUaService -down-> Simulator : OPC UA (Read/Write)
+Backend --> Database : read/write datasets
+Backend --> NodeMapping : load mapping
+Controllers --> OpcUaService : call read/write/execute
+
+@enduml
