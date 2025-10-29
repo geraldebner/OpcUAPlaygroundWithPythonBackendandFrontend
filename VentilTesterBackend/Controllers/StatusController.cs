@@ -11,12 +11,14 @@ public class StatusController : ControllerBase
     private readonly OpcUaService _opc;
     private readonly NodeMapping _mapping;
     private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
 
-    public StatusController(AppDbContext db, OpcUaService opc, NodeMapping mapping)
+    public StatusController(AppDbContext db, OpcUaService opc, NodeMapping mapping, IConfiguration config)
     {
         _db = db;
         _opc = opc;
         _mapping = mapping;
+        _config = config;
     }
 
     [HttpGet]
@@ -26,9 +28,20 @@ public class StatusController : ControllerBase
         bool dbOk = false;
         try { dbOk = _db.Database.CanConnect(); } catch { dbOk = false; }
 
+        var healthNode = _config.GetValue<string>("OpcUa:HealthNodeId");
+        bool opcAlive = false;
+        try
+        {
+            opcAlive = _opc?.Ping(healthNode) ?? false;
+        }
+        catch { opcAlive = false; }
+
         var opc = new {
-            connected = _opc?.IsConnected ?? false,
-            endpoint = _opc?.Endpoint ?? string.Empty
+            connected = opcAlive,
+            endpoint = _opc?.Endpoint ?? string.Empty,
+            configuredHealthNode = healthNode,
+            lastSuccessfulCheck = _opc?.LastSuccessfulCheck,
+            lastError = _opc?.LastError
         };
 
         return new { backend = "ok", opcua = opc, database = new { connected = dbOk } };

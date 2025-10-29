@@ -21,6 +21,8 @@ public class OpcUaService : IDisposable
     private readonly ILogger<OpcUaService>? _logger;
     private readonly System.Threading.CancellationTokenSource _cts = new System.Threading.CancellationTokenSource();
     private readonly string _endpoint;
+    private DateTime? _lastSuccessfulCheck = null;
+    private string? _lastError = null;
 
     // helper: cache of property info could be added if performance needed
 
@@ -60,6 +62,16 @@ public class OpcUaService : IDisposable
     /// The endpoint URL this service attempts to connect to (from configuration).
     /// </summary>
     public string Endpoint => _endpoint;
+
+    /// <summary>
+    /// Last time a health check succeeded (UTC), or null if none yet.
+    /// </summary>
+    public DateTime? LastSuccessfulCheck => _lastSuccessfulCheck;
+
+    /// <summary>
+    /// Last error message observed during health/read operations, or null if none.
+    /// </summary>
+    public string? LastError => _lastError;
 
     private void TryConnect()
     {
@@ -566,6 +578,67 @@ public class OpcUaService : IDisposable
         }
 
         return allOk;
+    }
+
+    /// <summary>
+    /// Try reading a node and return whether the operation succeeded. Used for health checks.
+    /// </summary>
+    public bool TryReadNode(string nodeId, out object? value)
+    {
+        value = null;
+        if (!_connected || _client == null)
+            return false;
+
+        try
+        {
+            var node = _client.ReadNode(nodeId);
+            value = node?.Value;
+            // success -> update last successful timestamp and clear last error
+            _lastSuccessfulCheck = DateTime.UtcNow;
+            _lastError = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // mark as disconnected to trigger reconnect logic
+            try
+            {
+                _client?.Disconnect();
+            }
+            catch { }
+            _client = null;
+            _connected = false;
+            _lastError = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Ping the OPC UA server by attempting a read on a health node. If nodeId is null the method will try a sensible default.
+    /// Returns true when a read succeeded (server reachable).
+    /// </summary>
+    public bool Ping(string? healthNodeId = null)
+    {
+        var nodeToRead = healthNodeId;
+        if (string.IsNullOrEmpty(nodeToRead))
+        {
+            // try a common server node id as fallback (may not exist on all servers)
+            nodeToRead = "i=2253"; // standard Server_ServerStatus_CurrentTime node id (best-effort)
+        }
+
+        // If not connected, try to connect first (TryConnect will set _connected as side-effect)
+        if (!_connected || _client == null)
+        {
+            TryConnect();
+        }
+
+        var ok = TryReadNode(nodeToRead, out var _);
+        if (ok)
+        {
+            _lastSuccessfulCheck = DateTime.UtcNow;
+            _lastError = null;
+        }
+        return ok;
     }
 
     /// <summary>
