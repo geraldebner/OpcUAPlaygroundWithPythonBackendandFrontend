@@ -72,6 +72,34 @@ Basis-URL (Beispiel): `http://localhost:5000`
 
    - Beschreibung: Gibt die geparste Mapping-Struktur des Backends zurück (Blocks/Gruppen/Items). Nützlich, um die UI deterministisch zu generieren.
 
+9. Parameter sets (legacy: Datasets)
+
+    - GET /api/datasets
+       - Beschreibung: Liste aller gespeicherten Parameter-Sets (Kurzinfo: id, name, blockIndex, createdAt).
+    - GET /api/datasets/{id}
+       - Beschreibung: Liefert ein gespeichertes Parameter-Set inkl. `payload` (JSON string).
+    - POST /api/datasets
+       - Beschreibung: Speichert ein neues Parameter-Set. Der Body kann eine der Formen enthalten:
+          - `{ name, comment, blockIndex, jsonPayload }` — `jsonPayload` ist ein String mit serialisiertem Block.
+          - `{ name, comment, blockIndex, block }` — `block` ist ein Objekt (älteres Frontend-Shape); der Server serialisiert es intern.
+    - DELETE /api/datasets/{id}
+       - Beschreibung: Löscht ein Parameter-Set.
+    - POST /api/datasets/{id}/write
+       - Beschreibung: Schreibt ein gespeichertes Parameter-Set zurück in den OPC UA-Server (Server deserialisiert `payload` zu `Block` und ruft `OpcUaService.WriteBlock`).
+
+10. Measurement snapshots (MeasurementSets)
+
+    - GET /api/measurementsets?blockIndex={n}
+       - Beschreibung: Liste gespeicherter Mess-Snapshots für Block n (Kurzinfo ohne payload).
+    - GET /api/measurementsets/{id}
+       - Beschreibung: Liefert das Mess-Snapshot inkl. `payload` (JSON string).
+    - POST /api/measurementsets
+       - Beschreibung: Speichert ein Mess-Snapshot. Body: `{ name, blockIndex, jsonPayload }`.
+    - DELETE /api/measurementsets/{id}
+       - Beschreibung: Löscht ein Mess-Snapshot.
+    - POST /api/measurementsets/{id}/restore
+       - Beschreibung: Schreibe das Mess-Snapshot zurück in den OPC UA-Server (Restore) — entspricht `WriteBlock` für Messdaten.
+
 Hinweis
 
 - Diese Endpunkte sind eine Zusammenfassung der implementierten Routen. Für exakte Parameternamen, mögliche zusätzliche Query-Parameter oder verfeinerte Response-Formate siehe die Quellcode-Dateien unter `VentilTesterBackend/Controllers`.

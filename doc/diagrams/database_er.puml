@@ -1,0 +1,29 @@
+@startuml
+' Simple ER diagram for ParameterSets and MeasurementSets
+
+entity "ParameterSet" as PS {
+  * Id : int <<PK>>
+  --
+  Name : string
+  CreatedAt : datetime
+  Comment : string
+  BlockIndex : int
+  JsonPayload : text
+}
+
+entity "MeasurementSet" as MS {
+  * Id : int <<PK>>
+  --
+  Name : string
+  CreatedAt : datetime
+  Comment : string
+  BlockIndex : int
+  JsonPayload : text
+}
+
+' DbContext relation
+package "AppDbContext" {
+  PS -- MS : contains
+}
+
+@enduml
