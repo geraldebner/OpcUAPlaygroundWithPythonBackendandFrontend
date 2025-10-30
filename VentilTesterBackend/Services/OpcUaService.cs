@@ -447,13 +447,17 @@ public class OpcUaService : IDisposable
 
         if (!string.IsNullOrEmpty(nodeId))
         {
-            try { _client.WriteNode(nodeId, value); _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId); return false; }
+            try {
+                _client.WriteNode(nodeId, value); 
+                _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId); return false; }
         }
 
         // fallback using base format
         var baseFormat = _config.GetValue<string>("OpcUa:BaseNodeIdFormat") ?? "ns=2;s=VentilTester.Block{0}.{1}.{2}";
         var nodeIdFallback = string.Format(baseFormat, blockIndex, groupKey, paramName);
-        try { _client.WriteNode(nodeIdFallback, value); _logger?.LogTrace("WriteParameter: wrote fallback node {NodeId} <- {Value}", nodeIdFallback, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for fallback node {NodeId}", nodeIdFallback); return false; }
+        try {
+            _client.WriteNode(nodeIdFallback, value); 
+        _logger?.LogTrace("WriteParameter: wrote fallback node {NodeId} <- {Value}", nodeIdFallback, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for fallback node {NodeId}", nodeIdFallback); return false; }
     }
 
     /// <summary>
