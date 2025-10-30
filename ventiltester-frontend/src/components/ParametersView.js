@@ -12,7 +12,10 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   useEffect(() => { fetchAll(); fetchDatasets(); }, []);
 
   useEffect(() => {
-    if (!autoRefresh || paramInnerTab !== 'live') return;
+    if (!autoRefresh)
+      return;
+    if ( paramInnerTab != 'live') 
+      return;
     const id = setInterval(() => fetchAll(), 3000);
     return () => clearInterval(id);
   }, [autoRefresh, paramInnerTab]);
@@ -78,6 +81,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     try {
       const res = await axios.get(`${apiBase}/api/parameters/${blockIndex}/value`, { params: { group, name } });
       const p = res.data;
+      console.debug('fetchALL called in readParam');
       await fetchAll();
       setEdits(prev => ({ ...prev, [getEditKey(blockIndex, group, p.name)]: p.value }));
     } catch (e) {
