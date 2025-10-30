@@ -5,7 +5,8 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   const [blocks, setBlocks] = useState([]);
   const [edits, setEdits] = useState({});
   const [paramInnerTab, setParamInnerTab] = useState('live');
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  // start with auto-refresh disabled to avoid background polling by default
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [datasets, setDatasets] = useState([]);
 
   useEffect(() => { fetchAll(); fetchDatasets(); }, []);
@@ -18,8 +19,10 @@ export default function ParametersView({ apiBase, selectedBlock }) {
 
   async function fetchAll() {
     try {
-      const res = await axios.get(`${apiBase}/api/parameters`);
-      const data = res.data || [];
+  // DEV-TRACE: log when ParametersView requests parameter list
+  console.debug('[API CALL] ParametersView -> GET /api/parameters');
+  const res = await axios.get(`${apiBase}/api/parameters`);
+  const data = res.data || [];
       setBlocks(data.map(d => ({ index: d.index, groups: d.groups })));
       const newEdits = {};
       for (const d of data) {

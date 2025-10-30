@@ -49,8 +49,10 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
 
   async function fetchLiveData() {
     try {
-      const res = await axios.get(`${apiBase}/api/parameters`);
-      const data = res.data || [];
+  // DEV-TRACE: log when CommandsMeasurementsView requests parameter list
+  console.debug('[API CALL] CommandsMeasurementsView -> GET /api/parameters');
+  const res = await axios.get(`${apiBase}/api/parameters`);
+  const data = res.data || [];
       const block = data.find(b => b.index === selectedBlock) || null;
       setLiveData(block);
     } catch (e) {

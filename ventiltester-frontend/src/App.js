@@ -16,8 +16,10 @@ function App() {
     // fetch block list for selector
     async function fetchBlocks() {
       try {
-        const res = await axios.get(`${API_BASE}/api/parameters`);
-        const data = res.data || [];
+  // DEV-TRACE: log when App.js requests parameter list
+  console.debug('[API CALL] App.js -> GET /api/parameters');
+  const res = await axios.get(`${API_BASE}/api/parameters`);
+  const data = res.data || [];
         setBlocks(data.map(d => ({ index: d.index })));
         if (data.length > 0 && !selectedBlock) setSelectedBlock(data[0].index);
       } catch (e) {

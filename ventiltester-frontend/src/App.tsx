@@ -38,7 +38,9 @@ export default function App() {
 
   async function loadBlockList() {
     try {
-      const res = await fetch(`${API_BASE}/api/parameters`);
+      // DEV-TRACE: log when App.tsx requests parameter list
+      console.debug('[API CALL] App.tsx -> GET /api/parameters');
+  const res = await fetch(`${API_BASE}/api/parameters`);
       if (!res.ok) throw new Error(`Load blocks failed: ${res.status}`);
       const data = await res.json();
       setBlocks(data || []);
