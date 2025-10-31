@@ -10,7 +10,13 @@ namespace VentilTesterBackend.Services;
 /// </summary>
 public class NodeMapping
 {
-    private readonly Dictionary<int, Dictionary<string, List<(string Param, string NodeId)>>> _map = new();
+    /// <summary>
+    /// Single mapping entry including optional metadata present in the XML mapping file.
+    /// </summary>
+    public record MappingEntry(string Param, string NodeId, int? DataTypeId = null, int? Count = null, int? MemoryAccessMode = null);
+
+    // block -> groupKey -> list of mapping entries
+    private readonly Dictionary<int, Dictionary<string, List<MappingEntry>>> _map = new();
 
     public NodeMapping(IConfiguration config)
     {
@@ -52,7 +58,7 @@ public class NodeMapping
                 if (!int.TryParse(new string(blockName.Where(char.IsDigit).ToArray()), out var blockIdx)) continue;
                 if (!_map.TryGetValue(blockIdx, out var groups))
                 {
-                    groups = new Dictionary<string, List<(string, string)>>();
+                    groups = new Dictionary<string, List<MappingEntry>>();
                     _map[blockIdx] = groups;
                 }
 
@@ -62,6 +68,14 @@ public class NodeMapping
                     var label = mapping.Attribute("Label")?.Value ?? string.Empty;
                     var nodeId = mapping.Attribute("NodeId")?.Value ?? string.Empty;
 
+                    // optional metadata attributes
+                    int? dataTypeId = null;
+                    int? count = null;
+                    int? memoryAccessMode = null;
+                    if (int.TryParse(mapping.Attribute("DataTypeId")?.Value, out var dt)) dataTypeId = dt;
+                    if (int.TryParse(mapping.Attribute("Count")?.Value, out var c)) count = c;
+                    if (int.TryParse(mapping.Attribute("MemoryAccessMode")?.Value, out var mam)) memoryAccessMode = mam;
+
                     if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(nodeId)) continue;
 
                     // label typically like Block1.DB_AllgemeineParameter_1.SkalierungDruckmessungMin
@@ -69,7 +83,7 @@ public class NodeMapping
                     string param = parts.Length > 0 ? parts.Last() : label;
 
                     // determine subgroup if mapping is nested under an element other than the block
-                    string subgroup = null;
+                    string? subgroup = null;
                     var parent = mapping.Parent;
                     if (parent != null && !string.Equals(parent.Name.LocalName, blockEl.Name.LocalName, StringComparison.OrdinalIgnoreCase))
                     {
@@ -81,10 +95,10 @@ public class NodeMapping
 
                     if (!groups.TryGetValue(groupKey, out var list))
                     {
-                        list = new List<(string, string)>();
+                        list = new List<MappingEntry>();
                         groups[groupKey] = list;
                     }
-                    list.Add((param, nodeId));
+                    list.Add(new MappingEntry(param, nodeId, dataTypeId, count, memoryAccessMode));
                 }
             }
         }
@@ -93,23 +107,47 @@ public class NodeMapping
     /// <summary>
     /// Returns groups and their parameters (param,nodeId) for a given block index. If mapping not available returns empty dictionary.
     /// </summary>
+    /// <summary>
+    /// Backwards-compatible view: returns group -> list of (Param, NodeId) tuples.
+    /// </summary>
     public IReadOnlyDictionary<string, List<(string Param, string NodeId)>> GetGroupsForBlock(int blockIndex)
+    {
+        if (_map.TryGetValue(blockIndex, out var groups))
+        {
+            return groups.ToDictionary(kv => kv.Key, kv => kv.Value.Select(e => (e.Param, e.NodeId)).ToList());
+        }
+        return new Dictionary<string, List<(string, string)>>();
+    }
+
+    /// <summary>
+    /// Returns the raw mapping entries including optional metadata (DataTypeId, Count, MemoryAccessMode).
+    /// </summary>
+    public IReadOnlyDictionary<string, List<MappingEntry>> GetGroupsForBlockWithMetadata(int blockIndex)
     {
         if (_map.TryGetValue(blockIndex, out var groups))
         {
             return groups.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
-        return new Dictionary<string, List<(string, string)>>();
+        return new Dictionary<string, List<MappingEntry>>();
     }
 
     public string? GetNodeId(int blockIndex, string groupKey, string paramName)
+    {
+        var entry = GetMappingEntry(blockIndex, groupKey, paramName);
+        return entry?.NodeId;
+    }
+
+    /// <summary>
+    /// Returns the <see cref="MappingEntry"/> for the given block/group/param or null when not found.
+    /// </summary>
+    public MappingEntry? GetMappingEntry(int blockIndex, string groupKey, string paramName)
     {
         if (_map.TryGetValue(blockIndex, out var groups))
         {
             if (groups.TryGetValue(groupKey, out var list))
             {
                 var entry = list.FirstOrDefault(x => string.Equals(x.Param, paramName, StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(entry.NodeId)) return entry.NodeId;
+                if (entry != null && !string.IsNullOrEmpty(entry.NodeId)) return entry;
             }
         }
         return null;

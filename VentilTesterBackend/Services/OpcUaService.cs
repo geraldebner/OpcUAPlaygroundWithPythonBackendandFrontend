@@ -123,8 +123,9 @@ public class OpcUaService : IDisposable
                     try
                     {
                         var node = _client.ReadNode(nodeId);
-                        var value = node.Value?.ToString() ?? string.Empty;
-                        var dtype = node.Value?.GetType().Name;
+                        var rawVal = node.Value;
+                        var value = ConvertReadValueToString(rawVal);
+                        var dtype = rawVal?.GetType().Name;
                         list.Add(new Parameter { Name = param, Value = value, DataType = dtype });
                         _logger?.LogTrace("Read node {NodeId} -> {Param} = {Value} (type={Type})", nodeId, param, value, dtype);
                     }
@@ -227,8 +228,10 @@ public class OpcUaService : IDisposable
                 var nodeId = string.Format(baseFormat, index, g, paramName);
                 try
                 {
-                    var value = _client.ReadNode(nodeId).Value?.ToString() ?? string.Empty;
-                    list.Add(new Parameter { Name = paramName, Value = value, DataType = _client.ReadNode(nodeId).Value?.GetType().Name });
+                    var node = _client.ReadNode(nodeId);
+                    var rawVal = node.Value;
+                    var value = ConvertReadValueToString(rawVal);
+                    list.Add(new Parameter { Name = paramName, Value = value, DataType = rawVal?.GetType().Name });
                 }
                 catch
                 {
@@ -392,8 +395,9 @@ public class OpcUaService : IDisposable
             try
             {
                 var node = _client.ReadNode(nodeId);
-                var value = node.Value?.ToString() ?? string.Empty;
-                var dtype = node.Value?.GetType().Name;
+                var rawVal = node.Value;
+                var value = ConvertReadValueToString(rawVal);
+                var dtype = rawVal?.GetType().Name;
                 _logger?.LogTrace("ReadParameter: node {NodeId} -> {Name} = {Value} (type={Type})", nodeId, paramName, value, dtype);
                 return new Parameter { Name = paramName, Value = value, DataType = dtype };
             }
@@ -448,8 +452,13 @@ public class OpcUaService : IDisposable
         if (!string.IsNullOrEmpty(nodeId))
         {
             try {
-                _client.WriteNode(nodeId, value); 
-                _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value); return true; } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId); return false; }
+                // try to obtain mapping metadata to convert the value appropriately
+                var mappingEntry = _mapping?.GetMappingEntry(blockIndex, groupKey, paramName);
+                var toWrite = ConvertForWrite(value, mappingEntry);
+                _client.WriteNode(nodeId, toWrite ?? value);
+                _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value);
+                return true; 
+            } catch (Exception ex) { _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId); return false; }
         }
 
         // fallback using base format
@@ -505,8 +514,9 @@ public class OpcUaService : IDisposable
                 try
                 {
                     var node = _client.ReadNode(nodeId);
-                    var value = node.Value?.ToString() ?? string.Empty;
-                    var dtype = node.Value?.GetType().Name;
+                    var rawVal = node.Value;
+                    var value = ConvertReadValueToString(rawVal);
+                    var dtype = rawVal?.GetType().Name;
                     result.Add(new Parameter { Name = param, Value = value, DataType = dtype });
                     _logger?.LogTrace("ReadGroup: node {NodeId} -> {Param} = {Value}", nodeId, param, value);
                 }
@@ -571,7 +581,10 @@ public class OpcUaService : IDisposable
 
             try
             {
-                _client.WriteNode(nodeId, p.Value);
+                // use mapping metadata for conversion if available
+                var mappingEntry = _mapping?.GetMappingEntry(blockIndex, groupKey, paramName);
+                var toWrite = ConvertForWrite(p.Value, mappingEntry);
+                _client.WriteNode(nodeId, toWrite ?? p.Value);
                 _logger?.LogTrace("WriteGroup: wrote node {NodeId} <- {Value} (param={Param})", nodeId, p.Value, paramName);
             }
             catch (Exception ex)
@@ -882,5 +895,72 @@ public class OpcUaService : IDisposable
             return true;
         }
         catch { return false; }
+    }
+
+    // Convert raw string value(s) according to mapping metadata for writing to OPC UA nodes.
+    // Supports scalar and simple comma-separated arrays when Count>1 or MemoryAccessMode==1.
+    private object? ConvertForWrite(string? raw, NodeMapping.MappingEntry? mapping)
+    {
+        if (mapping == null)
+            return raw;
+
+        // handle arrays
+        var isArray = (mapping.Count.HasValue && mapping.Count.Value > 1) || (mapping.MemoryAccessMode.HasValue && mapping.MemoryAccessMode.Value == 1);
+        if (isArray)
+        {
+            if (string.IsNullOrEmpty(raw)) return Array.Empty<string>();
+            var parts = raw.Split(',').Select(s => s.Trim()).ToArray();
+            // choose element type by DataTypeId
+            switch (mapping.DataTypeId)
+            {
+                case 1: // Boolean
+                    return parts.Select(p => p == "1" || string.Equals(p, "true", StringComparison.OrdinalIgnoreCase)).ToArray();
+                case 4: // Int16
+                    return parts.Select(p => short.TryParse(p, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : (short)0).ToArray();
+                case 6: // Int32
+                    return parts.Select(p => int.TryParse(p, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0).ToArray();
+                case 7: // UInt32
+                    return parts.Select(p => uint.TryParse(p, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0u).ToArray();
+                default:
+                    return parts; // string array
+            }
+        }
+
+        // scalar conversion
+        if (!string.IsNullOrEmpty(raw) && mapping.DataTypeId.HasValue)
+        {
+            switch (mapping.DataTypeId.Value)
+            {
+                case 1: // Boolean
+                    if (raw == "0") return false;
+                    if (raw == "1") return true;
+                    if (bool.TryParse(raw, out var b)) return b;
+                    return raw; // fallback
+                case 4: // Int16
+                    if (short.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var s)) return s;
+                    return raw;
+                case 6: // Int32
+                    if (int.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var i)) return i;
+                    return raw;
+                case 7: // UInt32
+                    if (uint.TryParse(raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var u)) return u;
+                    return raw;
+                default:
+                    return raw;
+            }
+        }
+
+        return raw;
+    }
+
+    // Utility to convert read node value to string for API responses. Arrays are serialized as JSON arrays.
+    private static string ConvertReadValueToString(object? value)
+    {
+        if (value == null) return string.Empty;
+        if (value is Array)
+        {
+            try { return JsonSerializer.Serialize(value); } catch { return string.Join(",", ((Array)value).OfType<object>().Select(o => o?.ToString() ?? string.Empty)); }
+        }
+        return value.ToString() ?? string.Empty;
     }
 }

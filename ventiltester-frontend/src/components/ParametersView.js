@@ -2,6 +2,21 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 export default function ParametersView({ apiBase, selectedBlock }) {
+  function formatValue(v) {
+    if (v === null || v === undefined) return '';
+    // if it's already an array
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'string') {
+      // try parse JSON arrays
+      try {
+        const p = JSON.parse(v);
+        if (Array.isArray(p)) return p.join(', ');
+        if (typeof p === 'object') return JSON.stringify(p);
+      } catch { }
+      return v;
+    }
+    return String(v);
+  }
   const [blocks, setBlocks] = useState([]);
   const [edits, setEdits] = useState({});
   const [paramInnerTab, setParamInnerTab] = useState('live');
@@ -212,7 +227,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
                       return (
                         <tr key={p.name}>
                           <td className="param-name">{p.name}</td>
-                          <td style={{fontSize:12,color:'#333'}}>Live: <code>{String(live)}</code></td>
+                          <td style={{fontSize:12,color:'#333'}}>Live: <code>{formatValue(live)}</code></td>
                           <td>
                             <input value={edits[key] ?? live} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
                           </td>

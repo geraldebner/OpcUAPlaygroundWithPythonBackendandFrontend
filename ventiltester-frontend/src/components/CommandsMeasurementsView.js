@@ -2,6 +2,19 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
+  function formatValue(v) {
+    if (v === null || v === undefined) return '';
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'string') {
+      try {
+        const p = JSON.parse(v);
+        if (Array.isArray(p)) return p.join(', ');
+        if (typeof p === 'object') return JSON.stringify(p);
+      } catch { }
+      return v;
+    }
+    return String(v);
+  }
   const [sending, setSending] = useState(false);
   const [measurements, setMeasurements] = useState({});
   const [ltData, setLtData] = useState(null);
@@ -258,7 +271,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
           <div style={{padding:8}}>
             <h4>Langzeittest - Ventils</h4>
             <ul>
-              {ltData.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+              {ltData.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
             </ul>
           </div>
         )}
@@ -282,7 +295,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
             <div>
               <h4>Block Data</h4>
               <ul>
-                {measurements.block.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+                {measurements.block.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
               </ul>
             </div>
           )}
@@ -293,7 +306,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
                 <div key={b.blockIndex} style={{marginBottom:8}}>
                   <b>Block {b.blockIndex}</b>
                   <ul>
-                    {b.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {v.value}</li>)}
+                    {b.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
                   </ul>
                 </div>
               ))}
@@ -317,7 +330,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
                     {liveData.groups[g].map((p, i) => (
                       <tr key={p.name}>
                         <td className="param-name">{p.name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{String(p.value)}</code></td>
+                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{formatValue(p.value)}</code></td>
                         <td>
                           <button onClick={() => readSingleParameter(g, p.name)}>Read</button>
                         </td>
