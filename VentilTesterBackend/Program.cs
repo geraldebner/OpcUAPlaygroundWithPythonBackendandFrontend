@@ -67,6 +67,46 @@ app.Use(async (context, next) =>
     }
 });
 
+// Global exception mapping middleware: convert known exceptions to clear HTTP responses with JSON { error }
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (FileNotFoundException fnf)
+    {
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsJsonAsync(new { error = fnf.Message });
+    }
+    catch (InvalidDataException ide)
+    {
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsJsonAsync(new { error = ide.Message });
+    }
+    catch (InvalidOperationException ioe)
+    {
+        // Treat OPC UA connectivity related InvalidOperationException as Service Unavailable
+        var msg = ioe.Message ?? "Invalid operation";
+        if (msg.IndexOf("OPC UA", StringComparison.OrdinalIgnoreCase) >= 0 || msg.IndexOf("not connected", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            context.Response.StatusCode = 503;
+        }
+        else
+        {
+            context.Response.StatusCode = 500;
+        }
+        await context.Response.WriteAsJsonAsync(new { error = msg });
+    }
+    catch (Exception ex)
+    {
+        context.Response.StatusCode = 500;
+        var logger = context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger("GlobalExceptionMiddleware");
+        logger?.LogError(ex, "Unhandled exception while processing request");
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error" });
+    }
+});
+
 app.UseRouting();
 app.UseAuthorization();
 

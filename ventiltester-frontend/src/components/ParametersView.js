@@ -26,6 +26,34 @@ export default function ParametersView({ apiBase, selectedBlock }) {
 
   useEffect(() => { fetchAll(); fetchDatasets(); }, []);
 
+  // when selectedBlock changes, ensure we have a placeholder entry so UI can show parameters even if live data is not loaded
+  useEffect(() => {
+    // if blocks already contains the selected block, nothing to do
+    if (blocks.find(b => b.index === selectedBlock)) return;
+    // otherwise try to fetch mapping for the block to populate parameter names with empty values
+    let mounted = true;
+    const fetchMapping = async () => {
+      try {
+        const res = await axios.get(`${apiBase}/api/mapping/${selectedBlock}`);
+        const groups = res.data?.groups || {};
+        // normalize groups into same shape as /api/parameters
+        const outGroups = {};
+        for (const [g, list] of Object.entries(groups)) {
+          outGroups[g] = (list || []).map(p => ({ name: p.name, value: '' }));
+        }
+        if (mounted) setBlocks(prev => {
+          const others = prev.filter(x => x.index !== selectedBlock);
+          return [...others, { index: selectedBlock, groups: outGroups }];
+        });
+      } catch (e) {
+        // ignore mapping fetch errors; UI will remain empty
+        // console.debug('mapping fetch failed', e);
+      }
+    };
+    fetchMapping();
+    return () => { mounted = false; };
+  }, [selectedBlock]);
+
   useEffect(() => {
     if (!autoRefresh)
       return;

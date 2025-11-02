@@ -21,17 +21,15 @@ public class NodeMapping
     public NodeMapping(IConfiguration config)
     {
         var path = config.GetValue<string>("SpsMappingPath") ?? "SPSData/Mapping_Ventiltester.xml";
-        try
+        var full = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), path));
+        if (!File.Exists(full))
         {
-            var full = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), path));
-            if (File.Exists(full))
-            {
-                LoadFromFile(full);
-            }
+            throw new FileNotFoundException($"SPS mapping file not found: {full}");
         }
-        catch
+        LoadFromFile(full);
+        if (_map.Count == 0)
         {
-            // ignore - mapping will remain empty
+            throw new InvalidDataException($"No mappings found in mapping file: {full}");
         }
     }
 

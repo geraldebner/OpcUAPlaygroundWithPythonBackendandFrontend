@@ -9,6 +9,7 @@ function App() {
   const [blocks, setBlocks] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(1);
   const [topTab, setTopTab] = useState('parameters');
+  const [serverStatus, setServerStatus] = useState(null);
 
   const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
 
@@ -29,8 +30,29 @@ function App() {
     fetchBlocks();
   }, []);
 
+  useEffect(() => {
+    // poll status endpoint to surface mapping/opcua errors to the UI
+    let mounted = true;
+    const fetchStatus = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/status`);
+        if (mounted) setServerStatus(res.data);
+      } catch (e) {
+        if (mounted) setServerStatus({ opcua: { connected: false, lastError: 'Failed to reach backend' } });
+      }
+    };
+    fetchStatus();
+    const id = setInterval(fetchStatus, 10000);
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
+
   return (
     <div className="app-root">
+      {serverStatus && serverStatus.opcua && (!serverStatus.opcua.connected || serverStatus.opcua.lastError) && (
+        <div style={{background:'#ffe6e6', color:'#700', padding: '8px 12px', textAlign:'center'}}>
+          {serverStatus.opcua.lastError ? `OPC UA error: ${serverStatus.opcua.lastError}` : 'OPC UA not connected'}
+        </div>
+      )}
       <header>
         <div className="header-left">
           {/* Place the provided logo file `binder_logo.png` into the frontend `public/` folder */}
@@ -48,7 +70,7 @@ function App() {
         <div>
           <label>Block: </label>
           <select value={selectedBlock} onChange={e => setSelectedBlock(Number(e.target.value))}>
-            {blocks.map(b => <option key={b.index} value={b.index}>Block {b.index}</option>)}
+            {[1,2,3,4].map(i => <option key={i} value={i}>Block {i}</option>)}
           </select>
         </div>
       </section>
