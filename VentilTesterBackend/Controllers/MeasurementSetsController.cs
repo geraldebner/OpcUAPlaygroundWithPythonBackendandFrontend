@@ -7,6 +7,7 @@ using VentilTesterBackend.Services;
 
 namespace VentilTesterBackend.Controllers
 {
+    /*
     [ApiController]
     [Route("api/[controller]")]
     public class MeasurementSetsController : ControllerBase
@@ -99,4 +100,5 @@ namespace VentilTesterBackend.Controllers
         public string? Comment { get; set; }
         public string? JsonPayload { get; set; }
     }
+    */
 }

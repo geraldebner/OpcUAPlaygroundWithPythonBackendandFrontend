@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using VentilTesterBackend.Services;
 using VentilTesterBackend.Data;
+using VentilTesterBackend.Services;
 
 namespace VentilTesterBackend.Controllers;
 
@@ -13,7 +13,12 @@ public class StatusController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
 
-    public StatusController(AppDbContext db, OpcUaService opc, NodeMapping mapping, IConfiguration config)
+    public StatusController(
+        AppDbContext db,
+        OpcUaService opc,
+        NodeMapping mapping,
+        IConfiguration config
+    )
     {
         _db = db;
         _opc = opc;
@@ -26,7 +31,14 @@ public class StatusController : ControllerBase
     {
         // Provide a quick health/status summary
         bool dbOk = false;
-        try { dbOk = _db.Database.CanConnect(); } catch { dbOk = false; }
+        try
+        {
+            dbOk = _db.Database.CanConnect();
+        }
+        catch
+        {
+            dbOk = false;
+        }
 
         var healthNode = _config.GetValue<string>("OpcUa:HealthNodeId");
         bool opcAlive = false;
@@ -34,17 +46,26 @@ public class StatusController : ControllerBase
         {
             opcAlive = _opc?.Ping(healthNode) ?? false;
         }
-        catch { opcAlive = false; }
+        catch
+        {
+            opcAlive = false;
+        }
 
-        var opc = new {
+        var opc = new
+        {
             connected = opcAlive,
             endpoint = _opc?.Endpoint ?? string.Empty,
             configuredHealthNode = healthNode,
             lastSuccessfulCheck = _opc?.LastSuccessfulCheck,
-            lastError = _opc?.LastError
+            lastError = _opc?.LastError,
         };
 
-        return new { backend = "ok", opcua = opc, database = new { connected = dbOk } };
+        return new
+        {
+            backend = "ok",
+            opcua = opc,
+            database = new { connected = dbOk },
+        };
     }
 
     [HttpGet("sample/{blockIndex}")]
@@ -53,8 +74,13 @@ public class StatusController : ControllerBase
         try
         {
             // Return the backend's current view of the requested block (what the UI will see)
-            var block = _opc.ReadBlock(blockIndex);
-            return Ok(new { connected = true, block });
+            //var block = _opc.ReadBlock(blockIndex);
+            return Ok(
+                new
+                {
+                    connected = true, /*, block*/
+                }
+            );
         }
         catch (Exception ex)
         {

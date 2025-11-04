@@ -3,7 +3,7 @@ using VentilTesterBackend.Services;
 using VentilTesterBackend.Models;
 
 namespace VentilTesterBackend.Controllers;
-
+/*
 [ApiController]
 [Route("api/langzeittest")]
 public class LangzeittestController : ControllerBase
@@ -38,3 +38,4 @@ public class LangzeittestController : ControllerBase
         return Ok(model);
     }
 }
+*/

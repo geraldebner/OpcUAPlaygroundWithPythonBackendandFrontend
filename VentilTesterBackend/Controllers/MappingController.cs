@@ -3,6 +3,7 @@ using VentilTesterBackend.Services;
 
 namespace VentilTesterBackend.Controllers;
 
+/*
 [ApiController]
 [Route("api/[controller]")]
 public class MappingController : ControllerBase
@@ -44,3 +45,4 @@ public class MappingController : ControllerBase
         return Ok(new { block = blockIndex, groups = outGroups });
     }
 }
+*/

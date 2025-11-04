@@ -16,7 +16,7 @@ public class ParametersController : ControllerBase
         _opc = opc;
     }
 
-    [HttpGet]
+    /*[HttpGet]
     public ActionResult<List<Block>> GetAll()
     {
         return _opc.ReadAllBlocks();
@@ -60,7 +60,7 @@ public class ParametersController : ControllerBase
         if (p == null)
             return NotFound();
         return p;
-    }
+    }*/
 
     /// <summary>
     /// Write a single parameter value. Provide group and name as query parameters and JSON body { value: "..." }.

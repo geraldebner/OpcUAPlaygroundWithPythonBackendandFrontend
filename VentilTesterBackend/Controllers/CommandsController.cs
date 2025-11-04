@@ -24,12 +24,20 @@ public class CommandsController : ControllerBase
     // Internal executor used by both GET and POST endpoints
     private ActionResult DoExecute(int index, string testType, string action, string? payload)
     {
-        if (index < 1 || index > 4) return BadRequest("block index must be 1..4");
+        if (index < 1 || index > 4)
+            return BadRequest("block index must be 1..4");
 
-        _log?.LogInformation("CommandsController.DoExecute called: index={Index} testType={TestType} action={Action} payload={Payload}", index, testType, action, payload);
+        _log?.LogInformation(
+            "CommandsController.DoExecute called: index={Index} testType={TestType} action={Action} payload={Payload}",
+            index,
+            testType,
+            action,
+            payload
+        );
 
         var ok = _opc.ExecuteCommand(index, testType, action, payload);
-        if (!ok) return StatusCode(500, "Command failed or server unreachable");
+        if (!ok)
+            return StatusCode(500, "Command failed or server unreachable");
         return Ok();
     }
 
@@ -37,9 +45,15 @@ public class CommandsController : ControllerBase
     // index, testType and action are provided as query parameters for POST requests
     // Example: POST /api/commands?index=1&testType=Langzeittest&action=Start  with optional body { "value": "5" }
     [HttpPost]
-    public ActionResult ExecutePost([FromQuery] int index, [FromQuery] string testType, [FromQuery] string action, [FromQuery] string? value)
+    public ActionResult ExecutePost(
+        [FromQuery] int index,
+        [FromQuery] string testType,
+        [FromQuery] string action,
+        [FromQuery] string? value
+    )
     {
-        if (string.IsNullOrEmpty(testType) || string.IsNullOrEmpty(action)) return BadRequest("testType and action query parameters are required");
+        if (string.IsNullOrEmpty(testType) || string.IsNullOrEmpty(action))
+            return BadRequest("testType and action query parameters are required");
         // optional payload passed as query param 'value' (e.g. Einzeltest ventil number)
         var payload = string.IsNullOrEmpty(value) ? null : value;
         return DoExecute(index, testType, action, payload);

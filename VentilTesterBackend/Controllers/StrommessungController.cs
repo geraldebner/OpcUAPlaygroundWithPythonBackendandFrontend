@@ -3,7 +3,7 @@ using VentilTesterBackend.Services;
 using VentilTesterBackend.Models;
 
 namespace VentilTesterBackend.Controllers;
-
+/*
 [ApiController]
 [Route("api/strommessung")]
 public class StrommessungController : ControllerBase
@@ -145,3 +145,4 @@ public class StrommessungController : ControllerBase
         return Ok(res);
     }
 }
+*/
