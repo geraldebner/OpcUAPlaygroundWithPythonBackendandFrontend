@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using VentilTesterBackend.Data;
 using VentilTesterBackend.Models;
@@ -13,18 +14,23 @@ namespace VentilTesterBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly OpcUaService _opc;
+        private readonly ILogger<DatasetsController> _logger;
 
-        public DatasetsController(AppDbContext db, OpcUaService opc)
+        public DatasetsController(AppDbContext db, OpcUaService opc, ILogger<DatasetsController> logger)
         {
             _db = db;
             _opc = opc;
+            _logger = logger;
+            _logger.LogDebug("DatasetsController constructed");
         }
 
         // GET api/datasets
         [HttpGet]
         public async Task<IActionResult> Get()
         {
+            _logger.LogInformation("Get all datasets called");
             var list = await _db.ParameterSets.OrderByDescending(p => p.CreatedAt).ToListAsync();
+            _logger.LogDebug("Found {count} parameter sets", list.Count);
             return Ok(
                 list.Select(p => new
                 {
@@ -41,9 +47,14 @@ namespace VentilTesterBackend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
+            _logger.LogInformation("Get dataset by id {id} called", id);
             var item = await _db.ParameterSets.FindAsync(id);
             if (item == null)
+            {
+                _logger.LogWarning("Dataset {id} not found", id);
                 return NotFound();
+            }
+            _logger.LogDebug("Returning dataset {id} (block {block})", item.Id, item.BlockIndex);
             return Ok(
                 new
                 {
@@ -61,6 +72,7 @@ namespace VentilTesterBackend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] JsonElement body)
         {
+            _logger.LogInformation("Create dataset called");
             try
             {
                 // body may contain either jsonPayload (string) or a 'block' object
@@ -101,6 +113,7 @@ namespace VentilTesterBackend.Controllers
                 };
                 _db.ParameterSets.Add(p);
                 await _db.SaveChangesAsync();
+                _logger.LogInformation("Created dataset {id} (block {block})", p.Id, p.BlockIndex);
                 return CreatedAtAction(
                     nameof(GetById),
                     new { id = p.Id },
@@ -115,6 +128,7 @@ namespace VentilTesterBackend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to create dataset: {message}", ex.Message);
                 return BadRequest(new { error = "invalid body", detail = ex.Message });
             }
         }
@@ -123,11 +137,16 @@ namespace VentilTesterBackend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            _logger.LogInformation("Delete dataset {id} called", id);
             var item = await _db.ParameterSets.FindAsync(id);
             if (item == null)
+            {
+                _logger.LogWarning("Delete: dataset {id} not found", id);
                 return NotFound();
+            }
             _db.ParameterSets.Remove(item);
             await _db.SaveChangesAsync();
+            _logger.LogInformation("Deleted dataset {id}", id);
             return NoContent();
         }
 
@@ -135,9 +154,13 @@ namespace VentilTesterBackend.Controllers
         [HttpPost("{id}/write")]
         public async Task<IActionResult> WriteToOpc(int id)
         {
+            _logger.LogInformation("Write dataset {id} to OPC UA called", id);
             var ps = await _db.ParameterSets.FindAsync(id);
             if (ps == null)
+            {
+                _logger.LogWarning("WriteToOpc: dataset {id} not found", id);
                 return NotFound();
+            }
             Block? block = null;
             try
             {
@@ -145,6 +168,7 @@ namespace VentilTesterBackend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to deserialize payload for dataset {id}", id);
                 return BadRequest(
                     new
                     {
@@ -154,10 +178,17 @@ namespace VentilTesterBackend.Controllers
                 );
             }
             if (block == null)
+            {
+                _logger.LogWarning("Dataset {id} payload deserialized to null", id);
                 return BadRequest(new { error = "Parameter set payload is empty or invalid" });
+            }
             var ok = _opc.WriteBlock(ps.BlockIndex, block);
             if (!ok)
+            {
+                _logger.LogError("OPC UA write failed for dataset {id} (block {block})", id, ps.BlockIndex);
                 return StatusCode(500, new { error = "OPC UA write failed or server unreachable" });
+            }
+            _logger.LogInformation("Successfully wrote dataset {id} to OPC UA (block {block})", id, ps.BlockIndex);
             return Ok(
                 new
                 {

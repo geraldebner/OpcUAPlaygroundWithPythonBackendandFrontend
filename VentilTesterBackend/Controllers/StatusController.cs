@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using VentilTesterBackend.Data;
 using VentilTesterBackend.Services;
 
@@ -12,43 +13,53 @@ public class StatusController : ControllerBase
     private readonly NodeMapping _mapping;
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly ILogger<StatusController> _logger;
 
     public StatusController(
         AppDbContext db,
         OpcUaService opc,
         NodeMapping mapping,
-        IConfiguration config
+        IConfiguration config,
+        ILogger<StatusController> logger
     )
     {
         _db = db;
         _opc = opc;
         _mapping = mapping;
         _config = config;
+        _logger = logger;
+        _logger.LogDebug("StatusController constructed");
     }
 
     [HttpGet]
     public ActionResult<object> Get()
     {
         // Provide a quick health/status summary
+        _logger.LogInformation("Status check requested");
         bool dbOk = false;
         try
         {
             dbOk = _db.Database.CanConnect();
+            _logger.LogDebug("Database CanConnect -> {dbOk}", dbOk);
         }
-        catch
+        catch (Exception ex)
         {
             dbOk = false;
+            _logger.LogWarning(ex, "Database connectivity check failed");
         }
 
         var healthNode = _config.GetValue<string>("OpcUa:HealthNodeId");
         bool opcAlive = false;
         try
         {
+            _logger.LogDebug("Pinging OPC UA health node {node}", healthNode);
             opcAlive = _opc?.Ping(healthNode) ?? false;
+            _logger.LogDebug("OPC UA ping result -> {opcAlive}", opcAlive);
         }
-        catch
+        catch (Exception ex)
         {
             opcAlive = false;
+            _logger.LogWarning(ex, "OPC UA ping failed");
         }
 
         var opc = new
@@ -59,6 +70,8 @@ public class StatusController : ControllerBase
             lastSuccessfulCheck = _opc?.LastSuccessfulCheck,
             lastError = _opc?.LastError,
         };
+
+        _logger.LogInformation("Status check returning: opc.connected={opcConnected}, db.connected={dbConnected}", opcAlive, dbOk);
 
         return new
         {
@@ -73,6 +86,7 @@ public class StatusController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Sample request for block {blockIndex}", blockIndex);
             // Return the backend's current view of the requested block (what the UI will see)
             //var block = _opc.ReadBlock(blockIndex);
             return Ok(
@@ -84,6 +98,7 @@ public class StatusController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Sample request failed for block {blockIndex}", blockIndex);
             return StatusCode(500, new { error = ex.Message });
         }
     }

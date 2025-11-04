@@ -17,10 +17,10 @@ function App() {
     // fetch block list for selector
     async function fetchBlocks() {
       try {
-  // DEV-TRACE: log when App.js requests parameter list
-  console.debug('[API CALL] App.js -> GET /api/parameters');
-  const res = await axios.get(`${API_BASE}/api/parameters`);
-  const data = res.data || [];
+        // DEV-TRACE: log when App.js requests parameter list
+        console.debug('[API CALL] App.js -> GET /api/parameters');
+        const res = await axios.get(`${API_BASE}/api/parameters`);
+        const data = res.data || [];
         setBlocks(data.map(d => ({ index: d.index })));
         if (data.length > 0 && !selectedBlock) setSelectedBlock(data[0].index);
       } catch (e) {
@@ -49,7 +49,7 @@ function App() {
   return (
     <div className="app-root">
       {serverStatus && serverStatus.opcua && (!serverStatus.opcua.connected || serverStatus.opcua.lastError) && (
-        <div style={{background:'#ffe6e6', color:'#700', padding: '8px 12px', textAlign:'center'}}>
+        <div style={{ background: '#ffe6e6', color: '#700', padding: '8px 12px', textAlign: 'center' }}>
           {serverStatus.opcua.lastError ? `OPC UA error: ${serverStatus.opcua.lastError}` : 'OPC UA not connected'}
         </div>
       )}
@@ -62,15 +62,15 @@ function App() {
       </header>
       <section className="controls">
         <div className="tabs">
-          <button className={topTab==='parameters'? 'active':''} onClick={() => setTopTab('parameters')}>Parameters</button>
-          <button className={topTab==='commands'? 'active':''} onClick={() => setTopTab('commands')} style={{marginLeft:8}}>Commands & Measurements</button>
-          <button className={topTab==='status'? 'active':''} onClick={() => setTopTab('status')} style={{marginLeft:8}}>Status</button>
+          <button className={topTab === 'parameters' ? 'active' : ''} onClick={() => setTopTab('parameters')}>Parameters</button>
+          <button className={topTab === 'commands' ? 'active' : ''} onClick={() => setTopTab('commands')} style={{ marginLeft: 8 }}>Commands & Measurements</button>
+          <button className={topTab === 'status' ? 'active' : ''} onClick={() => setTopTab('status')} style={{ marginLeft: 8 }}>Status</button>
         </div>
 
         <div>
           <label>Block: </label>
           <select value={selectedBlock} onChange={e => setSelectedBlock(Number(e.target.value))}>
-            {[1,2,3,4].map(i => <option key={i} value={i}>Block {i}</option>)}
+            {[1, 2, 3, 4].map(i => <option key={i} value={i}>Block {i}</option>)}
           </select>
         </div>
       </section>
