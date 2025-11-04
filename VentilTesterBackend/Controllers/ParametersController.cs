@@ -10,10 +10,14 @@ namespace VentilTesterBackend.Controllers;
 public class ParametersController : ControllerBase
 {
     private readonly OpcUaService _opc;
+    private readonly NodeMapping _mapping;
+    private readonly ILogger<ParametersController> _logger;
 
-    public ParametersController(OpcUaService opc)
+    public ParametersController(OpcUaService opc, NodeMapping mapping, ILogger<ParametersController> logger)
     {
         _opc = opc;
+        _mapping = mapping;
+        _logger = logger;
     }
 
     /*[HttpGet]
@@ -104,8 +108,41 @@ public class ParametersController : ControllerBase
             return BadRequest("block index must be 1..4");
         if (string.IsNullOrEmpty(groupKey))
             return BadRequest("groupKey required");
-        var list = _opc.ReadGroup(index, groupKey);
-        return list;
+        // some clients encode the '/' as %2F - ensure we decode the incoming path segment
+        var decoded = Uri.UnescapeDataString(groupKey);
+        _logger?.LogInformation(
+            "GetGroup called for block={Index} raw='{Raw}' decoded='{Decoded}'",
+            index,
+            groupKey,
+            decoded
+        );
+
+        // log available mapping groups for this block to aid debugging
+        try
+        {
+            var groups = _mapping.GetGroupsForBlock(index).Keys.OrderBy(k => k).ToList();
+            _logger?.LogInformation(
+                "Available mapping groups for block {Block}: {Groups}",
+                index,
+                string.Join(",", groups)
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "Failed to list mapping groups for block {Block}", index);
+        }
+
+        var list = _opc.ReadGroup(index, decoded);
+        if (list == null || list.Count == 0)
+        {
+            _logger?.LogInformation(
+                "ReadGroup returned {Count} entries for block={Index} group='{Group}'",
+                list?.Count ?? 0,
+                index,
+                decoded
+            );
+        }
+        return list ?? new List<Parameter>();
     }
 
     /// <summary>

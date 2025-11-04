@@ -40,7 +40,8 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       const groups = res.data?.groups || {};
       const outGroups = {};
       for (const [g, list] of Object.entries(groups)) {
-        outGroups[g] = (list || []).map(p => ({ name: p.name, value: '' }));
+        // preserve nodeId mapping metadata when available
+        outGroups[g] = (list || []).map(p => ({ name: p.name, value: '', nodeId: p.nodeId }));
       }
       setBlocks(prev => {
         const others = prev.filter(x => x.index !== selectedBlock);
@@ -71,7 +72,8 @@ export default function ParametersView({ apiBase, selectedBlock }) {
         // normalize groups into same shape as /api/parameters
         const outGroups = {};
         for (const [g, list] of Object.entries(groups)) {
-          outGroups[g] = (list || []).map(p => ({ name: p.name, value: '' }));
+          // keep mapping nodeId when provided by the mapping endpoint
+          outGroups[g] = (list || []).map(p => ({ name: p.name, value: '', nodeId: p.nodeId }));
         }
         // also try fetch typed AllgemeineParameter and merge into groups
         try {
@@ -120,11 +122,17 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       // fetch typed-ish groups via the generic group endpoint (returns array of {name, value})
       const typedNames = ['AllgemeineParameter', 'Ventilkonfiguration', 'Konfiguration_Langzeittest', 'Konfiguration_Detailtest'];
       for (const tn of typedNames) {
-        try {
-          const tret = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${encodeURIComponent(tn)}`);
+          try {
+          // keep '/' characters unencoded so server catch-all route receives subgroups correctly
+          const safeTn = encodeURIComponent(tn).replace(/%2F/g, '/');
+          const tret = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safeTn}`);
           const tdata = tret.data;
           if (Array.isArray(tdata)) {
-            outGroups[tn] = (tdata || []).map(p => ({ name: p.name, value: p.value }));
+            // merge nodeId from mapping if available
+            outGroups[tn] = (tdata || []).map(p => {
+              const mapped = (groups[tn] || []).find(m => m.name === p.name);
+              return { name: p.name, value: p.value, nodeId: mapped?.nodeId };
+            });
           }
         } catch { }
       }
@@ -132,9 +140,14 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       // for each non-typed group, try to fetch group values (best-effort)
       for (const g of Object.keys(outGroups)) {
         if (typedNames.includes(g)) continue;
-        try {
-          const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${encodeURIComponent(g)}`);
-          outGroups[g] = (gre.data || []).map(p => ({ name: p.name, value: p.value }));
+          try {
+          const safeG = encodeURIComponent(g).replace(/%2F/g, '/');
+          const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safeG}`);
+          // merge nodeId from mapping if available
+          outGroups[g] = (gre.data || []).map(p => {
+            const mapped = (groups[g] || []).find(m => m.name === p.name);
+            return { name: p.name, value: p.value, nodeId: mapped?.nodeId };
+          });
         } catch { /* ignore per-group fetch errors */ }
       }
 
@@ -303,8 +316,14 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     const gKey = `${blockIndex}||${groupName}`;
     setBusyGroups(prev => ({ ...prev, [gKey]: true }));
     try {
-      const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${encodeURIComponent(groupName)}`);
-      const list = (gre.data || []).map(p => ({ name: p.name, value: p.value }));
+      const safe = encodeURIComponent(groupName).replace(/%2F/g, '/');
+      const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safe}`);
+      // try to preserve existing nodeId from current state mapping (best-effort)
+      const currentBlock = blocks.find(b => b.index === blockIndex) || { groups: {} };
+      const list = (gre.data || []).map(p => {
+        const existing = ((currentBlock.groups || {})[groupName] || []).find(e => e.name === p.name);
+        return { name: p.name, value: p.value, nodeId: existing?.nodeId };
+      });
       setBlocks(prev => {
         const others = prev.filter(x => x.index !== blockIndex);
         return [...others, { index: blockIndex, groups: { ...(prev.find(x => x.index === blockIndex)?.groups || {}), [groupName]: list } }];
@@ -343,7 +362,8 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
     setBusyGroups(prev => ({ ...prev, [gKey]: true }));
     try {
-      await axios.post(`${apiBase}/api/parameters/${blockIndex}/group/${encodeURIComponent(groupName)}`, parameters);
+  const safe = encodeURIComponent(groupName).replace(/%2F/g, '/');
+  await axios.post(`${apiBase}/api/parameters/${blockIndex}/group/${safe}`, parameters);
       alert(`${groupName} write requested`);
       try { await readGroup(blockIndex, groupName); } catch { /* ignore */ }
     } catch (e) {

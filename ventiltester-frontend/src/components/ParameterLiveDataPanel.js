@@ -36,13 +36,17 @@ export default function ParameterLiveDataPanel({
             {b.groups && Object.keys(b.groups).length > 0 &&
               Object.keys(b.groups)
                 .filter(g => {
-                  const n = (g || '').toLowerCase();
-                  return !(n.includes('daten') || n.includes('strom') || n.includes('kommand'));
+                  // Only apply exclusion filter to the top-level group name (before any '/').
+                  // This prevents excluding subgroup entries like "Konfiguration_Detailtest/Strom"
+                  const top = ((g || '').split('/')[0] || '').toLowerCase();
+                  return !(top.includes('daten') || top.includes('kommand'));
                 })
                 .sort((a, bname) => {
                   const order = ['AllgemeineParameter', 'Ventilkonfiguration', 'Konfiguration_Langzeittest', 'Konfiguration_Detailtest'];
-                  const ai = order.indexOf(a);
-                  const bi = order.indexOf(bname);
+                  const atop = (a || '').split('/')[0];
+                  const btop = (bname || '').split('/')[0];
+                  const ai = order.indexOf(atop);
+                  const bi = order.indexOf(btop);
                   if (ai === -1 && bi === -1) return a.localeCompare(bname);
                   if (ai === -1) return 1;
                   if (bi === -1) return -1;
@@ -51,10 +55,17 @@ export default function ParameterLiveDataPanel({
                 .map(g => {
                   const gKey = `${b.index}||${g}`;
                   const isBusy = !!busyGroups[gKey];
+                  // split group into top-level and optional subgroup for nicer display
+                  const parts = (g || '').split('/');
+                  const top = parts[0];
+                  const subgroup = parts.length > 1 ? parts.slice(1).join('/') : null;
                   return (
                     <div key={g} className="group-card" style={{ marginBottom: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h5 style={{ margin: 0 }}>{g}</h5>
+                        <div>
+                          <h5 style={{ margin: 0 }}>{top}</h5>
+                          {subgroup && <div style={{ fontSize: 12, color: '#666' }}>{subgroup}</div>}
+                        </div>
                         <div>
                           <button onClick={() => readGroup(b.index, g)} disabled={isBusy}>Read</button>
                           <button onClick={() => writeGroup(b.index, g)} disabled={isBusy} style={{ marginLeft: 8 }}>Write</button>
