@@ -218,12 +218,36 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     }
   }
 
+  async function readSingleParamOnly(blockIndex: number, group: string, name: string): Promise<void> {
+    try {
+      const res = await axios.get(`${apiBase}/api/parameters/${blockIndex}/value`, { params: { group, name } });
+      const p = res.data;
+      // Only update the edit field and live data for this specific parameter
+      setEdits(prev => ({ ...prev, [getEditKey(blockIndex, group, p.name)]: p.value }));
+      // Update only this parameter's live value in the blocks state
+      setBlocks(prev => prev.map(block => {
+        if (block.index !== blockIndex) return block;
+        const newGroups = { ...block.groups };
+        if (newGroups[group]) {
+          newGroups[group] = newGroups[group].map(param => 
+            param.name === name ? { ...param, value: p.value } : param
+          );
+        }
+        return { ...block, groups: newGroups };
+      }));
+    } catch (e) {
+      console.error('Read param failed', e);
+      alert('Read failed. See console.');
+    }
+  }
+
   async function writeParam(blockIndex: number, group: string, name: string): Promise<void> {
     try {
       const key = getEditKey(blockIndex, group, name);
       const value = edits[key] ?? '';
       await axios.post(`${apiBase}/api/parameters/${blockIndex}/value`, { value }, { params: { group, name } });
-      await readParam(blockIndex, group, name);
+      // Read back only this single parameter instead of refreshing the entire block
+      await readSingleParamOnly(blockIndex, group, name);
     } catch (e) {
       console.error('Write param failed', e);
       alert('Write failed. See console.');
