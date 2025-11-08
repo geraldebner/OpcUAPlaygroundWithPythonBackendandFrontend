@@ -20,18 +20,58 @@ public class ParametersController : ControllerBase
         _logger = logger;
     }
 
-    /*[HttpGet]
+    /// <summary>
+    /// Get all blocks with their group structure from the mapping (does not require OPC UA connection).
+    /// Returns the parameter structure for all blocks 1-4.
+    /// </summary>
+    [HttpGet]
     public ActionResult<List<Block>> GetAll()
     {
-        return _opc.ReadAllBlocks();
+        var blocks = new List<Block>();
+        for (int i = 1; i <= 4; i++)
+        {
+            var block = GetBlockFromMapping(i);
+            blocks.Add(block);
+        }
+        return blocks;
     }
 
+    /// <summary>
+    /// Get a specific block with its group structure from the mapping (does not require OPC UA connection).
+    /// Returns the parameter structure for the specified block.
+    /// </summary>
     [HttpGet("{index}")]
     public ActionResult<Block> GetBlock(int index)
     {
         if (index < 1 || index > 4)
             return BadRequest("block index must be 1..4");
-        return _opc.ReadBlock(index);
+        return GetBlockFromMapping(index);
+    }
+
+    /// <summary>
+    /// Helper method to create a Block from the mapping data without requiring OPC UA connection.
+    /// This allows the frontend to display the group structure even when OPC UA is not available.
+    /// </summary>
+    private Block GetBlockFromMapping(int index)
+    {
+        var block = new Block { Index = index };
+        var mappingGroups = _mapping.GetGroupsForBlock(index);
+        
+        foreach (var (groupKey, parameters) in mappingGroups)
+        {
+            var paramList = new List<Parameter>();
+            foreach (var (paramName, nodeId) in parameters)
+            {
+                paramList.Add(new Parameter 
+                { 
+                    Name = paramName, 
+                    Value = string.Empty // No value since we're not reading from OPC UA
+                });
+            }
+            block.Groups[groupKey] = paramList;
+        }
+        
+        return block;
     }
 
     [HttpPost("{index}")]
@@ -64,7 +104,7 @@ public class ParametersController : ControllerBase
         if (p == null)
             return NotFound();
         return p;
-    }*/
+    }
 
     /// <summary>
     /// Write a single parameter value. Provide group and name as query parameters and JSON body { value: "..." }.
