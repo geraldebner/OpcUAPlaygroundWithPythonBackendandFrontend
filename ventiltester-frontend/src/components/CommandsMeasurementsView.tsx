@@ -43,6 +43,8 @@ interface Snapshot {
   id: number;
   name: string;
   createdAt: string;
+  comment?: string;
+  identifierNumber?: number;
 }
 
 export default function CommandsMeasurementsView({ apiBase, selectedBlock }: CommandsMeasurementsViewProps) {
@@ -67,9 +69,18 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   const [liveData, setLiveData] = useState<any>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshotName, setSnapshotName] = useState<string>('');
+  const [snapshotComment, setSnapshotComment] = useState<string>('');
+  const [snapshotIdentifier, setSnapshotIdentifier] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalJson, setModalJson] = useState<string>('');
   const [modalTitle, setModalTitle] = useState<string>('');
+  
+  // Group snapshot modal state
+  const [showGroupSnapshotModal, setShowGroupSnapshotModal] = useState<boolean>(false);
+  const [groupSnapshotGroup, setGroupSnapshotGroup] = useState<string>('');
+  const [groupSnapshotName, setGroupSnapshotName] = useState<string>('');
+  const [groupSnapshotComment, setGroupSnapshotComment] = useState<string>('');
+  const [groupSnapshotIdentifier, setGroupSnapshotIdentifier] = useState<string>('');
 
   async function pingServer(): Promise<boolean> {
     try {
@@ -142,6 +153,50 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     }
   }
 
+  async function readWholeGroup(group: string): Promise<void> {
+    try {
+      if (!liveData?.groups?.[group]) {
+        alert(`Group '${group}' not found in live data`);
+        return;
+      }
+
+      const parameters = liveData.groups[group];
+      const readPromises = parameters.map(async (param: any) => {
+        try {
+          const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { 
+            params: { group, name: param.name } 
+          });
+          return { name: param.name, value: res.data.value };
+        } catch (e) {
+          console.warn(`Failed to read parameter ${param.name} in group ${group}:`, e);
+          return { name: param.name, value: param.value }; // keep current value on error
+        }
+      });
+
+      const results = await Promise.all(readPromises);
+      
+      // Update liveData with all the new values
+      setLiveData((prev: any) => {
+        if (!prev) return prev;
+        const g = { ...(prev.groups || {}) };
+        if (!g[group]) return prev;
+        
+        const updatedGroup = g[group].map((item: any) => {
+          const result = results.find(r => r.name === item.name);
+          return result ? { ...item, value: result.value } : item;
+        });
+        
+        g[group] = updatedGroup;
+        return { ...prev, groups: g };
+      });
+      
+      alert(`Successfully read ${results.length} parameters from group '${group}'`);
+    } catch (e) {
+      console.error('readWholeGroup', e);
+      alert('Failed to read group. See console for details.');
+    }
+  }
+
   async function listSnapshots(): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets`, { params: { blockIndex: selectedBlock } });
@@ -159,15 +214,27 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         alert('No block data available to save. Refresh Block Data or Live Data first.');
         return;
       }
+      
+      // Parse identifier number if provided
+      const identifierNumber = snapshotIdentifier.trim() ? parseInt(snapshotIdentifier.trim()) : undefined;
+      if (snapshotIdentifier.trim() && isNaN(identifierNumber!)) {
+        alert('Identifier number must be a valid integer.');
+        return;
+      }
+      
       const body = {
         name: snapshotName && snapshotName.length ? snapshotName : `Snapshot ${new Date().toISOString()}`,
         blockIndex: selectedBlock,
+        comment: snapshotComment.trim() || undefined,
+        identifierNumber: identifierNumber,
         jsonPayload: JSON.stringify(payloadObj),
       };
       const res = await axios.post(`${apiBase}/api/measurementsets`, body);
       if (res.status >= 200 && res.status < 300) {
         alert('Snapshot saved');
         setSnapshotName('');
+        setSnapshotComment('');
+        setSnapshotIdentifier('');
         listSnapshots();
       } else {
         alert('Save failed: ' + res.status);
@@ -176,6 +243,59 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
       console.error('saveSnapshot', e);
       alert('Save snapshot failed');
     }
+  }
+
+  async function saveGroupSnapshot(group: string): Promise<void> {
+    try {
+      if (!liveData?.groups?.[group]) {
+        alert(`Group '${group}' not found in live data`);
+        return;
+      }
+
+      const groupData = {
+        groups: {
+          [group]: liveData.groups[group]
+        }
+      };
+
+      // Parse identifier number if provided
+      const identifierNumber = groupSnapshotIdentifier.trim() ? parseInt(groupSnapshotIdentifier.trim()) : undefined;
+      if (groupSnapshotIdentifier.trim() && isNaN(identifierNumber!)) {
+        alert('Identifier number must be a valid integer.');
+        return;
+      }
+
+      const body = {
+        name: groupSnapshotName.trim() || `${group}_${new Date().toISOString()}`,
+        blockIndex: selectedBlock,
+        comment: groupSnapshotComment.trim() || undefined,
+        identifierNumber: identifierNumber,
+        jsonPayload: JSON.stringify(groupData),
+      };
+      
+      const res = await axios.post(`${apiBase}/api/measurementsets`, body);
+      if (res.status >= 200 && res.status < 300) {
+        alert(`Group '${group}' snapshot saved successfully`);
+        setShowGroupSnapshotModal(false);
+        setGroupSnapshotName('');
+        setGroupSnapshotComment('');
+        setGroupSnapshotIdentifier('');
+        listSnapshots();
+      } else {
+        alert('Save failed: ' + res.status);
+      }
+    } catch (e) {
+      console.error('saveGroupSnapshot', e);
+      alert('Save group snapshot failed');
+    }
+  }
+
+  function openGroupSnapshotModal(group: string): void {
+    setGroupSnapshotGroup(group);
+    setGroupSnapshotName(`${group}_${new Date().toISOString().substring(0, 19)}`);
+    setGroupSnapshotComment('');
+    setGroupSnapshotIdentifier('');
+    setShowGroupSnapshotModal(true);
   }
 
   async function loadSnapshot(id: number): Promise<void> {
@@ -276,6 +396,61 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
               </div>
             </div>
           )}
+          
+          {showGroupSnapshotModal && (
+            <div style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>
+              <div style={{background:'#fff',padding:24,width:'500px',borderRadius:'8px',boxShadow:'0 4px 12px rgba(0,0,0,0.3)'}}>
+                <div style={{marginBottom:16}}>
+                  <h4 style={{margin:0}}>Save Group Snapshot: {groupSnapshotGroup}</h4>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                  <div>
+                    <label style={{display:'block',marginBottom:4,fontSize:14,fontWeight:'bold'}}>Name:</label>
+                    <input 
+                      type="text"
+                      value={groupSnapshotName} 
+                      onChange={e=>setGroupSnapshotName(e.target.value)}
+                      style={{width:'100%',padding:'8px',border:'1px solid #ccc',borderRadius:'4px'}}
+                      placeholder="Snapshot name"
+                    />
+                  </div>
+                  <div>
+                    <label style={{display:'block',marginBottom:4,fontSize:14,fontWeight:'bold'}}>Comment:</label>
+                    <textarea 
+                      value={groupSnapshotComment} 
+                      onChange={e=>setGroupSnapshotComment(e.target.value)}
+                      style={{width:'100%',padding:'8px',border:'1px solid #ccc',borderRadius:'4px',resize:'vertical',minHeight:'60px'}}
+                      placeholder="Optional comment..."
+                    />
+                  </div>
+                  <div>
+                    <label style={{display:'block',marginBottom:4,fontSize:14,fontWeight:'bold'}}>Identifier Number:</label>
+                    <input 
+                      type="text"
+                      value={groupSnapshotIdentifier} 
+                      onChange={e=>setGroupSnapshotIdentifier(e.target.value)}
+                      style={{width:'150px',padding:'8px',border:'1px solid #ccc',borderRadius:'4px'}}
+                      placeholder="Optional ID number"
+                    />
+                  </div>
+                  <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+                    <button 
+                      onClick={()=>setShowGroupSnapshotModal(false)}
+                      style={{padding:'8px 16px',border:'1px solid #ccc',background:'#f5f5f5',borderRadius:'4px'}}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={()=>saveGroupSnapshot(groupSnapshotGroup)}
+                      style={{padding:'8px 16px',border:'none',background:'#007bff',color:'white',borderRadius:'4px'}}
+                    >
+                      Save Snapshot
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -291,16 +466,29 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
 
         <div style={{marginTop:10, padding:8, borderTop:'1px dashed #ccc'}}>
           <h5>Snapshots</h5>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <input placeholder="Snapshot name" value={snapshotName} onChange={e=>setSnapshotName(e.target.value)} />
-            <button onClick={saveSnapshot}>Save Snapshot</button>
-            <button onClick={listSnapshots}>List Snapshots</button>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input placeholder="Snapshot name" value={snapshotName} onChange={e=>setSnapshotName(e.target.value)} style={{flex:1}} />
+              <input placeholder="Identifier number (optional)" value={snapshotIdentifier} onChange={e=>setSnapshotIdentifier(e.target.value)} style={{width:'150px'}} />
+              <button onClick={saveSnapshot}>Save Snapshot</button>
+              <button onClick={listSnapshots}>List Snapshots</button>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input placeholder="Comment (optional)" value={snapshotComment} onChange={e=>setSnapshotComment(e.target.value)} style={{flex:1}} />
+            </div>
           </div>
           <div style={{marginTop:8}}>
             {snapshots.length === 0 && <div style={{fontSize:12,color:'#666'}}>No snapshots. Click "List Snapshots" to refresh.</div>}
             {snapshots.map(s => (
               <div key={s.id} style={{display:'flex',gap:8,alignItems:'center',padding:'6px 0',borderBottom:'1px solid #eee'}}>
-                <div style={{flex:1}}><b>{s.name}</b> <span style={{color:'#666'}}>({new Date(s.createdAt).toLocaleString()})</span></div>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <b>{s.name}</b>
+                    {s.identifierNumber && <span style={{backgroundColor:'#e3f2fd',color:'#1976d2',padding:'2px 6px',borderRadius:'4px',fontSize:'11px'}}>#{s.identifierNumber}</span>}
+                    <span style={{color:'#666'}}>({new Date(s.createdAt).toLocaleString()})</span>
+                  </div>
+                  {s.comment && <div style={{fontSize:12,color:'#666',fontStyle:'italic',marginTop:2}}>{s.comment}</div>}
+                </div>
                 <div>
                   <button onClick={()=>previewSnapshot(s.id, s.name)}>Preview</button>
                   <button style={{marginLeft:6}} onClick={()=>loadSnapshot(s.id)}>Load</button>
@@ -368,16 +556,34 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
               const n = (g||'').toLowerCase();
               return n.includes('daten') || n.includes('strom') || n.includes('kommand');
             }).map((g: string) => (
-              <div key={g} className="group-card">
-                <h4>{g}</h4>
-                <table className="param-table">
+              <div key={g} className="group-card" style={{marginBottom: '16px', border: '1px solid #ddd', padding: '12px', borderRadius: '4px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                  <h4 style={{margin: '0'}}>{g}</h4>
+                  <div style={{display: 'flex', gap: '8px'}}>
+                    <button 
+                      onClick={() => readWholeGroup(g)}
+                      style={{fontSize: '12px', padding: '4px 8px'}}
+                      title={`Read all ${liveData.groups[g].length} parameters in this group`}
+                    >
+                      Read Group
+                    </button>
+                    <button 
+                      onClick={() => openGroupSnapshotModal(g)}
+                      style={{fontSize: '12px', padding: '4px 8px'}}
+                      title={`Save snapshot of only the ${g} group`}
+                    >
+                      Save Snapshot
+                    </button>
+                  </div>
+                </div>
+                <table className="param-table" style={{width: '100%', borderCollapse: 'collapse'}}>
                   <tbody>
                     {liveData.groups[g].map((p: any, i: number) => (
-                      <tr key={p.name}>
-                        <td className="param-name">{p.name}</td>
-                        <td style={{fontSize:12,color:'#333'}}>Live: <code>{formatValue(p.value)}</code></td>
-                        <td>
-                          <button onClick={() => readSingleParameter(g, p.name)}>Read</button>
+                      <tr key={p.name} style={{borderBottom: '1px solid #eee'}}>
+                        <td className="param-name" style={{padding: '4px 8px', fontWeight: 'bold'}}>{p.name}</td>
+                        <td style={{fontSize:12,color:'#333', padding: '4px 8px'}}>Live: <code>{formatValue(p.value)}</code></td>
+                        <td style={{padding: '4px 8px'}}>
+                          <button onClick={() => readSingleParameter(g, p.name)} style={{fontSize: '11px', padding: '2px 6px'}}>Read</button>
                         </td>
                       </tr>
                     ))}

@@ -7,7 +7,6 @@ using VentilTesterBackend.Services;
 
 namespace VentilTesterBackend.Controllers
 {
-    /*
     [ApiController]
     [Route("api/[controller]")]
     public class MeasurementSetsController : ControllerBase
@@ -29,7 +28,7 @@ namespace VentilTesterBackend.Controllers
             if (blockIndex.HasValue)
                 q = q.Where(m => m.BlockIndex == blockIndex.Value);
             var list = await q.OrderByDescending(m => m.CreatedAt).ToListAsync();
-            return Ok(list.Select(m => new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment }));
+            return Ok(list.Select(m => new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment, m.IdentifierNumber }));
         }
 
         // GET api/measurementsets/5
@@ -38,7 +37,7 @@ namespace VentilTesterBackend.Controllers
         {
             var item = await _db.MeasurementSets.FindAsync(id);
             if (item == null) return NotFound();
-            return Ok(new { item.Id, item.Name, item.BlockIndex, item.CreatedAt, item.Comment, payload = item.JsonPayload });
+            return Ok(new { item.Id, item.Name, item.BlockIndex, item.CreatedAt, item.Comment, item.IdentifierNumber, payload = item.JsonPayload });
         }
 
         // POST api/measurementsets
@@ -52,11 +51,12 @@ namespace VentilTesterBackend.Controllers
                 BlockIndex = req.BlockIndex,
                 CreatedAt = DateTime.UtcNow,
                 Comment = req.Comment,
+                IdentifierNumber = req.IdentifierNumber,
                 JsonPayload = req.JsonPayload ?? "{}"
             };
             _db.MeasurementSets.Add(m);
             await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = m.Id }, new { m.Id, m.Name, m.BlockIndex, m.CreatedAt });
+            return CreatedAtAction(nameof(GetById), new { id = m.Id }, new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment, m.IdentifierNumber });
         }
 
         // DELETE api/measurementsets/5
@@ -98,7 +98,7 @@ namespace VentilTesterBackend.Controllers
         public string Name { get; set; } = string.Empty;
         public int BlockIndex { get; set; }
         public string? Comment { get; set; }
+        public int? IdentifierNumber { get; set; }
         public string? JsonPayload { get; set; }
     }
-    */
 }
