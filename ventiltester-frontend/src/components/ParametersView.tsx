@@ -257,13 +257,8 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
       if (!payload) { alert('Dataset has no payload'); return; }
       let obj = null;
       try { obj = JSON.parse(payload); } catch { obj = payload; }
-      // set loaded block into UI for selectedBlock
-      // update blocks and edits for the selected block
-      setBlocks(prev => {
-        const others = prev.filter(x => x.index !== selectedBlock);
-        return [...others, { index: selectedBlock!, groups: obj.groups || obj }];
-      });
-      // populate edits from loaded block
+      
+      // Only populate edits from loaded dataset - do NOT overwrite live values in blocks
       const newEdits = { ...edits };
       const groups = obj.groups || obj;
       if (groups) {
@@ -274,7 +269,7 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
         }
       }
       setEdits(newEdits);
-      alert('Dataset loaded into UI (preview)');
+      alert('Dataset loaded into edit fields (live data preserved)');
     } catch (e) {
       console.error('loadParameterDataset', e);
       alert('Load parameter dataset failed');

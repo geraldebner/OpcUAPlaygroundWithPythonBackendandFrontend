@@ -18,6 +18,11 @@ export default function ParameterDataSetPanel({
               <div className="dataset-meta">
                 <b>{ds.name}</b>
                 <small style={{ marginLeft: 8 }}>{new Date(ds.createdAt).toLocaleString()}</small>
+                {ds.comment && (
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 4, fontStyle: 'italic' }}>
+                    {ds.comment}
+                  </div>
+                )}
               </div>
               <div className="dataset-actions">
                 <button onClick={() => loadParameterDataset(ds.id)}>Load into UI</button>
