@@ -1,6 +1,13 @@
 import React from 'react';
+import { ParameterDataSetPanelProps } from '../types';
 
-export default function ParameterDataSetPanel({ parameterDatasets, datasetsLoading, loadParameterDataset, writeDatasetToOpc, deleteDataset }) {
+export default function ParameterDataSetPanel({ 
+  parameterDatasets, 
+  datasetsLoading, 
+  loadParameterDataset, 
+  writeDatasetToOpc, 
+  deleteDataset 
+}: ParameterDataSetPanelProps) {
   return (
     <div style={{ padding: 12, border: '1px solid #ddd', borderRadius: 6, background: '#fff' }}>
       <h3 style={{ marginTop: 0 }}>Stored Parameter Datasets</h3>

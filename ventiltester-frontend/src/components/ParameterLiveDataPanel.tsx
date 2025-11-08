@@ -1,4 +1,5 @@
 import React from 'react';
+import { ParameterLiveDataPanelProps } from '../types';
 
 export default function ParameterLiveDataPanel({
   selectedBlock,
@@ -18,15 +19,27 @@ export default function ParameterLiveDataPanel({
   busyGroups,
   formatValue,
   setEdits
-}) {
+}: ParameterLiveDataPanelProps) {
   return (
     <div style={{ padding: 12, border: '1px solid #ddd', borderRadius: 6 }}>
       <h3 style={{ marginTop: 0 }}>Live Parameters</h3>
       <div style={{ marginBottom: 12 }}>
-        <label style={{ marginRight: 8 }}><input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} /> Auto-refresh</label>
-        <button onClick={() => refreshBlock(selectedBlock)} disabled={isRefreshing}>Refresh</button>
-        <button onClick={() => saveDataset(selectedBlock)} style={{ marginLeft: 8 }}>Save dataset</button>
-        <button onClick={() => writeBlockToOpc(selectedBlock)} style={{ marginLeft: 8 }}>Write block to OPC UA</button>
+        <label style={{ marginRight: 8 }}>
+          <input 
+            type="checkbox" 
+            checked={autoRefresh} 
+            onChange={e => setAutoRefresh(e.target.checked)} 
+          /> Auto-refresh
+        </label>
+        <button onClick={() => selectedBlock && refreshBlock(selectedBlock)} disabled={isRefreshing}>
+          Refresh
+        </button>
+        <button onClick={() => selectedBlock && saveDataset(selectedBlock)} style={{ marginLeft: 8 }}>
+          Save dataset
+        </button>
+        <button onClick={() => selectedBlock && writeBlockToOpc(selectedBlock)} style={{ marginLeft: 8 }}>
+          Write block to OPC UA
+        </button>
       </div>
 
       <div style={{ paddingTop: 12 }}>
@@ -74,7 +87,7 @@ export default function ParameterLiveDataPanel({
                       </div>
                       <table className="param-table">
                         <tbody>
-                          {b.groups[g].map((p, i) => {
+                          {b.groups![g].map((p, i) => {
                             const key = getEditKey(b.index, g, p.name);
                             const live = p.value;
                             return (
@@ -82,7 +95,10 @@ export default function ParameterLiveDataPanel({
                                 <td className="param-name">{p.name}</td>
                                 <td style={{ fontSize: 12, color: '#333' }}>Live: <code>{formatValue(live)}</code></td>
                                 <td>
-                                  <input value={edits[key] ?? live} onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} />
+                                  <input 
+                                    value={edits[key] ?? live} 
+                                    onChange={e => setEdits(prev => ({ ...prev, [key]: e.target.value }))} 
+                                  />
                                 </td>
                                 <td style={{ display: 'flex', gap: 6 }}>
                                   <button onClick={() => readParam(b.index, g, p.name)} disabled={isBusy}>Read</button>

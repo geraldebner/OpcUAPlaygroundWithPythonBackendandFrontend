@@ -1,8 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { CommandsMeasurementsViewProps } from '../types';
 
-export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
-  function formatValue(v) {
+interface Measurement {
+  status?: {
+    blockIndex: number;
+    status: string;
+    datenReady: boolean;
+  };
+  allStatus?: Array<{
+    blockIndex: number;
+    status: string;
+    datenReady: boolean;
+  }>;
+  block?: {
+    ventils: Array<{
+      index: number;
+      name: string;
+      value: any;
+    }>;
+  };
+  all?: Array<{
+    blockIndex: number;
+    ventils: Array<{
+      index: number;
+      name: string;
+      value: any;
+    }>;
+  }>;
+}
+
+interface LangzeittestData {
+  blockIndex: number;
+  ventils: Array<{
+    index: number;
+    name: string;
+    value: any;
+  }>;
+}
+
+interface Snapshot {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
+export default function CommandsMeasurementsView({ apiBase, selectedBlock }: CommandsMeasurementsViewProps) {
+  function formatValue(v: any): string {
     if (v === null || v === undefined) return '';
     if (Array.isArray(v)) return v.join(', ');
     if (typeof v === 'string') {
@@ -15,18 +59,19 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
     return String(v);
   }
-  const [sending, setSending] = useState(false);
-  const [measurements, setMeasurements] = useState({});
-  const [ltData, setLtData] = useState(null);
-  const [einzelVentil, setEinzelVentil] = useState('');
-  const [liveData, setLiveData] = useState(null);
-  const [snapshots, setSnapshots] = useState([]);
-  const [snapshotName, setSnapshotName] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [modalJson, setModalJson] = useState('');
-  const [modalTitle, setModalTitle] = useState('');
+  
+  const [sending, setSending] = useState<boolean>(false);
+  const [measurements, setMeasurements] = useState<Measurement>({});
+  const [ltData, setLtData] = useState<LangzeittestData | null>(null);
+  const [einzelVentil, setEinzelVentil] = useState<string>('');
+  const [liveData, setLiveData] = useState<any>(null);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [snapshotName, setSnapshotName] = useState<string>('');
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalJson, setModalJson] = useState<string>('');
+  const [modalTitle, setModalTitle] = useState<string>('');
 
-  async function pingServer() {
+  async function pingServer(): Promise<boolean> {
     try {
       await axios.get(`${apiBase}/api/commands/ping`);
       return true;
@@ -36,7 +81,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function sendCommand(params) {
+  async function sendCommand(params: any): Promise<void> {
     if (sending) return;
     setSending(true);
     try {
@@ -51,7 +96,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
       } else {
         alert('Command failed: ' + res.status);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('sendCommand error', err);
       const msg = err?.response?.data ?? err.message ?? String(err);
       alert('Command error: ' + msg);
@@ -60,13 +105,13 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function fetchLiveData() {
+  async function fetchLiveData(): Promise<void> {
     try {
-  // DEV-TRACE: log when CommandsMeasurementsView requests parameter list
-  console.debug('[API CALL] CommandsMeasurementsView -> GET /api/parameters');
-  const res = await axios.get(`${apiBase}/api/parameters`);
-  const data = res.data || [];
-      const block = data.find(b => b.index === selectedBlock) || null;
+      // DEV-TRACE: log when CommandsMeasurementsView requests parameter list
+      console.debug('[API CALL] CommandsMeasurementsView -> GET /api/parameters');
+      const res = await axios.get(`${apiBase}/api/parameters`);
+      const data = res.data || [];
+      const block = data.find((b: any) => b.index === selectedBlock) || null;
       setLiveData(block);
     } catch (e) {
       console.error('fetchLiveData', e);
@@ -76,18 +121,18 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
   useEffect(() => {
     // load live data when component mounts or selectedBlock changes
     fetchLiveData();
-  }, [selectedBlock]);
+  }, [selectedBlock, apiBase]);
 
-  async function readSingleParameter(group, name) {
+  async function readSingleParameter(group: string, name: string): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { params: { group, name } });
       const p = res.data;
       // update liveData locally
-      setLiveData(prev => {
+      setLiveData((prev: any) => {
         if (!prev) return prev;
         const g = { ...(prev.groups || {}) };
         if (!g[group]) return prev;
-        const list = g[group].map(item => item.name === p.name ? { ...item, value: p.value } : item);
+        const list = g[group].map((item: any) => item.name === p.name ? { ...item, value: p.value } : item);
         g[group] = list;
         return { ...prev, groups: g };
       });
@@ -97,7 +142,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function listSnapshots() {
+  async function listSnapshots(): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets`, { params: { blockIndex: selectedBlock } });
       setSnapshots(res.data || []);
@@ -107,7 +152,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function saveSnapshot() {
+  async function saveSnapshot(): Promise<void> {
     try {
       const payloadObj = measurements.block || liveData || {};
       if (!payloadObj || Object.keys(payloadObj).length === 0) {
@@ -133,7 +178,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function loadSnapshot(id) {
+  async function loadSnapshot(id: number): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
       const payload = res.data?.payload;
@@ -152,7 +197,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function previewSnapshot(id, name) {
+  async function previewSnapshot(id: number, name?: string): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
       const payload = res.data?.payload;
@@ -168,7 +213,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function restoreSnapshot(id) {
+  async function restoreSnapshot(id: number): Promise<void> {
     if (!confirm('Restore this snapshot to the device? This will write values to the OPC UA server.')) return;
     try {
       const res = await axios.post(`${apiBase}/api/measurementsets/${id}/restore`);
@@ -179,14 +224,14 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
       } else {
         alert('Restore failed: ' + res.status);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('restoreSnapshot', e);
       const msg = e?.response?.data ?? e.message ?? String(e);
       alert('Restore error: ' + JSON.stringify(msg));
     }
   }
 
-  async function deleteSnapshot(id) {
+  async function deleteSnapshot(id: number): Promise<void> {
     if (!confirm('Delete snapshot?')) return;
     try {
       await axios.delete(`${apiBase}/api/measurementsets/${id}`);
@@ -319,15 +364,15 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }) {
             <button onClick={fetchLiveData}>Refresh Live Data</button>
           </div>
           {liveData && liveData.groups && (
-            Object.keys(liveData.groups).filter(g => {
+            Object.keys(liveData.groups).filter((g: string) => {
               const n = (g||'').toLowerCase();
               return n.includes('daten') || n.includes('strom') || n.includes('kommand');
-            }).map(g => (
+            }).map((g: string) => (
               <div key={g} className="group-card">
                 <h4>{g}</h4>
                 <table className="param-table">
                   <tbody>
-                    {liveData.groups[g].map((p, i) => (
+                    {liveData.groups[g].map((p: any, i: number) => (
                       <tr key={p.name}>
                         <td className="param-name">{p.name}</td>
                         <td style={{fontSize:12,color:'#333'}}>Live: <code>{formatValue(p.value)}</code></td>

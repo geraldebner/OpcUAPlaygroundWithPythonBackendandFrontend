@@ -3,9 +3,17 @@ import axios from 'axios';
 import ParameterMappingPanel from './ParameterMappingPanel';
 import ParameterLiveDataPanel from './ParameterLiveDataPanel';
 import ParameterDataSetPanel from './ParameterDataSetPanel';
+import {
+  Block,
+  Dataset,
+  Edits,
+  BusyGroups,
+  ParametersViewProps,
+  TabType
+} from '../types';
 
-export default function ParametersView({ apiBase, selectedBlock }) {
-  function formatValue(v) {
+export default function ParametersView({ apiBase, selectedBlock }: ParametersViewProps) {
+  function formatValue(v: any): string {
     if (v === null || v === undefined) return '';
     // if it's already an array
     if (Array.isArray(v)) return v.join(', ');
@@ -20,28 +28,30 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
     return String(v);
   }
-  const [blocks, setBlocks] = useState([]);
-  const [edits, setEdits] = useState({});
-  const [paramInnerTab, setParamInnerTab] = useState('live');
+
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [edits, setEdits] = useState<Edits>({});
+  const [paramInnerTab, setParamInnerTab] = useState<TabType>('live');
   // start with auto-refresh disabled to avoid background polling by default
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [parameterDatasets, setParameterDatasets] = useState([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mappingLoading, setMappingLoading] = useState(false);
-  const [busyGroups, setBusyGroups] = useState({});
-  const [datasetsLoading, setDatasetsLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+  const [parameterDatasets, setParameterDatasets] = useState<Dataset[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [mappingLoading, setMappingLoading] = useState<boolean>(false);
+  const [busyGroups, setBusyGroups] = useState<BusyGroups>({});
+  const [datasetsLoading, setDatasetsLoading] = useState<boolean>(false);
 
   // helper: fetch mapping only and update block groups (used by MappingPanel)
-  async function fetchMappingOnly() {
+  async function fetchMappingOnly(): Promise<void> {
     if (!selectedBlock) return;
     setMappingLoading(true);
     try {
       const res = await axios.get(`${apiBase}/api/mapping/${selectedBlock}`);
       const groups = res.data?.groups || {};
-      const outGroups = {};
+      const outGroups: { [key: string]: any[] } = {};
       for (const [g, list] of Object.entries(groups)) {
         // preserve nodeId mapping metadata when available
-        outGroups[g] = (list || []).map(p => ({ name: p.name, value: '', nodeId: p.nodeId }));
+        const listArray = Array.isArray(list) ? list : [];
+        outGroups[g] = listArray.map((p: any) => ({ name: p.name, value: '', nodeId: p.nodeId }));
       }
       setBlocks(prev => {
         const others = prev.filter(x => x.index !== selectedBlock);
@@ -60,20 +70,21 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   // when selectedBlock changes, ensure we have a placeholder entry so UI can show parameters even if live data is not loaded
   useEffect(() => {
     // if blocks already contains the selected block, nothing to do
-    if (blocks.find(b => b.index === selectedBlock)) 
+    if (blocks.find(b => b.index === selectedBlock))
       return;
     // otherwise try to fetch mapping for the block to populate parameter names with empty values
     let mounted = true;
-    
+
     const fetchMapping = async () => {
       try {
         const res = await axios.get(`${apiBase}/api/mapping/${selectedBlock}`);
         const groups = res.data?.groups || {};
         // normalize groups into same shape as /api/parameters
-        const outGroups = {};
+        const outGroups: { [key: string]: any[] } = {};
         for (const [g, list] of Object.entries(groups)) {
           // keep mapping nodeId when provided by the mapping endpoint
-          outGroups[g] = (list || []).map(p => ({ name: p.name, value: '', nodeId: p.nodeId }));
+          const listArray = Array.isArray(list) ? list : [];
+          outGroups[g] = listArray.map((p: any) => ({ name: p.name, value: '', nodeId: p.nodeId }));
         }
         // also try fetch typed AllgemeineParameter and merge into groups
         try {
@@ -81,10 +92,10 @@ export default function ParametersView({ apiBase, selectedBlock }) {
           const ares = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/AllgemeineParameter`);
           const ap = ares.data;
           if (Array.isArray(ap)) {
-            outGroups['AllgemeineParameter'] = (ap || []).map(p => ({ name: p.name, value: p.value }));
+            outGroups['AllgemeineParameter'] = (ap || []).map((p: any) => ({ name: p.name, value: p.value }));
           }
         } catch { /* ignore fetch errors */ }
-        if (mounted) setBlocks(prev => {
+        if (mounted && selectedBlock !== null) setBlocks(prev => {
           const others = prev.filter(x => x.index !== selectedBlock);
           return [...others, { index: selectedBlock, groups: outGroups }];
         });
@@ -96,41 +107,42 @@ export default function ParametersView({ apiBase, selectedBlock }) {
 
     fetchMapping();
     return () => { mounted = false; };
-  }, [selectedBlock]);
+  }, [selectedBlock, apiBase]);
 
   useEffect(() => {
-    if (!autoRefresh) 
+    if (!autoRefresh)
       return;
-    if (paramInnerTab !== 'live') 
+    if (paramInnerTab !== 'live')
       return;
-    const id = setInterval(() => refreshBlock(selectedBlock), 3000);
+    const id = setInterval(() => refreshBlock(selectedBlock!), 3000);
     return () => clearInterval(id);
   }, [autoRefresh, paramInnerTab, selectedBlock]);
 
   // Refresh data for the given block: fetch mapping and typed groups and existing group values
-  async function refreshBlock(blockIndex) {
+  async function refreshBlock(blockIndex: number): Promise<void> {
     if (!blockIndex) return;
     setIsRefreshing(true);
     try {
       const res = await axios.get(`${apiBase}/api/mapping/${blockIndex}`);
       const groups = res.data?.groups || {};
-      const outGroups = {};
+      const outGroups: { [key: string]: any[] } = {};
       for (const [g, list] of Object.entries(groups)) {
-        outGroups[g] = (list || []).map(p => ({ name: p.name, value: '' }));
+        const listArray = Array.isArray(list) ? list : [];
+        outGroups[g] = listArray.map((p: any) => ({ name: p.name, value: '' }));
       }
 
       // fetch typed-ish groups via the generic group endpoint (returns array of {name, value})
       const typedNames = ['AllgemeineParameter', 'Ventilkonfiguration', 'Konfiguration_Langzeittest', 'Konfiguration_Detailtest'];
       for (const tn of typedNames) {
-          try {
+        try {
           // keep '/' characters unencoded so server catch-all route receives subgroups correctly
           const safeTn = encodeURIComponent(tn).replace(/%2F/g, '/');
           const tret = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safeTn}`);
           const tdata = tret.data;
           if (Array.isArray(tdata)) {
             // merge nodeId from mapping if available
-            outGroups[tn] = (tdata || []).map(p => {
-              const mapped = (groups[tn] || []).find(m => m.name === p.name);
+            outGroups[tn] = (tdata || []).map((p: any) => {
+              const mapped = (groups[tn] || []).find((m: any) => m.name === p.name);
               return { name: p.name, value: p.value, nodeId: mapped?.nodeId };
             });
           }
@@ -140,12 +152,12 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       // for each non-typed group, try to fetch group values (best-effort)
       for (const g of Object.keys(outGroups)) {
         if (typedNames.includes(g)) continue;
-          try {
+        try {
           const safeG = encodeURIComponent(g).replace(/%2F/g, '/');
           const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safeG}`);
           // merge nodeId from mapping if available
-          outGroups[g] = (gre.data || []).map(p => {
-            const mapped = (groups[g] || []).find(m => m.name === p.name);
+          outGroups[g] = (gre.data || []).map((p: any) => {
+            const mapped = (groups[g] || []).find((m: any) => m.name === p.name);
             return { name: p.name, value: p.value, nodeId: mapped?.nodeId };
           });
         } catch { /* ignore per-group fetch errors */ }
@@ -177,7 +189,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   // -----------------------------
   // Datasets (stored parameter sets)
   // -----------------------------
-  async function fetchParameterDatasets() {
+  async function fetchParameterDatasets(): Promise<void> {
     setDatasetsLoading(true);
     try {
       const res = await axios.get(`${apiBase}/api/datasets`);
@@ -189,11 +201,11 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
   }
 
-  function getEditKey(blockIndex, group, name) {
+  function getEditKey(blockIndex: number, group: string, name: string): string {
     return `${blockIndex}||${group}||${name}`;
   }
 
-  async function readParam(blockIndex, group, name) {
+  async function readParam(blockIndex: number, group: string, name: string): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/parameters/${blockIndex}/value`, { params: { group, name } });
       const p = res.data;
@@ -206,7 +218,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function writeParam(blockIndex, group, name) {
+  async function writeParam(blockIndex: number, group: string, name: string): Promise<void> {
     try {
       const key = getEditKey(blockIndex, group, name);
       const value = edits[key] ?? '';
@@ -218,7 +230,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
   }
 
-  async function saveParameterDataset(selectedBlock) {
+  async function saveParameterDataset(selectedBlock: number): Promise<void> {
     const b = blocks.find(x => x.index === selectedBlock);
     if (!b) return;
     const name = prompt('Name for dataset', `Snapshot_${selectedBlock}_${new Date().toISOString()}`) || '';
@@ -234,9 +246,11 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   }
 
   // UI-friendly alias kept for backwards compatibility with older callers
-  function saveDataset(blockIndex) { return saveParameterDataset(blockIndex); }
+  function saveDataset(blockIndex: number): Promise<void> {
+    return saveParameterDataset(blockIndex);
+  }
 
-  async function loadDataset(id) {
+  async function loadDataset(id: number): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/datasets/${id}`);
       const payload = res.data?.payload;
@@ -247,14 +261,14 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       // update blocks and edits for the selected block
       setBlocks(prev => {
         const others = prev.filter(x => x.index !== selectedBlock);
-        return [...others, { index: selectedBlock, groups: obj.groups || obj }];
+        return [...others, { index: selectedBlock!, groups: obj.groups || obj }];
       });
       // populate edits from loaded block
       const newEdits = { ...edits };
       const groups = obj.groups || obj;
       if (groups) {
         for (const [g, list] of Object.entries(groups)) {
-          for (const p of list) {
+          for (const p of list as any[]) {
             newEdits[`${selectedBlock}||${g}||${p.name}`] = p.value;
           }
         }
@@ -268,9 +282,11 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   }
 
   // alias used by UI
-  function loadParameterDataset(id) { return loadDataset(id); }
+  function loadParameterDataset(id: number): Promise<void> {
+    return loadDataset(id);
+  }
 
-  async function writeParameterDatasetToOpc(id) {
+  async function writeParameterDatasetToOpc(id: number): Promise<void> {
     if (!confirm('Write this parameter set to the OPC UA device?')) return;
     try {
       const res = await axios.post(`${apiBase}/api/datasets/${id}/write`);
@@ -286,9 +302,11 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   }
 
   // alias used by UI
-  function writeDatasetToOpc(id) { return writeParameterDatasetToOpc(id); }
+  function writeDatasetToOpc(id: number): Promise<void> {
+    return writeParameterDatasetToOpc(id);
+  }
 
-  async function deleteParameterDataset(id) {
+  async function deleteParameterDataset(id: number): Promise<void> {
     if (!confirm('Delete dataset?')) return;
     try {
       await axios.delete(`${apiBase}/api/datasets/${id}`);
@@ -300,28 +318,29 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   }
 
   // alias used by UI
-  function deleteDataset(id) { return deleteParameterDataset(id); }
+  function deleteDataset(id: number): Promise<void> {
+    return deleteParameterDataset(id);
+  }
 
-  async function writeBlockToOpc(selectedBlock) {
+  async function writeBlockToOpc(selectedBlock: number): Promise<void> {
     const b = blocks.find(x => x.index === selectedBlock);
     if (!b) return;
     await axios.post(`${apiBase}/api/parameters/${selectedBlock}`, b);
     alert('Write requested');
   }
 
-
-
   // read a single group for the block and merge into state
-  async function readGroup(blockIndex, groupName) {
+  async function readGroup(blockIndex: number, groupName: string): Promise<void> {
     const gKey = `${blockIndex}||${groupName}`;
     setBusyGroups(prev => ({ ...prev, [gKey]: true }));
     try {
       const safe = encodeURIComponent(groupName).replace(/%2F/g, '/');
       const gre = await axios.get(`${apiBase}/api/parameters/${blockIndex}/group/${safe}`);
       // try to preserve existing nodeId from current state mapping (best-effort)
-      const currentBlock = blocks.find(b => b.index === blockIndex) || { groups: {} };
-      const list = (gre.data || []).map(p => {
-        const existing = ((currentBlock.groups || {})[groupName] || []).find(e => e.name === p.name);
+      const currentBlock = blocks.find(b => b.index === blockIndex);
+      const list = (gre.data || []).map((p: any) => {
+        const existingGroup = currentBlock?.groups?.[groupName] || [];
+        const existing = existingGroup.find((e: any) => e.name === p.name);
         return { name: p.name, value: p.value, nodeId: existing?.nodeId };
       });
       setBlocks(prev => {
@@ -346,7 +365,7 @@ export default function ParametersView({ apiBase, selectedBlock }) {
   }
 
   // write the whole group (uses generic POST /group/{name})
-  async function writeGroup(blockIndex, groupName) {
+  async function writeGroup(blockIndex: number, groupName: string): Promise<void> {
     if (!confirm(`Write ${groupName} for this block to the OPC UA device?`)) return;
     const gKey = `${blockIndex}||${groupName}`;
     const b = blocks.find(x => x.index === blockIndex);
@@ -362,8 +381,8 @@ export default function ParametersView({ apiBase, selectedBlock }) {
     }
     setBusyGroups(prev => ({ ...prev, [gKey]: true }));
     try {
-  const safe = encodeURIComponent(groupName).replace(/%2F/g, '/');
-  await axios.post(`${apiBase}/api/parameters/${blockIndex}/group/${safe}`, parameters);
+      const safe = encodeURIComponent(groupName).replace(/%2F/g, '/');
+      await axios.post(`${apiBase}/api/parameters/${blockIndex}/group/${safe}`, parameters);
       alert(`${groupName} write requested`);
       try { await readGroup(blockIndex, groupName); } catch { /* ignore */ }
     } catch (e) {
@@ -384,7 +403,13 @@ export default function ParametersView({ apiBase, selectedBlock }) {
       </div>
 
       {/* Mapping Panel */}
-      <ParameterMappingPanel selectedBlock={selectedBlock} refreshBlock={refreshBlock} fetchMappingOnly={fetchMappingOnly} isRefreshing={isRefreshing} mappingLoading={mappingLoading} />
+      <ParameterMappingPanel
+        selectedBlock={selectedBlock}
+        refreshBlock={refreshBlock}
+        fetchMappingOnly={fetchMappingOnly}
+        isRefreshing={isRefreshing}
+        mappingLoading={mappingLoading}
+      />
 
       <div style={{ height: 12 }} />
 
