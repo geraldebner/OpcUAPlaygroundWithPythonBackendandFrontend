@@ -3,6 +3,7 @@ import "./App.css";
 import StatusView from "./components/StatusView";
 import ParametersView from "./components/ParametersView";
 import CommandsMeasurementsView from "./components/CommandsMeasurementsView";
+import HistoricalDataSetsView from "./components/HistoricalDataSetsView";
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -10,7 +11,7 @@ const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BAS
 type Block = { index: number };
 
 export default function App() {
-  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'>('parameters');
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'|'historical'>('parameters');
   // Hardcoded 4 blocks instead of loading from API
   const [blocks] = useState<Block[]>([
     { index: 1 },
@@ -51,6 +52,7 @@ export default function App() {
         <span style={{ marginLeft: 16 }}>
           <button onClick={() => setSelectedTab('parameters')} disabled={selectedTab==='parameters'}>Parameters</button>
           <button onClick={() => setSelectedTab('commands')} disabled={selectedTab==='commands'} style={{ marginLeft: 8 }}>Commands</button>
+          <button onClick={() => setSelectedTab('historical')} disabled={selectedTab==='historical'} style={{ marginLeft: 8 }}>Historical Data Sets</button>
           <button onClick={() => setSelectedTab('status')} disabled={selectedTab==='status'} style={{ marginLeft: 8 }}>Status</button>
         </span>
       </div>
@@ -63,6 +65,10 @@ export default function App() {
 
       {selectedTab === 'commands' && selectedBlock && (
         <CommandsMeasurementsView apiBase={API_BASE} selectedBlock={selectedBlock} />
+      )}
+
+      {selectedTab === 'historical' && selectedBlock && (
+        <HistoricalDataSetsView apiBase={API_BASE} selectedBlock={selectedBlock} />
       )}
 
       {selectedTab === 'status' && (

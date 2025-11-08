@@ -82,6 +82,11 @@ export interface CommandsMeasurementsViewProps {
   selectedBlock: number | null;
 }
 
+export interface HistoricalDataSetsViewProps {
+  apiBase: string;
+  selectedBlock: number | null;
+}
+
 export interface StatusViewProps {
   // Add props as needed
 }

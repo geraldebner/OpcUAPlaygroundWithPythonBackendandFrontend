@@ -298,25 +298,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     setShowGroupSnapshotModal(true);
   }
 
-  async function loadSnapshot(id: number): Promise<void> {
-    try {
-      const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
-      const payload = res.data?.payload;
-      if (!payload) {
-        alert('Snapshot has no payload');
-        return;
-      }
-      let obj = null;
-      try { obj = JSON.parse(payload); } catch { obj = payload; }
-      // If the payload contains ventils or block-like structure, set it to measurements.block for preview
-      setMeasurements(prev => ({ ...prev, block: obj }));
-      alert('Snapshot loaded into Block Data preview');
-    } catch (e) {
-      console.error('loadSnapshot', e);
-      alert('Load snapshot failed');
-    }
-  }
-
   async function previewSnapshot(id: number, name?: string): Promise<void> {
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
@@ -491,7 +472,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
                 </div>
                 <div>
                   <button onClick={()=>previewSnapshot(s.id, s.name)}>Preview</button>
-                  <button style={{marginLeft:6}} onClick={()=>loadSnapshot(s.id)}>Load</button>
                   <button style={{marginLeft:6}} onClick={()=>restoreSnapshot(s.id)}>Restore</button>
                   <button style={{marginLeft:6}} onClick={()=>deleteSnapshot(s.id)}>Delete</button>
                 </div>
