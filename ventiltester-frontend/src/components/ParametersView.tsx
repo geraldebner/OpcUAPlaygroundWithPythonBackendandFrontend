@@ -206,16 +206,8 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
   }
 
   async function readParam(blockIndex: number, group: string, name: string): Promise<void> {
-    try {
-      const res = await axios.get(`${apiBase}/api/parameters/${blockIndex}/value`, { params: { group, name } });
-      const p = res.data;
-      setEdits(prev => ({ ...prev, [getEditKey(blockIndex, group, p.name)]: p.value }));
-      // refresh the block to update related live values
-      try { await refreshBlock(blockIndex); } catch { /* ignore refresh errors */ }
-    } catch (e) {
-      console.error('Read param failed', e);
-      alert('Read failed. See console.');
-    }
+    // Use the optimized single parameter read function
+    await readSingleParamOnly(blockIndex, group, name);
   }
 
   async function readSingleParamOnly(blockIndex: number, group: string, name: string): Promise<void> {
