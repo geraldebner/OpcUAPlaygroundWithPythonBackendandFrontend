@@ -246,15 +246,20 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
       }
 
       const parameters = liveData.groups[group];
+      let successCount = 0;
+      let errorCount = 0;
+      
       const readPromises = parameters.map(async (param: any) => {
         try {
           const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { 
             params: { group, name: param.name } 
           });
-          return { name: param.name, value: res.data.value };
+          successCount++;
+          return { name: param.name, value: res.data.value, success: true };
         } catch (e) {
           console.warn(`Failed to read parameter ${param.name} in group ${group}:`, e);
-          return { name: param.name, value: param.value }; // keep current value on error
+          errorCount++;
+          return { name: param.name, value: param.value, success: false }; // keep current value on error
         }
       });
 
@@ -275,7 +280,14 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         return { ...prev, groups: g };
       });
       
-      updateGroupStatus(group, `Successfully read ${results.length} parameters`, false);
+      // Show appropriate status based on success/error counts
+      if (errorCount === results.length) {
+        updateGroupStatus(group, 'Failed to read all parameters (OPC UA server not connected)', true);
+      } else if (errorCount > 0) {
+        updateGroupStatus(group, `Partially read: ${successCount} succeeded, ${errorCount} failed`, true);
+      } else {
+        updateGroupStatus(group, `Successfully read ${results.length} parameters`, false);
+      }
     } catch (e) {
       console.error('readWholeGroup', e);
       updateGroupStatus(group, 'Failed to read group', true);
