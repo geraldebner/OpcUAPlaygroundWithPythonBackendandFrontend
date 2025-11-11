@@ -82,6 +82,53 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   const [groupSnapshotComment, setGroupSnapshotComment] = useState<string>('');
   const [groupSnapshotIdentifier, setGroupSnapshotIdentifier] = useState<string>('');
 
+  // Auto-refresh state: track which groups have auto-refresh enabled
+  const [autoRefreshGroups, setAutoRefreshGroups] = useState<Set<string>>(new Set());
+
+  // Group status messages: track success/error messages with timestamps for each group
+  const [groupStatusMessages, setGroupStatusMessages] = useState<Map<string, {message: string, isError: boolean, timestamp: string}>>(new Map());
+
+  // Update status message for a group
+  function updateGroupStatus(groupName: string, message: string, isError: boolean): void {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    setGroupStatusMessages(prev => {
+      const newMap = new Map(prev);
+      newMap.set(groupName, { message, isError, timestamp });
+      return newMap;
+    });
+  }
+
+  // Toggle auto-refresh for a specific group
+  function toggleAutoRefresh(groupName: string): void {
+    setAutoRefreshGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  }
+
+  // Auto-refresh effect: reads groups once per second if enabled
+  useEffect(() => {
+    if (autoRefreshGroups.size === 0) return;
+
+    const intervalId = setInterval(async () => {
+      autoRefreshGroups.forEach(async (groupName) => {
+        try {
+          await readWholeGroup(groupName);
+        } catch (e) {
+          console.error(`Auto-refresh failed for group ${groupName}:`, e);
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [autoRefreshGroups, selectedBlock, apiBase, liveData]);
+
   async function writeCommandParameter(group: string, paramName: string, value: string = 'true'): Promise<boolean> {
     try {
       const res = await axios.post(
@@ -194,7 +241,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   async function readWholeGroup(group: string): Promise<void> {
     try {
       if (!liveData?.groups?.[group]) {
-        alert(`Group '${group}' not found in live data`);
+        updateGroupStatus(group, 'Group not found in live data', true);
         return;
       }
 
@@ -228,10 +275,10 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         return { ...prev, groups: g };
       });
       
-      alert(`Successfully read ${results.length} parameters from group '${group}'`);
+      updateGroupStatus(group, `Successfully read ${results.length} parameters`, false);
     } catch (e) {
       console.error('readWholeGroup', e);
-      alert('Failed to read group. See console for details.');
+      updateGroupStatus(group, 'Failed to read group', true);
     }
   }
 
@@ -575,9 +622,9 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
               return n.includes('daten') || n.includes('strom') || n.includes('kommand');
             }).map((g: string) => (
               <div key={g} className="group-card" style={{marginBottom: '16px', border: '1px solid #ddd', padding: '12px', borderRadius: '4px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
                   <h4 style={{margin: '0'}}>{g}</h4>
-                  <div style={{display: 'flex', gap: '8px'}}>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
                     <button 
                       onClick={() => readWholeGroup(g)}
                       style={{fontSize: '12px', padding: '4px 8px'}}
@@ -585,6 +632,15 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
                     >
                       Read Group
                     </button>
+                    <label style={{fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'}}>
+                      <input 
+                        type="checkbox"
+                        checked={autoRefreshGroups.has(g)}
+                        onChange={() => toggleAutoRefresh(g)}
+                        title="Auto-refresh this group every second"
+                      />
+                      Auto
+                    </label>
                     <button 
                       onClick={() => openGroupSnapshotModal(g)}
                       style={{fontSize: '12px', padding: '4px 8px'}}
@@ -592,6 +648,18 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
                     >
                       Save Snapshot
                     </button>
+                    {groupStatusMessages.has(g) && (
+                      <span style={{
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: groupStatusMessages.get(g)?.isError ? '#ffebee' : '#e8f5e9',
+                        color: groupStatusMessages.get(g)?.isError ? '#c62828' : '#2e7d32',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {groupStatusMessages.get(g)?.message} ({groupStatusMessages.get(g)?.timestamp})
+                      </span>
+                    )}
                   </div>
                 </div>
                 <table className="param-table" style={{width: '100%', borderCollapse: 'collapse'}}>
