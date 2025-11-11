@@ -1,8 +1,7 @@
-using Opc.UaFx.Client;
 using System.Text.Json;
-using VentilTesterBackend.Models;
 using Microsoft.Extensions.Logging;
-
+using Opc.UaFx.Client;
+using VentilTesterBackend.Models;
 
 namespace VentilTesterBackend.Services;
 
@@ -19,14 +18,19 @@ public class OpcUaService : IDisposable
     private bool _connected = false;
     private readonly NodeMapping _mapping;
     private readonly ILogger<OpcUaService>? _logger;
-    private readonly System.Threading.CancellationTokenSource _cts = new System.Threading.CancellationTokenSource();
+    private readonly System.Threading.CancellationTokenSource _cts =
+        new System.Threading.CancellationTokenSource();
     private readonly string _endpoint;
     private DateTime? _lastSuccessfulCheck = null;
     private string? _lastError = null;
 
     // helper: cache of property info could be added if performance needed
 
-    public OpcUaService(IConfiguration config, NodeMapping mapping, ILogger<OpcUaService>? logger = null)
+    public OpcUaService(
+        IConfiguration config,
+        NodeMapping mapping,
+        ILogger<OpcUaService>? logger = null
+    )
     {
         _config = config;
         _mapping = mapping;
@@ -77,7 +81,8 @@ public class OpcUaService : IDisposable
     {
         try
         {
-            var endpoint = _config.GetValue<string>("OpcUa:EndpointUrl") ?? "opc.tcp://localhost:4840";
+            var endpoint =
+                _config.GetValue<string>("OpcUa:EndpointUrl") ?? "opc.tcp://localhost:4840";
             _client = new OpcClient(endpoint);
             _client.Connect();
             _connected = true;
@@ -211,8 +216,13 @@ public class OpcUaService : IDisposable
     /// </summary>
     public bool WriteBlock(int index, Block block)
     {
-        _logger?.LogDebug("WriteBlock requested block={Index} connected={Connected}", index, _connected);
-        if (!_connected || _client == null) return false;
+        _logger?.LogDebug(
+            "WriteBlock requested block={Index} connected={Connected}",
+            index,
+            _connected
+        );
+        if (!_connected || _client == null)
+            return false;
 
         var mappedGroups = _mapping?.GetGroupsForBlock(index);
         if (mappedGroups == null || mappedGroups.Count == 0)
@@ -224,12 +234,71 @@ public class OpcUaService : IDisposable
         var allOk = true;
 
         // First write typed groups where applicable
-        try { WriteTypedGroup(index, "Konfiguration_Detailtest/Kraft", block.Konfiguration_Detailtest.Kraft, mappedGroups); } catch { allOk = false; }
-        try { WriteTypedGroup(index, "Konfiguration_Detailtest/Durchfluss", block.Konfiguration_Detailtest.Durchfluss, mappedGroups); } catch { allOk = false; }
-        try { WriteTypedGroup(index, "Konfiguration_Detailtest/Strom", block.Konfiguration_Detailtest.Strom, mappedGroups); } catch { allOk = false; }
-        try { WriteTypedGroup(index, "AllgemeineParameter", block.AllgemeineParameter, mappedGroups); } catch { /* best-effort */ }
-        try { WriteTypedGroup(index, "Ventilkonfiguration", block.Ventilkonfiguration, mappedGroups); } catch { /* best-effort */ }
-        try { WriteTypedGroup(index, "Konfiguration_Langzeittest", block.Konfiguration_Langzeittest, mappedGroups); } catch { /* best-effort */ }
+        try
+        {
+            WriteTypedGroup(
+                index,
+                "Konfiguration_Detailtest/Kraft",
+                block.Konfiguration_Detailtest.Kraft,
+                mappedGroups
+            );
+        }
+        catch
+        {
+            allOk = false;
+        }
+        try
+        {
+            WriteTypedGroup(
+                index,
+                "Konfiguration_Detailtest/Durchfluss",
+                block.Konfiguration_Detailtest.Durchfluss,
+                mappedGroups
+            );
+        }
+        catch
+        {
+            allOk = false;
+        }
+        try
+        {
+            WriteTypedGroup(
+                index,
+                "Konfiguration_Detailtest/Strom",
+                block.Konfiguration_Detailtest.Strom,
+                mappedGroups
+            );
+        }
+        catch
+        {
+            allOk = false;
+        }
+        try
+        {
+            WriteTypedGroup(index, "AllgemeineParameter", block.AllgemeineParameter, mappedGroups);
+        }
+        catch
+        { /* best-effort */
+        }
+        try
+        {
+            WriteTypedGroup(index, "Ventilkonfiguration", block.Ventilkonfiguration, mappedGroups);
+        }
+        catch
+        { /* best-effort */
+        }
+        try
+        {
+            WriteTypedGroup(
+                index,
+                "Konfiguration_Langzeittest",
+                block.Konfiguration_Langzeittest,
+                mappedGroups
+            );
+        }
+        catch
+        { /* best-effort */
+        }
 
         // Write Items dictionaries (backwards compatible)
         try
@@ -239,26 +308,70 @@ public class OpcUaService : IDisposable
                 var nodeId = _mapping.GetNodeId(index, "AllgemeineParameter", kvp.Key);
                 if (!string.IsNullOrEmpty(nodeId))
                 {
-                    try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (AllgemeineParameter.{Key})", nodeId, kvp.Value, kvp.Key); }
-                    catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for AllgemeineParameter.{Key}", nodeId, kvp.Key); allOk = false; }
+                    try
+                    {
+                        _client.WriteNode(nodeId, kvp.Value);
+                        _logger?.LogTrace(
+                            "Wrote node {NodeId} <- {Value} (AllgemeineParameter.{Key})",
+                            nodeId,
+                            kvp.Value,
+                            kvp.Key
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(
+                            ex,
+                            "Failed to write node {NodeId} for AllgemeineParameter.{Key}",
+                            nodeId,
+                            kvp.Key
+                        );
+                        allOk = false;
+                    }
                 }
             }
         }
-        catch { allOk = false; }
+        catch
+        {
+            allOk = false;
+        }
 
         try
         {
             foreach (var kvp in block.Ventilkonfiguration.Items)
             {
-                var nodeId = _mapping.GetNodeId(index, "Ventilkonfiguration", kvp.Key) ?? _mapping.GetNodeId(index, "DB_VentilKonfiguration_1-4", kvp.Key);
+                var nodeId =
+                    _mapping.GetNodeId(index, "Ventilkonfiguration", kvp.Key)
+                    ?? _mapping.GetNodeId(index, "DB_VentilKonfiguration_1-4", kvp.Key);
                 if (!string.IsNullOrEmpty(nodeId))
                 {
-                    try { _client.WriteNode(nodeId, kvp.Value); _logger?.LogTrace("Wrote node {NodeId} <- {Value} (Ventilkonfiguration.{Key})", nodeId, kvp.Value, kvp.Key); }
-                    catch (Exception ex) { _logger?.LogWarning(ex, "Failed to write node {NodeId} for Ventilkonfiguration.{Key}", nodeId, kvp.Key); allOk = false; }
+                    try
+                    {
+                        _client.WriteNode(nodeId, kvp.Value);
+                        _logger?.LogTrace(
+                            "Wrote node {NodeId} <- {Value} (Ventilkonfiguration.{Key})",
+                            nodeId,
+                            kvp.Value,
+                            kvp.Key
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(
+                            ex,
+                            "Failed to write node {NodeId} for Ventilkonfiguration.{Key}",
+                            nodeId,
+                            kvp.Key
+                        );
+                        allOk = false;
+                    }
                 }
             }
         }
-        catch { allOk = false; }
+        catch
+        {
+            allOk = false;
+        }
 
         // Write groups (use mapping metadata when available)
         foreach (var kv in block.Groups)
@@ -275,7 +388,12 @@ public class OpcUaService : IDisposable
 
                 if (string.IsNullOrEmpty(nodeId))
                 {
-                    _logger?.LogWarning("WriteBlock: no node mapping for {Group}.{Param} block {Block}", groupKey, param.Name, index);
+                    _logger?.LogWarning(
+                        "WriteBlock: no node mapping for {Group}.{Param} block {Block}",
+                        groupKey,
+                        param.Name,
+                        index
+                    );
                     allOk = false;
                     continue;
                 }
@@ -285,11 +403,22 @@ public class OpcUaService : IDisposable
                     var mappingEntry = _mapping?.GetMappingEntry(index, groupKey, param.Name);
                     var toWrite = OpcUaDataConverter.ConvertForWrite(param.Value, mappingEntry);
                     _client.WriteNode(nodeId, toWrite ?? param.Value);
-                    _logger?.LogTrace("WriteBlock: wrote node {NodeId} <- {Value} (group={Group})", nodeId, param.Value, groupKey);
+                    _logger?.LogTrace(
+                        "WriteBlock: wrote node {NodeId} <- {Value} (group={Group})",
+                        nodeId,
+                        param.Value,
+                        groupKey
+                    );
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogWarning(ex, "WriteBlock: failed to write node {NodeId} for group {Group} param {Param}", nodeId, groupKey, param.Name);
+                    _logger?.LogWarning(
+                        ex,
+                        "WriteBlock: failed to write node {NodeId} for group {Group} param {Param}",
+                        nodeId,
+                        groupKey,
+                        param.Name
+                    );
                     allOk = false;
                 }
             }
@@ -304,7 +433,13 @@ public class OpcUaService : IDisposable
     /// </summary>
     public Parameter? ReadParameter(int blockIndex, string groupKey, string paramName)
     {
-        _logger?.LogDebug("ReadParameter requested block={Block} group={Group} name={Name} connected={Connected}", blockIndex, groupKey, paramName, _connected);
+        _logger?.LogDebug(
+            "ReadParameter requested block={Block} group={Group} name={Name} connected={Connected}",
+            blockIndex,
+            groupKey,
+            paramName,
+            _connected
+        );
         // Try mapping lookup first
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         if (mappedGroups == null || mappedGroups.Count == 0)
@@ -322,7 +457,12 @@ public class OpcUaService : IDisposable
         if (string.IsNullOrEmpty(nodeId))
         {
             // Parameter is known in mapping but no node id assigned -> expose name with empty value
-            return new Parameter { Name = paramName, Value = string.Empty, DataType = null };
+            return new Parameter
+            {
+                Name = paramName,
+                Value = string.Empty,
+                DataType = null,
+            };
         }
 
         // nodeId present -> must have live connection
@@ -337,13 +477,26 @@ public class OpcUaService : IDisposable
             var rawVal = node.Value;
             var value = OpcUaDataConverter.ConvertReadValueToString(rawVal);
             var dtype = rawVal?.GetType().Name;
-            _logger?.LogTrace("ReadParameter: node {NodeId} -> {Name} = {Value} (type={Type})", nodeId, paramName, value, dtype);
-            return new Parameter { Name = paramName, Value = value, DataType = dtype };
+            _logger?.LogTrace(
+                "ReadParameter: node {NodeId} -> {Name} = {Value} (type={Type})",
+                nodeId,
+                paramName,
+                value,
+                dtype
+            );
+            return new Parameter
+            {
+                Name = paramName,
+                Value = value,
+                DataType = dtype,
+            };
         }
         catch (Exception ex)
         {
             _logger?.LogWarning(ex, "ReadParameter failed for node {NodeId}", nodeId);
-            throw new InvalidOperationException($"Failed to read node {nodeId} for parameter {paramName}: {ex.Message}");
+            throw new InvalidOperationException(
+                $"Failed to read node {nodeId} for parameter {paramName}: {ex.Message}"
+            );
         }
     }
 
@@ -353,7 +506,14 @@ public class OpcUaService : IDisposable
     /// </summary>
     public bool WriteParameter(int blockIndex, string groupKey, string paramName, string value)
     {
-        _logger?.LogDebug("WriteParameter requested block={Block} group={Group} name={Name} value={Value} connected={Connected}", blockIndex, groupKey, paramName, value, _connected);
+        _logger?.LogDebug(
+            "WriteParameter requested block={Block} group={Group} name={Name} value={Value} connected={Connected}",
+            blockIndex,
+            groupKey,
+            paramName,
+            value,
+            _connected
+        );
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         if (mappedGroups == null || mappedGroups.Count == 0)
         {
@@ -369,7 +529,9 @@ public class OpcUaService : IDisposable
 
         if (string.IsNullOrEmpty(nodeId))
         {
-            throw new InvalidOperationException($"No node mapping for parameter {paramName} in group {groupKey} block {blockIndex}");
+            throw new InvalidOperationException(
+                $"No node mapping for parameter {paramName} in group {groupKey} block {blockIndex}"
+            );
         }
 
         if (!_connected || _client == null)
@@ -398,7 +560,12 @@ public class OpcUaService : IDisposable
     /// </summary>
     public List<Parameter> ReadGroup(int blockIndex, string groupKey)
     {
-        _logger?.LogDebug("ReadGroup requested block={Block} group={Group} connected={Connected}", blockIndex, groupKey, _connected);
+        _logger?.LogDebug(
+            "ReadGroup requested block={Block} group={Group} connected={Connected}",
+            blockIndex,
+            groupKey,
+            _connected
+        );
         var result = new List<Parameter>();
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         if (mappedGroups == null || mappedGroups.Count == 0)
@@ -419,7 +586,11 @@ public class OpcUaService : IDisposable
 
         if (entries == null || entries.Count == 0)
         {
-            _logger?.LogDebug("ReadGroup: no entries found for group {Group} in block {Block}", groupKey, blockIndex);
+            _logger?.LogDebug(
+                "ReadGroup: no entries found for group {Group} in block {Block}",
+                groupKey,
+                blockIndex
+            );
             return result;
         }
 
@@ -427,7 +598,14 @@ public class OpcUaService : IDisposable
         {
             if (string.IsNullOrEmpty(nodeId))
             {
-                result.Add(new Parameter { Name = param, Value = string.Empty, DataType = null });
+                result.Add(
+                    new Parameter
+                    {
+                        Name = param,
+                        Value = string.Empty,
+                        DataType = null,
+                    }
+                );
                 continue;
             }
 
@@ -442,13 +620,32 @@ public class OpcUaService : IDisposable
                 var rawVal = node.Value;
                 var value = OpcUaDataConverter.ConvertReadValueToString(rawVal);
                 var dtype = rawVal?.GetType().Name;
-                result.Add(new Parameter { Name = param, Value = value, DataType = dtype });
-                _logger?.LogTrace("ReadGroup: node {NodeId} -> {Param} = {Value}", nodeId, param, value);
+                result.Add(
+                    new Parameter
+                    {
+                        Name = param,
+                        Value = value,
+                        DataType = dtype,
+                    }
+                );
+                _logger?.LogTrace(
+                    "ReadGroup: node {NodeId} -> {Param} = {Value}",
+                    nodeId,
+                    param,
+                    value
+                );
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "ReadGroup: failed to read node {NodeId} for param {Param}", nodeId, param);
-                throw new InvalidOperationException($"Failed to read node {nodeId} for parameter {param}: {ex.Message}");
+                _logger?.LogWarning(
+                    ex,
+                    "ReadGroup: failed to read node {NodeId} for param {Param}",
+                    nodeId,
+                    param
+                );
+                throw new InvalidOperationException(
+                    $"Failed to read node {nodeId} for parameter {param}: {ex.Message}"
+                );
             }
         }
 
@@ -460,7 +657,12 @@ public class OpcUaService : IDisposable
     /// </summary>
     public bool WriteGroup(int blockIndex, string groupKey, IEnumerable<Parameter> values)
     {
-        _logger?.LogDebug("WriteGroup requested block={Block} group={Group} connected={Connected}", blockIndex, groupKey, _connected);
+        _logger?.LogDebug(
+            "WriteGroup requested block={Block} group={Group} connected={Connected}",
+            blockIndex,
+            groupKey,
+            _connected
+        );
         var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
         if (mappedGroups == null || mappedGroups.Count == 0)
         {
@@ -484,18 +686,31 @@ public class OpcUaService : IDisposable
 
         if (entries == null || entries.Count == 0)
         {
-            _logger?.LogDebug("WriteGroup: no entries found for group {Group} in block {Block}", groupKey, blockIndex);
+            _logger?.LogDebug(
+                "WriteGroup: no entries found for group {Group} in block {Block}",
+                groupKey,
+                blockIndex
+            );
             return false;
         }
 
         var allOk = true;
-        var mapByParam = entries.ToDictionary(e => e.Param, e => e.NodeId, StringComparer.OrdinalIgnoreCase);
+        var mapByParam = entries.ToDictionary(
+            e => e.Param,
+            e => e.NodeId,
+            StringComparer.OrdinalIgnoreCase
+        );
         foreach (var p in values)
         {
             var paramName = p.Name;
             if (!mapByParam.TryGetValue(paramName, out var nodeId) || string.IsNullOrEmpty(nodeId))
             {
-                _logger?.LogWarning("WriteGroup: no node mapping for param {Param} in group {Group} block {Block}", paramName, groupKey, blockIndex);
+                _logger?.LogWarning(
+                    "WriteGroup: no node mapping for param {Param} in group {Group} block {Block}",
+                    paramName,
+                    groupKey,
+                    blockIndex
+                );
                 allOk = false;
                 continue;
             }
@@ -506,11 +721,21 @@ public class OpcUaService : IDisposable
                 var mappingEntry = _mapping?.GetMappingEntry(blockIndex, groupKey, paramName);
                 var toWrite = OpcUaDataConverter.ConvertForWrite(p.Value, mappingEntry);
                 _client.WriteNode(nodeId, toWrite ?? p.Value);
-                _logger?.LogTrace("WriteGroup: wrote node {NodeId} <- {Value} (param={Param})", nodeId, p.Value, paramName);
+                _logger?.LogTrace(
+                    "WriteGroup: wrote node {NodeId} <- {Value} (param={Param})",
+                    nodeId,
+                    p.Value,
+                    paramName
+                );
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "WriteGroup: failed to write node {NodeId} for param {Param}", nodeId, paramName);
+                _logger?.LogWarning(
+                    ex,
+                    "WriteGroup: failed to write node {NodeId} for param {Param}",
+                    nodeId,
+                    paramName
+                );
                 allOk = false;
             }
         }
@@ -579,116 +804,6 @@ public class OpcUaService : IDisposable
         return ok;
     }
 
-    /// <summary>
-    /// Execute a command mapped in the DB_Kommands section (e.g. Langzeittest Start/Stop/Pause, Detailtest Start/Stop/Pause, Einzeltest Start/Stop/Pause).
-    /// If a payload value is provided it will attempt to write that value to a matching parameter (e.g. Einzeltest_Ventilnummer) before triggering the command.
-    /// The method will search the loaded mapping entries for a best-match node id for the requested testType/action.
-    /// </summary>
-    public bool ExecuteCommand(int blockIndex, string testType, string action, string? payload = null)
-    {
-        _logger?.LogDebug("ExecuteCommand requested block={Block} testType={TestType} action={Action} payloadProvided={HasPayload} connected={Connected}", blockIndex, testType, action, payload != null, _connected);
-        if (!_connected || _client == null) return false;
-
-        var mappedGroups = _mapping?.GetGroupsForBlock(blockIndex);
-        if (mappedGroups == null || mappedGroups.Count == 0)
-        {
-            _logger?.LogDebug("ExecuteCommand: no mapping for block {Block}", blockIndex);
-            return false;
-        }
-
-        // Log available mapping groups for easier debugging
-        try
-        {
-            foreach (var g in mappedGroups)
-            {
-                _logger?.LogTrace("ExecuteCommand: mapping group '{Group}' contains {Count} entries", g.Key, g.Value.Count);
-            }
-        }
-        catch { }
-
-        // Optionally write payload to a parameter first (common for Einzeltest: Ventilnummer)
-        if (!string.IsNullOrEmpty(payload))
-        {
-            // try find a parameter name that contains Ventilnummer or Einzeltest_Ventilnummer
-            var found = false;
-            foreach (var kv in mappedGroups)
-            {
-                foreach (var (param, nodeId) in kv.Value)
-                {
-                    if (string.IsNullOrEmpty(nodeId)) continue;
-                    if (param.IndexOf("Ventilnummer", StringComparison.OrdinalIgnoreCase) >= 0 || param.IndexOf("Einzeltest_Ventilnummer", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        try
-                        {
-                            _logger?.LogTrace("ExecuteCommand: attempting payload write to node {NodeId} for param {Param} with value '{Payload}'", nodeId, param, payload);
-                            _client.WriteNode(nodeId, payload);
-                            _logger?.LogTrace("ExecuteCommand: wrote payload to node {NodeId} <- {Value} (param={Param})", nodeId, payload, param);
-                            found = true;
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger?.LogWarning(ex, "ExecuteCommand: failed writing payload to node {NodeId} for param {Param}", nodeId, param);
-                            return false;
-                        }
-                    }
-                }
-                if (found) break;
-            }
-            if (!found)
-            {
-                _logger?.LogDebug("ExecuteCommand: payload provided but no Ventilnummer mapping found for block {Block}", blockIndex);
-            }
-        }
-
-        // Now trigger the action node. We'll search mapping entries for a parameter name that matches pattern like "{testType}_{action}" or ends with "_{action}" and contains testType.
-        string targetParamExact = $"{testType}_{action}";
-        string targetAction = action;
-
-        string? actionNodeId = null;
-        foreach (var kv in mappedGroups)
-        {
-            foreach (var (param, nodeId) in kv.Value)
-            {
-                if (string.IsNullOrEmpty(nodeId)) continue;
-                // log candidate
-                _logger?.LogTrace("ExecuteCommand: checking mapping param='{Param}' node='{NodeId}'", param, nodeId);
-                // exact match
-                if (string.Equals(param, targetParamExact, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: exact match found param={Param} node={NodeId}", param, nodeId); break; }
-                // contains both testType and action
-                if (param.IndexOf(testType, StringComparison.OrdinalIgnoreCase) >= 0 && param.EndsWith("_" + targetAction, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: match found by containing testType and action param={Param} node={NodeId}", param, nodeId); break; }
-                // ends with action only (fallback)
-                if (param.EndsWith("_" + targetAction, StringComparison.OrdinalIgnoreCase)) { actionNodeId = nodeId; _logger?.LogTrace("ExecuteCommand: fallback match found param={Param} node={NodeId}", param, nodeId); break; }
-            }
-            if (!string.IsNullOrEmpty(actionNodeId)) break;
-        }
-
-        if (string.IsNullOrEmpty(actionNodeId))
-        {
-            _logger?.LogWarning("ExecuteCommand: could not find node mapping for action {Action} of testType {TestType} in block {Block}", action, testType, blockIndex);
-            return false;
-        }
-
-        // Write a trigger value. Many command nodes are boolean (1/0) or integer. We'll attempt 1 or true.
-        try
-        {
-            // try writing integer 1 first
-            try { _logger?.LogTrace("ExecuteCommand: attempting integer trigger write to {NodeId}", actionNodeId); _client.WriteNode(actionNodeId, 1); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- 1", actionNodeId); return true; }
-            catch (Exception exInt) { _logger?.LogTrace(exInt, "ExecuteCommand: integer write failed for {NodeId}", actionNodeId); }
-            // try boolean true
-            try { _logger?.LogTrace("ExecuteCommand: attempting boolean trigger write to {NodeId}", actionNodeId); _client.WriteNode(actionNodeId, true); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- true", actionNodeId); return true; }
-            catch (Exception exBool) { _logger?.LogTrace(exBool, "ExecuteCommand: boolean write failed for {NodeId}", actionNodeId); }
-            // try string
-            try { _logger?.LogTrace("ExecuteCommand: attempting string trigger write to {NodeId} value={Action}", actionNodeId, action); _client.WriteNode(actionNodeId, action); _logger?.LogTrace("ExecuteCommand: triggered node {NodeId} <- {Action}", actionNodeId, action); return true; }
-            catch (Exception ex) { _logger?.LogWarning(ex, "ExecuteCommand: failed writing to action node {NodeId}", actionNodeId); return false; }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "ExecuteCommand: unexpected error writing action node {NodeId}", actionNodeId);
-            return false;
-        }
-    }
-
     public void Dispose()
     {
         try
@@ -698,13 +813,19 @@ public class OpcUaService : IDisposable
         catch { }
     }
 
-
-    private void WriteTypedGroup(int blockIndex, string groupKey, object typedObject, IReadOnlyDictionary<string, List<(string Param, string NodeId)>> mappedGroups)
+    private void WriteTypedGroup(
+        int blockIndex,
+        string groupKey,
+        object typedObject,
+        IReadOnlyDictionary<string, List<(string Param, string NodeId)>> mappedGroups
+    )
     {
-        if (typedObject == null || mappedGroups == null) return;
+        if (typedObject == null || mappedGroups == null)
+            return;
         // find candidate mapping entries: prefer exact groupKey, else any group that contains the main name
         var candidates = new List<(string Param, string NodeId)>();
-        if (mappedGroups.TryGetValue(groupKey, out var list)) candidates.AddRange(list);
+        if (mappedGroups.TryGetValue(groupKey, out var list))
+            candidates.AddRange(list);
         else
         {
             // e.g. groupKey "Ventilkonfiguration" may be stored as DB_VentilKonfiguration_1-4
@@ -715,18 +836,27 @@ public class OpcUaService : IDisposable
                     candidates.AddRange(kv.Value);
             }
         }
-        if (candidates.Count == 0) return;
+        if (candidates.Count == 0)
+            return;
 
-        var props = typedObject.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        var props = typedObject
+            .GetType()
+            .GetProperties(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance
+            );
         foreach (var prop in props)
         {
-            if (!prop.CanRead) continue;
-            if (prop.Name.Equals("Items", StringComparison.OrdinalIgnoreCase)) continue; // skip compatibility dict
+            if (!prop.CanRead)
+                continue;
+            if (prop.Name.Equals("Items", StringComparison.OrdinalIgnoreCase))
+                continue; // skip compatibility dict
             try
             {
                 var propKey = OpcUaDataConverter.NormalizeKey(prop.Name);
                 // find mapping entry with matching normalized param
-                var match = candidates.FirstOrDefault(c => OpcUaDataConverter.NormalizeKey(c.Param) == propKey);
+                var match = candidates.FirstOrDefault(c =>
+                    OpcUaDataConverter.NormalizeKey(c.Param) == propKey
+                );
                 if (match.Param != null)
                 {
                     var nodeId = match.NodeId;
@@ -736,8 +866,25 @@ public class OpcUaService : IDisposable
                         // write using the underlying value (if null, skip)
                         if (raw != null)
                         {
-                            try { _client.WriteNode(nodeId, raw); _logger?.LogTrace("WriteTypedGroup: wrote node {NodeId} <- {Value} (prop={Prop})", nodeId, raw, prop.Name); }
-                            catch (Exception ex) { _logger?.LogWarning(ex, "WriteTypedGroup: failed to write node {NodeId} for prop {Prop}", nodeId, prop.Name); }
+                            try
+                            {
+                                _client.WriteNode(nodeId, raw);
+                                _logger?.LogTrace(
+                                    "WriteTypedGroup: wrote node {NodeId} <- {Value} (prop={Prop})",
+                                    nodeId,
+                                    raw,
+                                    prop.Name
+                                );
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger?.LogWarning(
+                                    ex,
+                                    "WriteTypedGroup: failed to write node {NodeId} for prop {Prop}",
+                                    nodeId,
+                                    prop.Name
+                                );
+                            }
                         }
                     }
                 }
@@ -745,8 +892,4 @@ public class OpcUaService : IDisposable
             catch { }
         }
     }
-
-    
-
-    
 }

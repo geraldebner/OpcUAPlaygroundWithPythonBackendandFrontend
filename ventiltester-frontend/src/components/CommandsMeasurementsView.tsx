@@ -82,35 +82,73 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   const [groupSnapshotComment, setGroupSnapshotComment] = useState<string>('');
   const [groupSnapshotIdentifier, setGroupSnapshotIdentifier] = useState<string>('');
 
-  async function pingServer(): Promise<boolean> {
+  async function writeCommandParameter(group: string, paramName: string, value: string = 'true'): Promise<boolean> {
     try {
-      await axios.get(`${apiBase}/api/commands/ping`);
-      return true;
-    } catch (e) {
-      console.warn('Ping failed', e);
+      const res = await axios.post(
+        `${apiBase}/api/parameters/${selectedBlock}/value`,
+        { value },
+        { params: { group, name: paramName } }
+      );
+      return res.status >= 200 && res.status < 300;
+    } catch (err: any) {
+      console.error('writeCommandParameter error', err);
+      const msg = err?.response?.data ?? err.message ?? String(err);
+      alert('Command error: ' + msg);
       return false;
     }
   }
 
-  async function sendCommand(params: any): Promise<void> {
+  async function sendLangzeittestCommand(paramName: string): Promise<void> {
     if (sending) return;
     setSending(true);
     try {
-      const alive = await pingServer();
-      if (!alive) {
-        alert('Backend unreachable (ping failed).');
+      const success = await writeCommandParameter('Kommands/Langzeittest', paramName, 'true');
+      if (success) {
+        alert('Langzeittest command sent successfully');
+      } else {
+        alert('Langzeittest command failed');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function sendDetailtestCommand(paramName: string): Promise<void> {
+    if (sending) return;
+    setSending(true);
+    try {
+      const success = await writeCommandParameter('Kommands/Detailtest', paramName, 'true');
+      if (success) {
+        alert('Detailtest command sent successfully');
+      } else {
+        alert('Detailtest command failed');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function sendEinzeltestCommand(paramName: string, ventilnummer: string): Promise<void> {
+    if (sending) return;
+    if (!ventilnummer || ventilnummer.trim() === '') {
+      alert('Please enter a Ventilnummer first');
+      return;
+    }
+    setSending(true);
+    try {
+      // First write the Ventilnummer
+      const ventilSuccess = await writeCommandParameter('Kommands/Einzeltest', 'Einzeltest_Ventilnummer', ventilnummer);
+      if (!ventilSuccess) {
+        alert('Failed to write Ventilnummer');
         return;
       }
-      const res = await axios.post(`${apiBase}/api/commands`, null, { params });
-      if (res.status >= 200 && res.status < 300) {
-        alert('Command sent successfully');
+      // Then execute the command
+      const cmdSuccess = await writeCommandParameter('Kommands/Einzeltest', paramName, 'true');
+      if (cmdSuccess) {
+        alert('Einzeltest command sent successfully');
       } else {
-        alert('Command failed: ' + res.status);
+        alert('Einzeltest command failed');
       }
-    } catch (err: any) {
-      console.error('sendCommand error', err);
-      const msg = err?.response?.data ?? err.message ?? String(err);
-      alert('Command error: ' + msg);
     } finally {
       setSending(false);
     }
@@ -349,22 +387,22 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         <div style={{display:'flex',gap:8,flexDirection:'column'}}>
           <div>
             <b>Langzeittest</b>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Start' })}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Stop' })}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Langzeittest', action: 'Pause' })}>Pause</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
           </div>
           <div style={{marginTop:8}}>
             <b>Detailtest</b>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Start' })}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Stop' })}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Detailtest', action: 'Pause' })}>Pause</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
           </div>
           <div style={{marginTop:8}}>
             <b>Einzeltest</b>
             <label style={{marginLeft:8}}>Ventilnummer: <input value={einzelVentil} onChange={e=>setEinzelVentil(e.target.value)} style={{marginLeft:8}} /></label>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Start', value: einzelVentil })}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Stop', value: einzelVentil })}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendCommand({ index: selectedBlock, testType: 'Einzeltest', action: 'Pause', value: einzelVentil })}>Pause</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
           </div>
           {showModal && (
             <div style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>

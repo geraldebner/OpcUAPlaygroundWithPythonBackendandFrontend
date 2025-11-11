@@ -644,12 +644,9 @@
 		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_Start" NodeId="ns=5;i=6910" DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_Stop" NodeId="ns=5;i=6911" DataTypeId="1" />
 		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_Pause" NodeId="ns=5;i=6909" DataTypeId="1" />
-		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_StrommessungAktiv" NodeId="ns=5;i=6912"
-			DataTypeId="1" />
-		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_DurchflussmessungAktiv"
-			NodeId="ns=5;i=6907" DataTypeId="1" />
-		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=5;i=6908"
-			DataTypeId="1" />
+		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_StrommessungAktiv" NodeId="ns=5;i=6912" DataTypeId="1" />
+		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_DurchflussmessungAktiv"	NodeId="ns=5;i=6907" DataTypeId="1" />
+		<Mapping Label="Block1.DB_Kommandos_1.Einzeltest_KraftmessungAktiv" NodeId="ns=5;i=6908"	DataTypeId="1" />
 
 		</Einzeltest>
 		</Block1>
