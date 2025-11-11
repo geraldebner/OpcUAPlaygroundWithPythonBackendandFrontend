@@ -28,6 +28,13 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalJson, setModalJson] = useState<string>('');
   const [modalTitle, setModalTitle] = useState<string>('');
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  
+  // Chart zoom and pan state
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Load snapshots when component mounts or selectedBlock changes
   useEffect(() => {
@@ -132,6 +139,284 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     }
     return String(v);
   }
+
+  function exportToJSON(): void {
+    if (!loadedData) {
+      alert('No data loaded to export');
+      return;
+    }
+
+    const dataStr = JSON.stringify(loadedData, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${loadedData.name || 'dataset'}_${loadedData.id}_${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportToCSV(): void {
+    if (!loadedData) {
+      alert('No data loaded to export');
+      return;
+    }
+
+    const rows: string[] = [];
+    
+    // Add header row with metadata
+    rows.push('Dataset Information');
+    rows.push(`Name,${loadedData.name}`);
+    rows.push(`ID,${loadedData.id}`);
+    rows.push(`Created At,${new Date(loadedData.createdAt).toLocaleString()}`);
+    if (loadedData.identifierNumber) {
+      rows.push(`Identifier Number,${loadedData.identifierNumber}`);
+    }
+    if (loadedData.comment) {
+      rows.push(`Comment,"${loadedData.comment.replace(/"/g, '""')}"`);
+    }
+    rows.push(''); // Empty line separator
+
+    // Add parameter data
+    if (loadedData.data?.groups) {
+      rows.push('Group,Parameter Name,Value');
+      
+      Object.keys(loadedData.data.groups).forEach(groupName => {
+        const params = loadedData.data.groups[groupName];
+        params.forEach((param: any) => {
+          const value = formatValue(param.value);
+          // Escape commas and quotes in CSV
+          const escapedValue = value.includes(',') || value.includes('"') 
+            ? `"${value.replace(/"/g, '""')}"` 
+            : value;
+          rows.push(`${groupName},${param.name},${escapedValue}`);
+        });
+      });
+    } else {
+      rows.push('Data');
+      rows.push(JSON.stringify(loadedData.data));
+    }
+
+    const csvContent = rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${loadedData.name || 'dataset'}_${loadedData.id}_${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // Extract pMesskurve data if it exists
+  function getMesskurveData(): number[] | null {
+    if (!loadedData?.data?.groups) return null;
+    
+    for (const groupName in loadedData.data.groups) {
+      const params = loadedData.data.groups[groupName];
+      const messkurveParam = params.find((p: any) => 
+        p.name === 'pMesskurven' || p.name === 'pMesskurve'
+      );
+      
+      if (messkurveParam?.value) {
+        try {
+          const parsed = typeof messkurveParam.value === 'string' 
+            ? JSON.parse(messkurveParam.value) 
+            : messkurveParam.value;
+          
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to parse pMesskurve data:', e);
+        }
+      }
+    }
+    return null;
+  }
+
+  // Draw chart on canvas with zoom and pan
+  useEffect(() => {
+    const messkurveData = getMesskurveData();
+    if (!messkurveData || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = { top: 20, right: 40, bottom: 40, left: 60 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Find min/max values
+    const values = messkurveData.filter((v: number) => v !== 0); // Filter out zeros for better scaling
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = maxValue - minValue;
+
+    // Calculate visible range based on zoom and pan
+    const dataLength = messkurveData.length;
+    const visibleRange = dataLength / zoomLevel;
+    const centerIndex = dataLength / 2 - (panOffset.x * dataLength / (chartWidth * zoomLevel));
+    const startIndex = Math.max(0, Math.floor(centerIndex - visibleRange / 2));
+    const endIndex = Math.min(dataLength - 1, Math.ceil(centerIndex + visibleRange / 2));
+
+    // Calculate visible Y range based on pan
+    const yPanFactor = panOffset.y / (chartHeight * zoomLevel);
+    const visibleMinValue = minValue + (valueRange * yPanFactor);
+    const visibleMaxValue = visibleMinValue + (valueRange / zoomLevel);
+
+    // Draw axes
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, height - padding.bottom);
+    ctx.lineTo(width - padding.right, height - padding.bottom);
+    ctx.stroke();
+
+    // Draw grid lines and Y-axis labels
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#666';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'right';
+    
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+      const y = padding.top + (chartHeight * i / ySteps);
+      const value = visibleMaxValue - ((visibleMaxValue - visibleMinValue) * i / ySteps);
+      
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(width - padding.right, y);
+      ctx.stroke();
+      
+      ctx.fillText(value.toFixed(0), padding.left - 10, y + 4);
+    }
+
+    // Draw X-axis labels
+    ctx.textAlign = 'center';
+    const xSteps = 10;
+    for (let i = 0; i <= xSteps; i++) {
+      const x = padding.left + (chartWidth * i / xSteps);
+      const index = Math.floor(startIndex + ((endIndex - startIndex) * i / xSteps));
+      ctx.fillText(index.toString(), x, height - padding.bottom + 20);
+    }
+
+    // Draw axis labels
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sample Index', width / 2, height - 5);
+    
+    ctx.save();
+    ctx.translate(15, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Pressure Value', 0, 0);
+    ctx.restore();
+
+    // Clip to chart area
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(padding.left, padding.top, chartWidth, chartHeight);
+    ctx.clip();
+
+    // Draw line chart
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+
+    let firstPoint = true;
+    for (let i = startIndex; i <= endIndex; i++) {
+      const value = messkurveData[i];
+      const normalizedX = (i - startIndex) / (endIndex - startIndex);
+      const x = padding.left + (chartWidth * normalizedX);
+      const normalizedY = (value - visibleMinValue) / (visibleMaxValue - visibleMinValue);
+      const y = height - padding.bottom - (chartHeight * normalizedY);
+      
+      if (firstPoint) {
+        ctx.moveTo(x, y);
+        firstPoint = false;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+
+    ctx.stroke();
+
+    // Draw data points
+    ctx.fillStyle = '#2196F3';
+    const visibleDataPoints = endIndex - startIndex;
+    const pointInterval = Math.max(1, Math.floor(visibleDataPoints / 200)); // Show max 200 points
+    
+    for (let i = startIndex; i <= endIndex; i += pointInterval) {
+      const value = messkurveData[i];
+      const normalizedX = (i - startIndex) / (endIndex - startIndex);
+      const x = padding.left + (chartWidth * normalizedX);
+      const normalizedY = (value - visibleMinValue) / (visibleMaxValue - visibleMinValue);
+      const y = height - padding.bottom - (chartHeight * normalizedY);
+      
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+  }, [loadedData, zoomLevel, panOffset]);
+
+  // Handle mouse wheel for zooming
+  function handleWheel(e: React.WheelEvent<HTMLCanvasElement>): void {
+    e.preventDefault();
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoomLevel(prev => Math.max(1, Math.min(20, prev * zoomFactor)));
+  }
+
+  // Handle mouse down for panning
+  function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>): void {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - panOffset.x,
+      y: e.clientY - panOffset.y
+    });
+  }
+
+  // Handle mouse move for panning
+  function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>): void {
+    if (!isDragging) return;
+    
+    setPanOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  }
+
+  // Handle mouse up for panning
+  function handleMouseUp(): void {
+    setIsDragging(false);
+  }
+
+  // Reset zoom and pan
+  function resetZoom(): void {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  }
+
+  // Reset zoom when loading new data
+  useEffect(() => {
+    resetZoom();
+  }, [loadedData]);
 
   // Filter snapshots based on comment and identifier
   const filteredSnapshots = snapshots.filter(snapshot => {
@@ -254,19 +539,53 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
           {loadedData ? (
             <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '12px' }}>
               <div style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #eee' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <strong style={{ fontSize: '16px' }}>{loadedData.name}</strong>
-                  {loadedData.identifierNumber && (
-                    <span style={{
-                      backgroundColor: '#e3f2fd',
-                      color: '#1976d2',
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}>
-                      #{loadedData.identifierNumber}
-                    </span>
-                  )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontSize: '16px' }}>{loadedData.name}</strong>
+                    {loadedData.identifierNumber && (
+                      <span style={{
+                        backgroundColor: '#e3f2fd',
+                        color: '#1976d2',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        #{loadedData.identifierNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={exportToJSON}
+                      style={{ 
+                        padding: '6px 12px', 
+                        backgroundColor: '#28a745', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                      title="Export to JSON"
+                    >
+                      📥 JSON
+                    </button>
+                    <button 
+                      onClick={exportToCSV}
+                      style={{ 
+                        padding: '6px 12px', 
+                        backgroundColor: '#17a2b8', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                      title="Export to CSV"
+                    >
+                      📥 CSV
+                    </button>
+                  </div>
                 </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>
                   Created: {new Date(loadedData.createdAt).toLocaleString()}
@@ -313,6 +632,68 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
                   </pre>
                 )}
               </div>
+
+              {/* pMesskurve Chart */}
+              {getMesskurveData() && (
+                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h5 style={{ margin: 0, color: '#333' }}>
+                      Pressure Measurement Curve (pMesskurve)
+                    </h5>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '12px', color: '#666' }}>
+                        Zoom: {zoomLevel.toFixed(1)}x
+                      </span>
+                      <button 
+                        onClick={resetZoom}
+                        style={{ 
+                          padding: '4px 12px', 
+                          backgroundColor: '#6c757d', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                        title="Reset zoom and pan"
+                      >
+                        🔄 Reset View
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ 
+                    backgroundColor: '#fafafa', 
+                    padding: '12px', 
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}>
+                    <canvas
+                      ref={canvasRef}
+                      width={800}
+                      height={400}
+                      onWheel={handleWheel}
+                      onMouseDown={handleMouseDown}
+                      onMouseMove={handleMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      style={{ 
+                        width: '100%', 
+                        height: 'auto',
+                        display: 'block',
+                        cursor: isDragging ? 'grabbing' : 'grab'
+                      }}
+                    />
+                    <div style={{ 
+                      fontSize: '11px', 
+                      color: '#666', 
+                      marginTop: '8px',
+                      textAlign: 'center'
+                    }}>
+                      💡 Scroll to zoom • Drag to pan
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ 
