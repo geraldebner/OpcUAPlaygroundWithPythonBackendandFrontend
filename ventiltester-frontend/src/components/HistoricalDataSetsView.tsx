@@ -35,6 +35,12 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  
+  // Measurement lines state
+  const [measurementEnabled, setMeasurementEnabled] = useState<boolean>(false);
+  const [measurementLine1, setMeasurementLine1] = useState<number | null>(null); // Data index
+  const [measurementLine2, setMeasurementLine2] = useState<number | null>(null); // Data index
+  const [draggingLine, setDraggingLine] = useState<number | null>(null); // 1 or 2
 
   // Load snapshots when component mounts or selectedBlock changes
   useEffect(() => {
@@ -374,7 +380,153 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
 
     ctx.restore();
 
-  }, [loadedData, zoomLevel, panOffset]);
+    // Draw measurement lines (outside clipping region)
+    if (measurementEnabled && (measurementLine1 !== null || measurementLine2 !== null)) {
+      ctx.save();
+      
+      // Helper function to draw a measurement line
+      const drawMeasurementLine = (dataIndex: number, color: string, label: string) => {
+        if (dataIndex < startIndex || dataIndex > endIndex) return null;
+        
+        const value = messkurveData[dataIndex];
+        const normalizedX = (dataIndex - startIndex) / (endIndex - startIndex);
+        const x = padding.left + (chartWidth * normalizedX);
+        
+        // Draw vertical line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, height - padding.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw label box at top
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px sans-serif';
+        const text = `${label}: ${value.toFixed(1)} @ ${dataIndex}`;
+        const textMetrics = ctx.measureText(text);
+        const boxWidth = textMetrics.width + 12;
+        const boxHeight = 20;
+        const boxX = Math.max(padding.left, Math.min(x - boxWidth / 2, width - padding.right - boxWidth));
+        
+        ctx.fillRect(boxX, padding.top - 25, boxWidth, boxHeight);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, boxX + boxWidth / 2, padding.top - 10);
+        
+        return { dataIndex, value, x };
+      };
+      
+      const line1Info = measurementLine1 !== null ? drawMeasurementLine(measurementLine1, '#FF5722', 'L1') : null;
+      const line2Info = measurementLine2 !== null ? drawMeasurementLine(measurementLine2, '#4CAF50', 'L2') : null;
+      
+      // Draw measurement difference if both lines are present
+      if (line1Info && line2Info) {
+        const indexDiff = Math.abs(line2Info.dataIndex - line1Info.dataIndex);
+        const valueDiff = (line2Info.value - line1Info.value).toFixed(1);
+        const midX = (line1Info.x + line2Info.x) / 2;
+        
+        // Draw connecting line
+        ctx.strokeStyle = '#9C27B0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(line1Info.x, height - padding.bottom + 10);
+        ctx.lineTo(line2Info.x, height - padding.bottom + 10);
+        ctx.stroke();
+        
+        // Draw difference label
+        ctx.fillStyle = '#9C27B0';
+        ctx.font = 'bold 12px sans-serif';
+        const diffText = `Δ: ${valueDiff} (${indexDiff} samples)`;
+        const diffMetrics = ctx.measureText(diffText);
+        const diffBoxWidth = diffMetrics.width + 12;
+        const diffBoxHeight = 22;
+        
+        ctx.fillRect(midX - diffBoxWidth / 2, height - padding.bottom + 15, diffBoxWidth, diffBoxHeight);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(diffText, midX, height - padding.bottom + 30);
+      }
+      
+      ctx.restore();
+    }
+
+  }, [loadedData, zoomLevel, panOffset, measurementEnabled, measurementLine1, measurementLine2]);
+
+  // Get canvas-relative coordinates
+  function getCanvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  // Get data index from canvas X coordinate
+  function getDataIndexFromX(canvasX: number): number | null {
+    const messkurveData = getMesskurveData();
+    if (!messkurveData) return null;
+
+    const padding = { left: 60, right: 40 };
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    
+    const chartWidth = canvas.width - padding.left - padding.right;
+    
+    // Calculate visible range
+    const dataLength = messkurveData.length;
+    const visibleRange = dataLength / zoomLevel;
+    const centerIndex = dataLength / 2 - (panOffset.x * dataLength / (chartWidth * zoomLevel));
+    const startIndex = Math.max(0, Math.floor(centerIndex - visibleRange / 2));
+    const endIndex = Math.min(dataLength - 1, Math.ceil(centerIndex + visibleRange / 2));
+    
+    // Convert canvas X to data index
+    const relativeX = canvasX - padding.left;
+    const normalizedX = relativeX / chartWidth;
+    const dataIndex = Math.round(startIndex + normalizedX * (endIndex - startIndex));
+    
+    return Math.max(0, Math.min(dataLength - 1, dataIndex));
+  }
+
+  // Check if mouse is near a measurement line
+  function getNearbyMeasurementLine(canvasX: number): number | null {
+    if (!measurementEnabled || !canvasRef.current) return null;
+    
+    const padding = { left: 60, right: 40 };
+    const chartWidth = canvasRef.current.width - padding.left - padding.right;
+    const messkurveData = getMesskurveData();
+    if (!messkurveData) return null;
+    
+    const dataLength = messkurveData.length;
+    const visibleRange = dataLength / zoomLevel;
+    const centerIndex = dataLength / 2 - (panOffset.x * dataLength / (chartWidth * zoomLevel));
+    const startIndex = Math.max(0, Math.floor(centerIndex - visibleRange / 2));
+    const endIndex = Math.min(dataLength - 1, Math.ceil(centerIndex + visibleRange / 2));
+    
+    const threshold = 10; // pixels
+    
+    if (measurementLine1 !== null && measurementLine1 >= startIndex && measurementLine1 <= endIndex) {
+      const normalizedX = (measurementLine1 - startIndex) / (endIndex - startIndex);
+      const lineX = padding.left + (chartWidth * normalizedX);
+      if (Math.abs(canvasX - lineX) < threshold) return 1;
+    }
+    
+    if (measurementLine2 !== null && measurementLine2 >= startIndex && measurementLine2 <= endIndex) {
+      const normalizedX = (measurementLine2 - startIndex) / (endIndex - startIndex);
+      const lineX = padding.left + (chartWidth * normalizedX);
+      if (Math.abs(canvasX - lineX) < threshold) return 2;
+    }
+    
+    return null;
+  }
 
   // Handle mouse wheel for zooming
   function handleWheel(e: React.WheelEvent<HTMLCanvasElement>): void {
@@ -383,8 +535,30 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     setZoomLevel(prev => Math.max(1, Math.min(20, prev * zoomFactor)));
   }
 
-  // Handle mouse down for panning
+  // Handle mouse down for panning or measurement line dragging
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>): void {
+    const coords = getCanvasCoords(e);
+    
+    if (measurementEnabled) {
+      const nearbyLine = getNearbyMeasurementLine(coords.x);
+      if (nearbyLine !== null) {
+        setDraggingLine(nearbyLine);
+        return;
+      }
+      
+      // Place new measurement line on click
+      const dataIndex = getDataIndexFromX(coords.x);
+      if (dataIndex !== null) {
+        if (measurementLine1 === null) {
+          setMeasurementLine1(dataIndex);
+        } else if (measurementLine2 === null) {
+          setMeasurementLine2(dataIndex);
+        }
+      }
+      return;
+    }
+    
+    // Normal panning
     setIsDragging(true);
     setDragStart({
       x: e.clientX - panOffset.x,
@@ -392,8 +566,21 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     });
   }
 
-  // Handle mouse move for panning
+  // Handle mouse move for panning or measurement line dragging
   function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>): void {
+    if (draggingLine !== null) {
+      const coords = getCanvasCoords(e);
+      const dataIndex = getDataIndexFromX(coords.x);
+      if (dataIndex !== null) {
+        if (draggingLine === 1) {
+          setMeasurementLine1(dataIndex);
+        } else if (draggingLine === 2) {
+          setMeasurementLine2(dataIndex);
+        }
+      }
+      return;
+    }
+    
     if (!isDragging) return;
     
     setPanOffset({
@@ -402,15 +589,32 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     });
   }
 
-  // Handle mouse up for panning
+  // Handle mouse up
   function handleMouseUp(): void {
     setIsDragging(false);
+    setDraggingLine(null);
   }
 
   // Reset zoom and pan
   function resetZoom(): void {
     setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
+  }
+
+  // Toggle measurement mode
+  function toggleMeasurement(): void {
+    setMeasurementEnabled(!measurementEnabled);
+    if (measurementEnabled) {
+      // Clear measurement lines when disabling
+      setMeasurementLine1(null);
+      setMeasurementLine2(null);
+    }
+  }
+
+  // Clear measurement lines
+  function clearMeasurementLines(): void {
+    setMeasurementLine1(null);
+    setMeasurementLine2(null);
   }
 
   // Reset zoom when loading new data
@@ -645,6 +849,38 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
                         Zoom: {zoomLevel.toFixed(1)}x
                       </span>
                       <button 
+                        onClick={toggleMeasurement}
+                        style={{ 
+                          padding: '4px 12px', 
+                          backgroundColor: measurementEnabled ? '#FF5722' : '#607d8b', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                        title={measurementEnabled ? 'Disable measurement mode' : 'Enable measurement mode'}
+                      >
+                        📏 {measurementEnabled ? 'Measuring' : 'Measure'}
+                      </button>
+                      {measurementEnabled && (measurementLine1 !== null || measurementLine2 !== null) && (
+                        <button 
+                          onClick={clearMeasurementLines}
+                          style={{ 
+                            padding: '4px 12px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                          title="Clear measurement lines"
+                        >
+                          ✕ Clear
+                        </button>
+                      )}
+                      <button 
                         onClick={resetZoom}
                         style={{ 
                           padding: '4px 12px', 
@@ -680,7 +916,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
                         width: '100%', 
                         height: 'auto',
                         display: 'block',
-                        cursor: isDragging ? 'grabbing' : 'grab'
+                        cursor: measurementEnabled ? 'crosshair' : (isDragging ? 'grabbing' : 'grab')
                       }}
                     />
                     <div style={{ 
@@ -689,7 +925,14 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
                       marginTop: '8px',
                       textAlign: 'center'
                     }}>
-                      💡 Scroll to zoom • Drag to pan
+                      {measurementEnabled ? (
+                        <>
+                          � <span style={{ color: '#FF5722' }}>Click to place/drag measurement lines</span> • 
+                          <span style={{ color: '#FF5722' }}> L1</span> and <span style={{ color: '#4CAF50' }}>L2</span>
+                        </>
+                      ) : (
+                        '�💡 Scroll to zoom • Drag to pan'
+                      )}
                     </div>
                   </div>
                 </div>
