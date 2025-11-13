@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
+import Navigation from "./components/Navigation";
 import StatusView from "./components/StatusView";
 import ParametersView from "./components/ParametersView";
 import CommandsMeasurementsView from "./components/CommandsMeasurementsView";
@@ -39,41 +40,51 @@ export default function App() {
       console.log('Backend not available, using hardcoded blocks 1-4');
     }
   }  return (
-    <div style={{ padding: 16 }}>
-      <h2>VentilTester</h2>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <Navigation
+        selectedTab={selectedTab}
+        onTabChange={setSelectedTab}
+        selectedBlock={selectedBlock}
+        blocks={blocks}
+        onBlockChange={setSelectedBlock}
+        onCheckBackend={loadBlockList}
+      />
 
-      <div style={{ marginBottom: 12 }}>
-        <label>Block: </label>
-        <select value={selectedBlock ?? ""} onChange={e => setSelectedBlock(Number(e.target.value))}>
-          <option value="">-- select --</option>
-          {blocks.map(b => <option key={b.index} value={b.index}>{b.index}</option>)}
-        </select>
-        <button onClick={loadBlockList} style={{ marginLeft: 8 }}>Check Backend</button>
-        <span style={{ marginLeft: 16 }}>
-          <button onClick={() => setSelectedTab('parameters')} disabled={selectedTab==='parameters'}>Parameters</button>
-          <button onClick={() => setSelectedTab('commands')} disabled={selectedTab==='commands'} style={{ marginLeft: 8 }}>Commands</button>
-          <button onClick={() => setSelectedTab('historical')} disabled={selectedTab==='historical'} style={{ marginLeft: 8 }}>Historical Data Sets</button>
-          <button onClick={() => setSelectedTab('status')} disabled={selectedTab==='status'} style={{ marginLeft: 8 }}>Status</button>
-        </span>
+      <div style={{ padding: '24px' }}>
+        {!selectedBlock && (
+          <div style={{
+            padding: '48px',
+            textAlign: 'center',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔧</div>
+            <h3 style={{ margin: '0 0 8px 0', color: '#2c3e50' }}>
+              No Block Selected
+            </h3>
+            <p style={{ margin: 0, color: '#7f8c8d' }}>
+              Please select a test block from the navigation above to begin.
+            </p>
+          </div>
+        )}
+
+        {selectedTab === 'parameters' && selectedBlock && (
+          <ParametersView apiBase={API_BASE} selectedBlock={selectedBlock} />
+        )}
+
+        {selectedTab === 'commands' && selectedBlock && (
+          <CommandsMeasurementsView apiBase={API_BASE} selectedBlock={selectedBlock} />
+        )}
+
+        {selectedTab === 'historical' && selectedBlock && (
+          <HistoricalDataSetsView apiBase={API_BASE} selectedBlock={selectedBlock} />
+        )}
+
+        {selectedTab === 'status' && (
+          <StatusView />
+        )}
       </div>
-
-      {!selectedBlock && <div>No block selected. Please select a block above.</div>}
-
-      {selectedTab === 'parameters' && selectedBlock && (
-        <ParametersView apiBase={API_BASE} selectedBlock={selectedBlock} />
-      )}
-
-      {selectedTab === 'commands' && selectedBlock && (
-        <CommandsMeasurementsView apiBase={API_BASE} selectedBlock={selectedBlock} />
-      )}
-
-      {selectedTab === 'historical' && selectedBlock && (
-        <HistoricalDataSetsView apiBase={API_BASE} selectedBlock={selectedBlock} />
-      )}
-
-      {selectedTab === 'status' && (
-        <StatusView />
-      )}
     </div>
   );
 }
