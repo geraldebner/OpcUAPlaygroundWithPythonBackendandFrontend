@@ -44,7 +44,7 @@ export default function Navigation({
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Logo */}
           <div style={{
-            width: '48px',
+            width: '120px',
             height: '48px',
             backgroundColor: 'white',
             borderRadius: '8px',
