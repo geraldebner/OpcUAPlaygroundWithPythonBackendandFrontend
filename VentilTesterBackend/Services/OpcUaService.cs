@@ -428,13 +428,13 @@ public class OpcUaService : IDisposable
     }
 
     /// <summary>
-    /// Read a single parameter value for a given block/group/parameter name.
-    /// Returns null when the parameter cannot be resolved (no mapping and no reachable node).
+    /// Read a single node value for a given block/group/parameter name.
+    /// Returns null when the node cannot be resolved (no mapping and no reachable node).
     /// </summary>
-    public Parameter? ReadParameter(int blockIndex, string groupKey, string paramName)
+    public Parameter? ReadNode(int blockIndex, string groupKey, string paramName)
     {
         _logger?.LogDebug(
-            "ReadParameter requested block={Block} group={Group} name={Name} connected={Connected}",
+            "ReadNode requested block={Block} group={Group} name={Name} connected={Connected}",
             blockIndex,
             groupKey,
             paramName,
@@ -478,7 +478,7 @@ public class OpcUaService : IDisposable
             var value = OpcUaDataConverter.ConvertReadValueToString(rawVal);
             var dtype = rawVal?.GetType().Name;
             _logger?.LogTrace(
-                "ReadParameter: node {NodeId} -> {Name} = {Value} (type={Type})",
+                "ReadNode: node {NodeId} -> {Name} = {Value} (type={Type})",
                 nodeId,
                 paramName,
                 value,
@@ -493,7 +493,7 @@ public class OpcUaService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "ReadParameter failed for node {NodeId}", nodeId);
+            _logger?.LogWarning(ex, "ReadNode failed for node {NodeId}", nodeId);
             throw new InvalidOperationException(
                 $"Failed to read node {nodeId} for parameter {paramName}: {ex.Message}"
             );
@@ -501,13 +501,13 @@ public class OpcUaService : IDisposable
     }
 
     /// <summary>
-    /// Write a single parameter value for a given block/group/parameter name.
+    /// Write a single node value for a given block/group/parameter name.
     /// Returns true when write was attempted/succeeded and false when not possible (e.g. disconnected).
     /// </summary>
-    public bool WriteParameter(int blockIndex, string groupKey, string paramName, string value)
+    public bool WriteNode(int blockIndex, string groupKey, string paramName, string value)
     {
         _logger?.LogDebug(
-            "WriteParameter requested block={Block} group={Group} name={Name} value={Value} connected={Connected}",
+            "WriteNode requested block={Block} group={Group} name={Name} value={Value} connected={Connected}",
             blockIndex,
             groupKey,
             paramName,
@@ -544,12 +544,12 @@ public class OpcUaService : IDisposable
             var mappingEntry = _mapping?.GetMappingEntry(blockIndex, groupKey, paramName);
             var toWrite = OpcUaDataConverter.ConvertForWrite(value, mappingEntry);
             _client.WriteNode(nodeId, toWrite ?? value);
-            _logger?.LogTrace("WriteParameter: wrote node {NodeId} <- {Value}", nodeId, value);
+            _logger?.LogTrace("WriteNode: wrote node {NodeId} <- {Value}", nodeId, value);
             return true;
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "WriteParameter failed for node {NodeId}", nodeId);
+            _logger?.LogWarning(ex, "WriteNode failed for node {NodeId}", nodeId);
             throw new InvalidOperationException($"Failed to write node {nodeId}: {ex.Message}");
         }
     }

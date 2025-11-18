@@ -100,7 +100,7 @@ public class ParametersController : ControllerBase
             return BadRequest("block index must be 1..4");
         if (string.IsNullOrEmpty(group) || string.IsNullOrEmpty(name))
             return BadRequest("group and name query parameters required");
-        var p = _opc.ReadParameter(index, group, name);
+        var p = _opc.ReadNode(index, group, name);
         if (p == null)
             return NotFound();
         return p;
@@ -130,7 +130,7 @@ public class ParametersController : ControllerBase
         catch { }
         if (value == null)
             return BadRequest("body must contain a JSON property 'value'");
-        var ok = _opc.WriteParameter(index, group, name, value);
+        var ok = _opc.WriteNode(index, group, name, value);
         if (!ok)
             return StatusCode(500, "Write failed or server unreachable");
         return Ok();

@@ -86,7 +86,7 @@ public class StatusController : ControllerBase
                 {
                     try
                     {
-                        var param = _opc.ReadParameter(0, "DB_GlobalData1", paramName); // blockIndex 0 for global data
+                        var param = _opc.ReadNode(0, "DB_GlobalData1", paramName); // blockIndex 0 for global data
                         if (param != null)
                         {
                             globalData[paramName] = param.Value;
