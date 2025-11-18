@@ -5,6 +5,7 @@ import StatusView from "./components/StatusView";
 import ParametersView from "./components/ParametersView";
 import CommandsMeasurementsView from "./components/CommandsMeasurementsView";
 import HistoricalDataSetsView from "./components/HistoricalDataSetsView";
+import SettingsView from "./components/SettingsView";
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -12,7 +13,7 @@ const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BAS
 type Block = { index: number };
 
 export default function App() {
-  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'|'historical'>('parameters');
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'|'historical'|'settings'>('parameters');
   // Hardcoded 4 blocks instead of loading from API
   const [blocks] = useState<Block[]>([
     { index: 1 },
@@ -83,6 +84,10 @@ export default function App() {
 
         {selectedTab === 'status' && (
           <StatusView />
+        )}
+
+        {selectedTab === 'settings' && (
+          <SettingsView apiBase={API_BASE} />
         )}
       </div>
     </div>

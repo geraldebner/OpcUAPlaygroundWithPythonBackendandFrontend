@@ -29,6 +29,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<NodeMapping>();
 builder.Services.AddSingleton<OpcUaService>();
 
+// Measurement Data Service
+builder.Services.AddSingleton<MeasurementDataService>();
+
 var app = builder.Build();
 
 // Ensure DB created
