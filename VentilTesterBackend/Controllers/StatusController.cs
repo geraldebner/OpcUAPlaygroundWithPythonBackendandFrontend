@@ -71,6 +71,40 @@ public class StatusController : ControllerBase
             lastError = _opc?.LastError,
         };
 
+        // Read DB_GlobalData1 parameters if OPC UA is connected
+        Dictionary<string, object?>? globalData = null;
+        if (opcAlive)
+        {
+            try
+            {
+                _logger.LogDebug("Reading DB_GlobalData1 parameters");
+                globalData = new Dictionary<string, object?>();
+                
+                // Try to read common DB_GlobalData1 parameters
+                var globalDataParams = new[] { "Version", "TemperaturePLC", "BatteryStatus", "GeneralErrors" };
+                foreach (var paramName in globalDataParams)
+                {
+                    try
+                    {
+                        var param = _opc.ReadParameter(0, "DB_GlobalData1", paramName); // blockIndex 0 for global data
+                        if (param != null)
+                        {
+                            globalData[paramName] = param.Value;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to read DB_GlobalData1.{ParamName}", paramName);
+                        globalData[paramName] = null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to read DB_GlobalData1");
+            }
+        }
+
         _logger.LogInformation("Status check returning: opc.connected={opcConnected}, db.connected={dbConnected}", opcAlive, dbOk);
 
         return new
@@ -78,6 +112,7 @@ public class StatusController : ControllerBase
             backend = "ok",
             opcua = opc,
             database = new { connected = dbOk },
+            globalData = globalData
         };
     }
 

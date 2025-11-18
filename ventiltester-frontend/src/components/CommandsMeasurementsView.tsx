@@ -66,6 +66,16 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   const [measurements, setMeasurements] = useState<Measurement>({});
   const [ltData, setLtData] = useState<LangzeittestData | null>(null);
   const [einzelVentil, setEinzelVentil] = useState<string>('');
+  
+  // MessID state for each command type
+  const [messIdLangzeittest, setMessIdLangzeittest] = useState<string>('');
+  const [messIdDetailtest, setMessIdDetailtest] = useState<string>('');
+  const [messIdEinzeltest, setMessIdEinzeltest] = useState<string>('');
+  
+  // Live MessID values from OPC UA server
+  const [liveMessIdLangzeittest, setLiveMessIdLangzeittest] = useState<string>('');
+  const [liveMessIdDetailtest, setLiveMessIdDetailtest] = useState<string>('');
+  const [liveMessIdEinzeltest, setLiveMessIdEinzeltest] = useState<string>('');
   const [liveData, setLiveData] = useState<any>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshotName, setSnapshotName] = useState<string>('');
@@ -145,11 +155,75 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     }
   }
 
+  async function setMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest', messId: string): Promise<void> {
+    if (sending) return;
+    if (!messId || messId.trim() === '') {
+      alert('Please enter a MessID first');
+      return;
+    }
+    setSending(true);
+    try {
+      const groupMap = {
+        'Langzeittest': 'Kommandos',
+        'Detailtest': 'Kommandos',
+        'Einzeltest': 'Kommandos'
+      };
+      const paramMap = {
+        'Langzeittest': 'MessIDLongterm',
+        'Detailtest': 'MessIDDetail',
+        'Einzeltest': 'MessIDSingle'
+      };
+      
+      const success = await writeCommandParameter(groupMap[commandType], paramMap[commandType], messId);
+      if (success) {
+        alert(`MessID${commandType === 'Langzeittest' ? 'Longterm' : commandType === 'Detailtest' ? 'Detail' : 'Single'} set to ${messId}`);
+        // Automatically read back the value after setting
+        await readMessId(commandType);
+      } else {
+        alert('Failed to set MessID');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function readMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest'): Promise<void> {
+    try {
+      const groupMap = {
+        'Langzeittest': 'Kommandos',
+        'Detailtest': 'Kommandos',
+        'Einzeltest': 'Kommandos'
+      };
+      const paramMap = {
+        'Langzeittest': 'MessIDLongterm',
+        'Detailtest': 'MessIDDetail',
+        'Einzeltest': 'MessIDSingle'
+      };
+      
+      const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { 
+        params: { group: groupMap[commandType], name: paramMap[commandType] } 
+      });
+      
+      const value = formatValue(res.data.value);
+      
+      if (commandType === 'Langzeittest') {
+        setLiveMessIdLangzeittest(value);
+      } else if (commandType === 'Detailtest') {
+        setLiveMessIdDetailtest(value);
+      } else if (commandType === 'Einzeltest') {
+        setLiveMessIdEinzeltest(value);
+      }
+    } catch (e) {
+      console.error('readMessId', e);
+      alert('Failed to read MessID. See console.');
+    }
+  }
+
   async function sendLangzeittestCommand(paramName: string): Promise<void> {
     if (sending) return;
     setSending(true);
     try {
-      const success = await writeCommandParameter('Kommands/Langzeittest', paramName, 'true');
+      const success = await writeCommandParameter('Kommandos', paramName, 'true');
       if (success) {
         alert('Langzeittest command sent successfully');
       } else {
@@ -164,7 +238,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     if (sending) return;
     setSending(true);
     try {
-      const success = await writeCommandParameter('Kommands/Detailtest', paramName, 'true');
+      const success = await writeCommandParameter('Kommandos', paramName, 'true');
       if (success) {
         alert('Detailtest command sent successfully');
       } else {
@@ -184,13 +258,13 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     setSending(true);
     try {
       // First write the Ventilnummer
-      const ventilSuccess = await writeCommandParameter('Kommands/Einzeltest', 'Einzeltest_Ventilnummer', ventilnummer);
+      const ventilSuccess = await writeCommandParameter('Kommandos', 'Einzeltest_Ventilnummer', ventilnummer);
       if (!ventilSuccess) {
         alert('Failed to write Ventilnummer');
         return;
       }
       // Then execute the command
-      const cmdSuccess = await writeCommandParameter('Kommands/Einzeltest', paramName, 'true');
+      const cmdSuccess = await writeCommandParameter('Kommandos/Einzeltest', paramName, 'true');
       if (cmdSuccess) {
         alert('Einzeltest command sent successfully');
       } else {
@@ -391,7 +465,18 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     setGroupSnapshotGroup(group);
     setGroupSnapshotName(`${group}_${new Date().toISOString().substring(0, 19)}`);
     setGroupSnapshotComment('');
-    setGroupSnapshotIdentifier('');
+    
+    // Auto-fill MessID from the group if available
+    let messId = '';
+    if (liveData?.groups?.[group]) {
+      const messIdParam = liveData.groups[group].find((p: any) => 
+        p.name && (p.name.includes('MessID') || p.name.includes('MessId'))
+      );
+      if (messIdParam && messIdParam.value != null) {
+        messId = String(messIdParam.value);
+      }
+    }
+    setGroupSnapshotIdentifier(messId);
     setShowGroupSnapshotModal(true);
   }
 
@@ -449,19 +534,28 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
+            <label style={{marginLeft:16}}>MessID {liveMessIdLangzeittest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}: <input value={messIdLangzeittest} onChange={e=>setMessIdLangzeittest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set MessID</button>
+            <button style={{marginLeft:8}} onClick={() => readMessId('Langzeittest')}>Read MessID</button>
           </div>
           <div style={{marginTop:8}}>
             <b>Detailtest</b>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
+            <label style={{marginLeft:16}}>MessID {liveMessIdDetailtest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}: <input value={messIdDetailtest} onChange={e=>setMessIdDetailtest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set MessID</button>
+            <button style={{marginLeft:8}} onClick={() => readMessId('Detailtest')}>Read MessID</button>
           </div>
           <div style={{marginTop:8}}>
             <b>Einzeltest</b>
-            <label style={{marginLeft:8}}>Ventilnummer: <input value={einzelVentil} onChange={e=>setEinzelVentil(e.target.value)} style={{marginLeft:8}} /></label>
+            <label style={{marginLeft:8}}>Ventilnummer: <input value={einzelVentil} onChange={e=>setEinzelVentil(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
             <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
+            <label style={{marginLeft:16}}>MessID {liveMessIdEinzeltest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}: <input value={messIdEinzeltest} onChange={e=>setMessIdEinzeltest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
+            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set MessID</button>
+            <button style={{marginLeft:8}} onClick={() => readMessId('Einzeltest')}>Read MessID</button>
           </div>
           {showModal && (
             <div style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>

@@ -60,6 +60,19 @@ export default function StatusView() {
           <div style={{ marginTop: 8 }}><strong>Database:</strong>
             <div>Connected: {String(status.database?.connected)}</div>
           </div>
+          {status.globalData && (
+            <div style={{ marginTop: 12, padding: 12, border: '1px solid #ddd', borderRadius: 4, backgroundColor: '#f9f9f9' }}>
+              <strong>DB_GlobalData1:</strong>
+              <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', fontSize: '14px' }}>
+                {Object.entries(status.globalData).map(([key, value]) => (
+                  <React.Fragment key={key}>
+                    <div style={{ fontWeight: 500 }}>{key}:</div>
+                    <div><code>{String(value)}</code></div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
