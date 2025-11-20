@@ -25,10 +25,55 @@ public class MeasurementDataService : IDisposable
     // Configurable groups to monitor (group names that contain measurement data)
     private readonly List<string> _monitoredGroups = new()
     {
-        "Daten/Strommessung",
-        "DB_Daten_Langzeittest_1",
-        "DB_Daten_Detailtest_1",
-        "DB_Daten_Einzeltest_1"
+        "Daten_Strommessung/Ventil1",
+        "Daten_Strommessung/Ventil2",
+        "Daten_Strommessung/Ventil3",
+        "Daten_Strommessung/Ventil4",
+        "Daten_Strommessung/Ventil5",
+        "Daten_Strommessung/Ventil6",
+        "Daten_Strommessung/Ventil7",
+        "Daten_Strommessung/Ventil8",
+        "Daten_Strommessung/Ventil9",
+        "Daten_Strommessung/Ventil10",
+        "Daten_Strommessung/Ventil11",
+        "Daten_Strommessung/Ventil12",
+        "Daten_Strommessung/Ventil13",
+        "Daten_Strommessung/Ventil14",
+        "Daten_Strommessung/Ventil15",
+        "Daten_Strommessung/Ventil16",
+        "Daten_Durchflussmessung/Ventil1",
+        "Daten_Durchflussmessung/Ventil2",
+        "Daten_Durchflussmessung/Ventil3",
+        "Daten_Durchflussmessung/Ventil4",
+        "Daten_Durchflussmessung/Ventil5",
+        "Daten_Durchflussmessung/Ventil6",
+        "Daten_Durchflussmessung/Ventil7",
+        "Daten_Durchflussmessung/Ventil8",
+        "Daten_Durchflussmessung/Ventil9",
+        "Daten_Durchflussmessung/Ventil10",
+        "Daten_Durchflussmessung/Ventil11",
+        "Daten_Durchflussmessung/Ventil12",
+        "Daten_Durchflussmessung/Ventil13",
+        "Daten_Durchflussmessung/Ventil14",
+        "Daten_Durchflussmessung/Ventil15",
+        "Daten_Durchflussmessung/Ventil16",
+        "Daten_Kraftmessung/Ventil1",
+        "Daten_Kraftmessung/Ventil2",
+        "Daten_Kraftmessung/Ventil3",
+        "Daten_Kraftmessung/Ventil4",
+        "Daten_Kraftmessung/Ventil5",
+        "Daten_Kraftmessung/Ventil6",
+        "Daten_Kraftmessung/Ventil7",
+        "Daten_Kraftmessung/Ventil8",
+        "Daten_Kraftmessung/Ventil9",
+        "Daten_Kraftmessung/Ventil10",
+        "Daten_Kraftmessung/Ventil11",
+        "Daten_Kraftmessung/Ventil12",
+        "Daten_Kraftmessung/Ventil13",
+        "Daten_Kraftmessung/Ventil14",
+        "Daten_Kraftmessung/Ventil15",
+        "Daten_Kraftmessung/Ventil16",
+        "DB_Daten_Langzeittest_1"
     };
     
     private int _pollingIntervalMs = 1000; // Default 1 second
@@ -200,24 +245,66 @@ public class MeasurementDataService : IDisposable
                 return;
             }
 
-            // Create a data structure to store
+            // Find MessID or MessIDCurrent parameter to use as identifier
+            int? messId = null;
+            var messIdParam = parameters.FirstOrDefault(p => 
+                p.Name != null && (
+                    p.Name.Equals("MessID", StringComparison.OrdinalIgnoreCase) ||
+                    p.Name.Equals("MessIDCurrent", StringComparison.OrdinalIgnoreCase) ||
+                    p.Name.Contains("MessID", StringComparison.OrdinalIgnoreCase)
+                ));
+            
+            if (messIdParam != null && !string.IsNullOrEmpty(messIdParam.Value))
+            {
+                if (int.TryParse(messIdParam.Value, out int parsedMessId))
+                {
+                    messId = parsedMessId;
+                    _logger?.LogDebug(
+                        "Found MessID parameter '{ParamName}' with value {MessId} for block {Block} group {Group}",
+                        messIdParam.Name,
+                        messId,
+                        blockIndex,
+                        groupName);
+                }
+            }
+
+            // Fallback to DatenReady if MessID not found
+            if (!messId.HasValue)
+            {
+                messId = datenReadyValue;
+                _logger?.LogDebug(
+                    "MessID not found in group {Group}, using DatenReady value {Value} as identifier",
+                    groupName,
+                    datenReadyValue);
+            }
+
+            // Create a data structure to store with lowercase property names to match manual saves
             var groupData = new
             {
-                groups = new Dictionary<string, List<Parameter>>
+                groups = new Dictionary<string, object>
                 {
-                    [groupName] = parameters
+                    [groupName] = parameters.Select(p => new
+                    {
+                        name = p.Name,
+                        value = p.Value,
+                        dataType = p.DataType
+                    }).ToList()
                 }
             };
 
-            var jsonPayload = System.Text.Json.JsonSerializer.Serialize(groupData);
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            };
+            var jsonPayload = System.Text.Json.JsonSerializer.Serialize(groupData, jsonOptions);
 
             // Create dataset entry
             var dataset = new MeasurementSet
             {
                 Name = $"{groupName}_Auto_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}",
                 BlockIndex = blockIndex,
-                Comment = $"Auto-saved by MeasurementDataService (DatenReady={datenReadyValue})",
-                IdentifierNumber = datenReadyValue,
+                Comment = $"Auto-saved by MeasurementDataService (DatenReady={datenReadyValue}, MessID={messId})",
+                IdentifierNumber = messId,
                 JsonPayload = jsonPayload,
                 CreatedAt = DateTime.UtcNow
             };
