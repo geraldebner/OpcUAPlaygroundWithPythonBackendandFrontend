@@ -53,11 +53,14 @@ export default function PressureChart({
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    // Find min/max values
-    const values = messkurveData.filter((v: number) => v !== 0);
+    // Find min/max values (include zeros if that's all we have)
+    const nonZeroValues = messkurveData.filter((v: number) => v !== 0);
+    const values = nonZeroValues.length > 0 ? nonZeroValues : messkurveData;
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
-    const valueRange = maxValue - minValue;
+    
+    // Handle edge case where all values are the same (flat line)
+    const valueRange = maxValue - minValue || Math.abs(maxValue) || 1;
 
     // Calculate visible range based on zoom and pan
     const dataLength = messkurveData.length;
