@@ -21,9 +21,23 @@ builder.Services.AddCors(options =>
     });
 });
 
-// DB
+// DB - Configurable provider (SQLite or PostgreSQL)
+var dbProvider = builder.Configuration.GetValue<string>("Database:Provider") ?? "SQLite";
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite")));
+{
+    if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+    {
+        var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+        options.UseNpgsql(connectionString);
+        Console.WriteLine($"Using PostgreSQL database: {connectionString?.Split(';').FirstOrDefault()}");
+    }
+    else
+    {
+        var connectionString = builder.Configuration.GetConnectionString("Sqlite");
+        options.UseSqlite(connectionString);
+        Console.WriteLine($"Using SQLite database: {connectionString}");
+    }
+});
 
 // OPC UA service
 builder.Services.AddSingleton<NodeMapping>();
