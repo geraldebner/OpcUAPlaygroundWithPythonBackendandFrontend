@@ -26,6 +26,7 @@ interface VentilData {
   Status: number;
   DatenReady: number;
   MessID: number;
+  Zaehler: number;  // Counter from Daten_Langzeittest
   durchfluss: {
     Status: number;
     DatenReady: number;
@@ -48,10 +49,24 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
   const [allgemeineParameter, setAllgemeineParameter] = useState<AllgemeineParameter | null>(null);
   const [ventilData, setVentilData] = useState<VentilData[]>([]);
   const [autoUpdate, setAutoUpdate] = useState(false);
+  const [autoUpdateAllgemeine, setAutoUpdateAllgemeine] = useState(false);
   const [autoUpdateVentil, setAutoUpdateVentil] = useState(false);
-  const [messId, setMessId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Command sending state
+  const [sending, setSending] = useState<boolean>(false);
+  
+  // MessID state for each command type
+  const [messIdLangzeittest, setMessIdLangzeittest] = useState<string>('');
+  const [messIdDetailtest, setMessIdDetailtest] = useState<string>('');
+  const [messIdEinzeltest, setMessIdEinzeltest] = useState<string>('');
+  const [einzelVentil, setEinzelVentil] = useState<string>('');
+  
+  // Live MessID values from OPC UA server
+  const [liveMessIdLangzeittest, setLiveMessIdLangzeittest] = useState<string>('');
+  const [liveMessIdDetailtest, setLiveMessIdDetailtest] = useState<string>('');
+  const [liveMessIdEinzeltest, setLiveMessIdEinzeltest] = useState<string>('');
 
   // Read GlobalData
   const readGlobalData = useCallback(async () => {
@@ -140,43 +155,96 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
       setLoading(true);
       setError(null);
       
-      // TODO: Implement ventil data reading using individual API calls or backend endpoint
-      // Current limitation: No /api/parameters/read-multiple endpoint exists
-      // Would need to call /api/parameters/{block}/value?group=...&name=... 144 times
-      // or implement a batch read endpoint in the backend
+      // Helper function to convert value to number
+      const toNumber = (val: any): number => {
+        if (val === null || val === undefined || val === '') return 0;
+        const num = typeof val === 'string' ? parseFloat(val) : Number(val);
+        return isNaN(num) ? 0 : num;
+      };
       
-      console.warn('Ventil data reading not yet implemented - requires backend endpoint');
-      setError('Ventil data reading requires backend implementation');
-      
-      const data: any[] = [];
-      
+      // Read all ventil data by reading groups for each measurement type
       const ventils: VentilData[] = [];
+      
       for (let i = 1; i <= 16; i++) {
-        ventils.push({
-          ventilNr: i,
-          Status: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.Status`))?.value ?? 0,
-          DatenReady: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.DatenReady`))?.value ?? 0,
-          MessID: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.MessIDCurrent`))?.value ?? 0,
-          durchfluss: {
-            Status: data.find((d: any) => d.label.includes(`DB_Durchflussmessung1.DB_Ventil_Ext${i}.Status`))?.value ?? 0,
-            DatenReady: data.find((d: any) => d.label.includes(`DB_Durchflussmessung1.DB_Ventil_Ext${i}.DatenReady`))?.value ?? 0,
-            MessID: data.find((d: any) => d.label.includes(`DB_Durchflussmessung1.DB_Ventil_Ext${i}.MessIDCurrent`))?.value ?? 0
-          },
-          strom: {
-            Status: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.Status`))?.value ?? 0,
-            DatenReady: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.DatenReady`))?.value ?? 0,
-            MessID: data.find((d: any) => d.label.includes(`DB_Strommessung1.DB_Ventil_Ext${i}.MessIDCurrent`))?.value ?? 0
-          },
-          kraft: {
-            Status: data.find((d: any) => d.label.includes(`DB_Kraftmessung1.DB_Ventil_Ext${i}.Status`))?.value ?? 0,
-            DatenReady: data.find((d: any) => d.label.includes(`DB_Kraftmessung1.DB_Ventil_Ext${i}.DatenReady`))?.value ?? 0,
-            MessID: data.find((d: any) => d.label.includes(`DB_Kraftmessung1.DB_Ventil_Ext${i}.MessIDCurrent`))?.value ?? 0
+        try {
+          // Read data for all three measurement types + counter for this ventil
+          const [stromRes, durchflussRes, kraftRes, zaehlerRes] = await Promise.all([
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Strommessung/Ventil${i}`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Durchflussmessung/Ventil${i}`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Kraftmessung/Ventil${i}`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Langzeittest&name=ZaehlerVentil_${i}`)
+          ]);
+          
+          if (!stromRes.ok || !durchflussRes.ok || !kraftRes.ok) {
+            throw new Error(`Failed to read Ventil${i}`);
           }
-        });
+          
+          const [stromData, durchflussData, kraftData, zaehlerData] = await Promise.all([
+            stromRes.json(),
+            durchflussRes.json(),
+            kraftRes.json(),
+            zaehlerRes.ok ? zaehlerRes.json() : Promise.resolve({ value: 0 })
+          ]);
+          
+          console.log(`Ventil${i} Strom:`, stromData);
+          console.log(`Ventil${i} Durchfluss:`, durchflussData);
+          console.log(`Ventil${i} Kraft:`, kraftData);
+          
+          // Extract values from each measurement type
+          const stromStatus = stromData.find((d: any) => d.name.includes('Status'))?.value;
+          const stromDatenReady = stromData.find((d: any) => d.name.includes('DatenReady'))?.value;
+          const stromMessID = stromData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
+          
+          const durchflussStatus = durchflussData.find((d: any) => d.name.includes('Status'))?.value;
+          const durchflussDatenReady = durchflussData.find((d: any) => d.name.includes('DatenReady'))?.value;
+          const durchflussMessID = durchflussData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
+          
+          const kraftStatus = kraftData.find((d: any) => d.name.includes('Status'))?.value;
+          const kraftDatenReady = kraftData.find((d: any) => d.name.includes('DatenReady'))?.value;
+          const kraftMessID = kraftData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
+          
+          ventils.push({
+            ventilNr: i,
+            Status: toNumber(stromStatus),
+            DatenReady: toNumber(stromDatenReady),
+            MessID: toNumber(stromMessID),
+            Zaehler: toNumber(zaehlerData.value),
+            durchfluss: {
+              Status: toNumber(durchflussStatus),
+              DatenReady: toNumber(durchflussDatenReady),
+              MessID: toNumber(durchflussMessID)
+            },
+            strom: {
+              Status: toNumber(stromStatus),
+              DatenReady: toNumber(stromDatenReady),
+              MessID: toNumber(stromMessID)
+            },
+            kraft: {
+              Status: toNumber(kraftStatus),
+              DatenReady: toNumber(kraftDatenReady),
+              MessID: toNumber(kraftMessID)
+            }
+          });
+        } catch (err) {
+          console.error(`Failed to read ventil ${i}:`, err);
+          // Add placeholder data if read fails
+          ventils.push({
+            ventilNr: i,
+            Status: 0,
+            DatenReady: 0,
+            MessID: 0,
+            Zaehler: 0,
+            durchfluss: { Status: 0, DatenReady: 0, MessID: 0 },
+            strom: { Status: 0, DatenReady: 0, MessID: 0 },
+            kraft: { Status: 0, DatenReady: 0, MessID: 0 }
+          });
+        }
       }
       
+      console.log('Final ventil data:', ventils);
       setVentilData(ventils);
     } catch (err: any) {
+      console.error('Error reading ventil data:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -200,6 +268,13 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
   }, [autoUpdate, readAllData]);
 
   useEffect(() => {
+    if (autoUpdateAllgemeine) {
+      const interval = setInterval(readAllgemeineParameter, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [autoUpdateAllgemeine, readAllgemeineParameter]);
+
+  useEffect(() => {
     if (autoUpdateVentil) {
       const interval = setInterval(readVentilData, 2000);
       return () => clearInterval(interval);
@@ -207,71 +282,152 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
   }, [autoUpdateVentil, readVentilData]);
 
   // Commands
-  const handleCommand = async (command: string) => {
+  // Helper function to write command parameters
+  async function writeCommandParameter(group: string, paramName: string, value: string = 'true'): Promise<boolean> {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Kommandos&name=${command}`, {
+      const response = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=${group}&name=${paramName}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: 'true' })
+        body: JSON.stringify({ value })
       });
-
-      if (!response.ok) throw new Error(`Command failed: ${response.status}`);
-      
-      alert(`Command "${command}" executed successfully`);
+      return response.ok;
     } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      console.error('writeCommandParameter error', err);
+      alert('Command error: ' + err.message);
+      return false;
     }
-  };
+  }
 
-  const handleSetMessId = async () => {
-    if (!messId) {
-      alert('Please enter a MessID');
+  // Helper function to format values
+  function formatValue(v: any): string {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'boolean') return v ? 'True' : 'False';
+    if (typeof v === 'number') return v.toString();
+    if (typeof v === 'string') return v;
+    return String(v);
+  }
+
+  // Set MessID for different command types
+  async function setMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest', messId: string): Promise<void> {
+    if (sending) return;
+    if (!messId || messId.trim() === '') {
+      alert('Please enter a MessID first');
       return;
     }
-    
+    setSending(true);
     try {
-      setLoading(true);
-      setError(null);
+      const groupMap = {
+        'Langzeittest': 'Kommandos',
+        'Detailtest': 'Kommandos',
+        'Einzeltest': 'Kommandos'
+      };
+      const paramMap = {
+        'Langzeittest': 'MessIDLongterm',
+        'Detailtest': 'MessIDDetail',
+        'Einzeltest': 'MessIDSingle'
+      };
       
-      const response = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Kommandos&name=MessIDLongterm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: messId })
-      });
-
-      if (!response.ok) throw new Error(`Set MessID failed: ${response.status}`);
-      
-      alert(`MessID set to ${messId}`);
-    } catch (err: any) {
-      setError(err.message);
+      const success = await writeCommandParameter(groupMap[commandType], paramMap[commandType], messId);
+      if (success) {
+        alert(`MessID${commandType === 'Langzeittest' ? 'Longterm' : commandType === 'Detailtest' ? 'Detail' : 'Single'} set to ${messId}`);
+        await readMessId(commandType);
+      } else {
+        alert('Failed to set MessID');
+      }
     } finally {
-      setLoading(false);
+      setSending(false);
     }
-  };
+  }
 
-  const handleReadMessId = async () => {
+  // Read MessID for different command types
+  async function readMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest'): Promise<void> {
     try {
-      setLoading(true);
-      setError(null);
+      const groupMap = {
+        'Langzeittest': 'Kommandos',
+        'Detailtest': 'Kommandos',
+        'Einzeltest': 'Kommandos'
+      };
+      const paramMap = {
+        'Langzeittest': 'MessIDLongterm',
+        'Detailtest': 'MessIDDetail',
+        'Einzeltest': 'MessIDSingle'
+      };
       
-      const response = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Kommandos&name=MessIDLongterm`);
-
-      if (!response.ok) throw new Error(`Read MessID failed: ${response.status}`);
+      const res = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=${groupMap[commandType]}&name=${paramMap[commandType]}`);
+      const data = await res.json();
+      const value = formatValue(data.value);
       
-      const data = await response.json();
-      setMessId(data.value ? data.value.toString() : '');
-      alert(`Current MessID: ${data.value}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      if (commandType === 'Langzeittest') {
+        setLiveMessIdLangzeittest(value);
+      } else if (commandType === 'Detailtest') {
+        setLiveMessIdDetailtest(value);
+      } else if (commandType === 'Einzeltest') {
+        setLiveMessIdEinzeltest(value);
+      }
+    } catch (e) {
+      console.error('readMessId', e);
+      alert('Failed to read MessID. See console.');
     }
-  };
+  }
+
+  // Send Langzeittest commands
+  async function sendLangzeittestCommand(paramName: string): Promise<void> {
+    if (sending) return;
+    setSending(true);
+    try {
+      const success = await writeCommandParameter('Kommandos', paramName, 'true');
+      if (success) {
+        alert('Langzeittest command sent successfully');
+      } else {
+        alert('Langzeittest command failed');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  // Send Detailtest commands
+  async function sendDetailtestCommand(paramName: string): Promise<void> {
+    if (sending) return;
+    setSending(true);
+    try {
+      const success = await writeCommandParameter('Kommandos', paramName, 'true');
+      if (success) {
+        alert('Detailtest command sent successfully');
+      } else {
+        alert('Detailtest command failed');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  // Send Einzeltest commands
+  async function sendEinzeltestCommand(paramName: string, ventilnummer: string): Promise<void> {
+    if (sending) return;
+    if (!ventilnummer || ventilnummer.trim() === '') {
+      alert('Please enter a Ventilnummer first');
+      return;
+    }
+    setSending(true);
+    try {
+      // First write the Ventilnummer
+      const ventilSuccess = await writeCommandParameter('Kommandos', 'Einzeltest_Ventilnummer', ventilnummer);
+      if (!ventilSuccess) {
+        alert('Failed to write Ventilnummer');
+        return;
+      }
+      // Then execute the command
+      const cmdSuccess = await writeCommandParameter('Kommandos/Einzeltest', paramName, 'true');
+      if (cmdSuccess) {
+        alert('Einzeltest command sent successfully');
+      } else {
+        alert('Einzeltest command failed');
+      }
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -351,6 +507,14 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
             Allgemeine Parameter - Block {selectedBlock}
           </h2>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={autoUpdateAllgemeine}
+                onChange={(e) => setAutoUpdateAllgemeine(e.target.checked)}
+              />
+              <span>Auto Update</span>
+            </label>
             <button
               onClick={readAllgemeineParameter}
               disabled={loading}
@@ -393,90 +557,65 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         <h2 style={{ margin: '0 0 16px 0', color: '#2c3e50' }}>Commands</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* MessID Controls */}
+          {/* Langzeittest */}
           <div style={{
             padding: '16px',
             backgroundColor: '#f8f9fa',
             borderRadius: '8px'
           }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>MessID Control</h3>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input
-                type="number"
-                value={messId}
-                onChange={(e) => setMessId(e.target.value)}
-                placeholder="Enter MessID"
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  flex: '1',
-                  fontSize: '14px'
-                }}
-              />
-              <button
-                onClick={handleSetMessId}
-                disabled={loading}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                Set MessID
-              </button>
-              <button
-                onClick={handleReadMessId}
-                disabled={loading}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#3498db',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                Read MessID
-              </button>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Langzeittest</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
+              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '14px' }}>MessID {liveMessIdLangzeittest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}:</label>
+                <input value={messIdLangzeittest} onChange={e => setMessIdLangzeittest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
+                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set MessID</button>
+                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Langzeittest')}>Read MessID</button>
+              </div>
             </div>
           </div>
 
-          {/* Test Commands */}
+          {/* Detailtest */}
           <div style={{
             padding: '16px',
             backgroundColor: '#f8f9fa',
             borderRadius: '8px'
           }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Test Commands</h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-              gap: '8px'
-            }}>
-              <CommandButton onClick={() => handleCommand('start-langzeittest')} disabled={loading}>
-                Start Langzeittest
-              </CommandButton>
-              <CommandButton onClick={() => handleCommand('pause-langzeittest')} disabled={loading}>
-                Pause Langzeittest
-              </CommandButton>
-              <CommandButton onClick={() => handleCommand('stop-langzeittest')} disabled={loading}>
-                Stop Langzeittest
-              </CommandButton>
-              <CommandButton onClick={() => handleCommand('start-detailtest')} disabled={loading}>
-                Start Detailtest
-              </CommandButton>
-              <CommandButton onClick={() => handleCommand('pause-detailtest')} disabled={loading}>
-                Pause Detailtest
-              </CommandButton>
-              <CommandButton onClick={() => handleCommand('stop-detailtest')} disabled={loading}>
-                Stop Detailtest
-              </CommandButton>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Detailtest</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
+              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '14px' }}>MessID {liveMessIdDetailtest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}:</label>
+                <input value={messIdDetailtest} onChange={e => setMessIdDetailtest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
+                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set MessID</button>
+                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Detailtest')}>Read MessID</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Einzeltest (Ventiltest) */}
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '14px' }}>Ventilnummer:</label>
+              <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
+              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
+              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
+              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '14px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
+                <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
+                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set MessID</button>
+                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Einzeltest')}>Read MessID</button>
+              </div>
             </div>
           </div>
         </div>
@@ -532,6 +671,7 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
             <thead>
               <tr style={{ backgroundColor: '#34495e', color: 'white' }}>
                 <th style={thStyle} rowSpan={2}>Ventil</th>
+                <th style={thStyle} rowSpan={2}>Zähler</th>
                 <th style={thStyle} colSpan={3}>Strommessung</th>
                 <th style={thStyle} colSpan={3}>Durchflussmessung</th>
                 <th style={thStyle} colSpan={3}>Kraftmessung</th>
@@ -554,6 +694,7 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
                   backgroundColor: idx % 2 === 0 ? '#f8f9fa' : 'white'
                 }}>
                   <td style={tdStyle}><strong>Ventil {ventil.ventilNr}</strong></td>
+                  <td style={tdStyle}><strong>{ventil.Zaehler}</strong></td>
                   <td style={tdStyle}>{ventil.strom.Status}</td>
                   <td style={tdStyle}>{ventil.strom.DatenReady}</td>
                   <td style={tdStyle}>{ventil.strom.MessID}</td>
