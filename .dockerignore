@@ -1,0 +1,32 @@
+# VentilTester Backend
+VentilTesterBackend/bin/
+VentilTesterBackend/obj/
+VentilTesterBackend/*.db
+VentilTesterBackend/*.db-shm
+VentilTesterBackend/*.db-wal
+
+# Frontend
+ventiltester-frontend/node_modules/
+ventiltester-frontend/build/
+opcua-frontend/node_modules/
+opcua-frontend/build/
+
+# Python
+backend_python/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
