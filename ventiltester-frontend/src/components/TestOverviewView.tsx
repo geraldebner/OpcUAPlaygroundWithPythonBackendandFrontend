@@ -162,67 +162,72 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         return isNaN(num) ? 0 : num;
       };
       
-      // Read all ventil data by reading groups for each measurement type
+      // Read all ventil data by reading individual parameters (faster than reading whole groups with arrays)
       const ventils: VentilData[] = [];
       
       for (let i = 1; i <= 16; i++) {
         try {
-          // Read data for all three measurement types + counter for this ventil
-          const [stromRes, durchflussRes, kraftRes, zaehlerRes] = await Promise.all([
-            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Strommessung/Ventil${i}`),
-            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Durchflussmessung/Ventil${i}`),
-            fetch(`${apiBase}/api/parameters/${selectedBlock}/group/Daten_Kraftmessung/Ventil${i}`),
+          // Read only the specific parameters we need for each ventil (9 parameters + counter)
+          const [
+            stromStatusRes, stromDatenReadyRes, stromMessIDRes,
+            durchflussStatusRes, durchflussDatenReadyRes, durchflussMessIDRes,
+            kraftStatusRes, kraftDatenReadyRes, kraftMessIDRes,
+            zaehlerRes
+          ] = await Promise.all([
+            // Strommessung
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Strommessung/Ventil${i}&name=Status`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Strommessung/Ventil${i}&name=DatenReady`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Strommessung/Ventil${i}&name=MessIDCurrent`),
+            // Durchflussmessung
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Durchflussmessung/Ventil${i}&name=Status`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Durchflussmessung/Ventil${i}&name=DatenReady`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Durchflussmessung/Ventil${i}&name=MessIDCurrent`),
+            // Kraftmessung
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Kraftmessung/Ventil${i}&name=Status`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Kraftmessung/Ventil${i}&name=DatenReady`),
+            fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Kraftmessung/Ventil${i}&name=MessIDCurrent`),
+            // Counter
             fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=Daten_Langzeittest&name=ZaehlerVentil_${i}`)
           ]);
           
-          if (!stromRes.ok || !durchflussRes.ok || !kraftRes.ok) {
-            throw new Error(`Failed to read Ventil${i}`);
-          }
-          
-          const [stromData, durchflussData, kraftData, zaehlerData] = await Promise.all([
-            stromRes.json(),
-            durchflussRes.json(),
-            kraftRes.json(),
+          const [
+            stromStatus, stromDatenReady, stromMessID,
+            durchflussStatus, durchflussDatenReady, durchflussMessID,
+            kraftStatus, kraftDatenReady, kraftMessID,
+            zaehler
+          ] = await Promise.all([
+            stromStatusRes.ok ? stromStatusRes.json() : Promise.resolve({ value: 0 }),
+            stromDatenReadyRes.ok ? stromDatenReadyRes.json() : Promise.resolve({ value: 0 }),
+            stromMessIDRes.ok ? stromMessIDRes.json() : Promise.resolve({ value: 0 }),
+            durchflussStatusRes.ok ? durchflussStatusRes.json() : Promise.resolve({ value: 0 }),
+            durchflussDatenReadyRes.ok ? durchflussDatenReadyRes.json() : Promise.resolve({ value: 0 }),
+            durchflussMessIDRes.ok ? durchflussMessIDRes.json() : Promise.resolve({ value: 0 }),
+            kraftStatusRes.ok ? kraftStatusRes.json() : Promise.resolve({ value: 0 }),
+            kraftDatenReadyRes.ok ? kraftDatenReadyRes.json() : Promise.resolve({ value: 0 }),
+            kraftMessIDRes.ok ? kraftMessIDRes.json() : Promise.resolve({ value: 0 }),
             zaehlerRes.ok ? zaehlerRes.json() : Promise.resolve({ value: 0 })
           ]);
           
-          console.log(`Ventil${i} Strom:`, stromData);
-          console.log(`Ventil${i} Durchfluss:`, durchflussData);
-          console.log(`Ventil${i} Kraft:`, kraftData);
-          
-          // Extract values from each measurement type
-          const stromStatus = stromData.find((d: any) => d.name.includes('Status'))?.value;
-          const stromDatenReady = stromData.find((d: any) => d.name.includes('DatenReady'))?.value;
-          const stromMessID = stromData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
-          
-          const durchflussStatus = durchflussData.find((d: any) => d.name.includes('Status'))?.value;
-          const durchflussDatenReady = durchflussData.find((d: any) => d.name.includes('DatenReady'))?.value;
-          const durchflussMessID = durchflussData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
-          
-          const kraftStatus = kraftData.find((d: any) => d.name.includes('Status'))?.value;
-          const kraftDatenReady = kraftData.find((d: any) => d.name.includes('DatenReady'))?.value;
-          const kraftMessID = kraftData.find((d: any) => d.name.includes('MessIDCurrent'))?.value;
-          
           ventils.push({
             ventilNr: i,
-            Status: toNumber(stromStatus),
-            DatenReady: toNumber(stromDatenReady),
-            MessID: toNumber(stromMessID),
-            Zaehler: toNumber(zaehlerData.value),
+            Status: toNumber(stromStatus.value),
+            DatenReady: toNumber(stromDatenReady.value),
+            MessID: toNumber(stromMessID.value),
+            Zaehler: toNumber(zaehler.value),
             durchfluss: {
-              Status: toNumber(durchflussStatus),
-              DatenReady: toNumber(durchflussDatenReady),
-              MessID: toNumber(durchflussMessID)
+              Status: toNumber(durchflussStatus.value),
+              DatenReady: toNumber(durchflussDatenReady.value),
+              MessID: toNumber(durchflussMessID.value)
             },
             strom: {
-              Status: toNumber(stromStatus),
-              DatenReady: toNumber(stromDatenReady),
-              MessID: toNumber(stromMessID)
+              Status: toNumber(stromStatus.value),
+              DatenReady: toNumber(stromDatenReady.value),
+              MessID: toNumber(stromMessID.value)
             },
             kraft: {
-              Status: toNumber(kraftStatus),
-              DatenReady: toNumber(kraftDatenReady),
-              MessID: toNumber(kraftMessID)
+              Status: toNumber(kraftStatus.value),
+              DatenReady: toNumber(kraftDatenReady.value),
+              MessID: toNumber(kraftMessID.value)
             }
           });
         } catch (err) {
