@@ -41,14 +41,6 @@ export interface ParametersViewProps {
   selectedBlock: number | null;
 }
 
-export interface ParameterMappingPanelProps {
-  selectedBlock: number | null;
-  refreshBlock: (blockIndex: number) => Promise<void>;
-  fetchMappingOnly: () => Promise<void>;
-  isRefreshing: boolean;
-  mappingLoading: boolean;
-}
-
 export interface ParameterLiveDataPanelProps {
   selectedBlock: number | null;
   blocks: Block[];

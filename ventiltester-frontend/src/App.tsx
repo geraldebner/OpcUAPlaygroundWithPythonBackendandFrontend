@@ -25,21 +25,18 @@ export default function App() {
   const [selectedBlock, setSelectedBlock] = useState<number | null>(1); // Default to block 1
 
   useEffect(() => {
-    // Try to load blocks from API, but fallback to hardcoded if it fails
-    loadBlockList();
+    // Check backend availability on startup
+    checkBackend();
   }, []);
 
-  async function loadBlockList() {
+  async function checkBackend() {
     try {
-      // DEV-TRACE: log when App.tsx requests parameter list (optional check)
-      console.debug('[API CALL] App.tsx -> GET /api/parameters (checking if backend is available)');
       const res = await fetch(`${API_BASE}/api/parameters`);
-      if (!res.ok) throw new Error(`Load blocks failed: ${res.status}`);
-      const data = await res.json();
-      console.log('Backend available - found blocks:', data?.length || 0);
-      // Backend is available, but we still use hardcoded blocks for consistency
+      if (res.ok) {
+        console.log('Backend connected successfully');
+      }
     } catch (e) {
-      console.log('Backend not available, using hardcoded blocks 1-4');
+      console.warn('Backend not reachable');
     }
   }  return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>

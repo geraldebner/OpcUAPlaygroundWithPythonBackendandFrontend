@@ -35,34 +35,8 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [parameterDatasets, setParameterDatasets] = useState<Dataset[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [mappingLoading, setMappingLoading] = useState<boolean>(false);
   const [busyGroups, setBusyGroups] = useState<BusyGroups>({});
   const [datasetsLoading, setDatasetsLoading] = useState<boolean>(false);
-
-  // helper: fetch mapping only and update block groups (used by MappingPanel)
-  async function fetchMappingOnly(): Promise<void> {
-    if (!selectedBlock) return;
-    setMappingLoading(true);
-    try {
-      const res = await axios.get(`${apiBase}/api/mapping/${selectedBlock}`);
-      const groups = res.data?.groups || {};
-      const outGroups: { [key: string]: any[] } = {};
-      for (const [g, list] of Object.entries(groups)) {
-        // preserve nodeId mapping metadata when available
-        const listArray = Array.isArray(list) ? list : [];
-        outGroups[g] = listArray.map((p: any) => ({ name: p.name, value: '', nodeId: p.nodeId }));
-      }
-      setBlocks(prev => {
-        const others = prev.filter(x => x.index !== selectedBlock);
-        return [...others, { index: selectedBlock, groups: outGroups }];
-      });
-    } catch (e) {
-      console.error('fetchMappingOnly', e);
-      alert('Fetch mapping failed');
-    } finally {
-      setMappingLoading(false);
-    }
-  }
 
   useEffect(() => { fetchParameterDatasets(); }, []); // wird nur einmal ausgeführt
 
