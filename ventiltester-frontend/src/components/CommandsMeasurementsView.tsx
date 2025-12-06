@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CommandsMeasurementsViewProps } from '../types';
+import CommandsPanel from './shared/CommandsPanel';
 
 interface Measurement {
   status?: {
@@ -30,15 +31,6 @@ interface Measurement {
   }>;
 }
 
-interface LangzeittestData {
-  blockIndex: number;
-  ventils: Array<{
-    index: number;
-    name: string;
-    value: any;
-  }>;
-}
-
 interface Snapshot {
   id: number;
   name: string;
@@ -62,20 +54,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     return String(v);
   }
   
-  const [sending, setSending] = useState<boolean>(false);
   const [measurements, setMeasurements] = useState<Measurement>({});
-  const [ltData, setLtData] = useState<LangzeittestData | null>(null);
-  const [einzelVentil, setEinzelVentil] = useState<string>('');
-  
-  // MessID state for each command type
-  const [messIdLangzeittest, setMessIdLangzeittest] = useState<string>('');
-  const [messIdDetailtest, setMessIdDetailtest] = useState<string>('');
-  const [messIdEinzeltest, setMessIdEinzeltest] = useState<string>('');
-  
-  // Live MessID values from OPC UA server
-  const [liveMessIdLangzeittest, setLiveMessIdLangzeittest] = useState<string>('');
-  const [liveMessIdDetailtest, setLiveMessIdDetailtest] = useState<string>('');
-  const [liveMessIdEinzeltest, setLiveMessIdEinzeltest] = useState<string>('');
   const [liveData, setLiveData] = useState<any>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshotName, setSnapshotName] = useState<string>('');
@@ -138,142 +117,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
 
     return () => clearInterval(intervalId);
   }, [autoRefreshGroups, selectedBlock, apiBase, liveData]);
-
-  async function writeCommandParameter(group: string, paramName: string, value: string = 'true'): Promise<boolean> {
-    try {
-      const res = await axios.post(
-        `${apiBase}/api/parameters/${selectedBlock}/value`,
-        { value },
-        { params: { group, name: paramName } }
-      );
-      return res.status >= 200 && res.status < 300;
-    } catch (err: any) {
-      console.error('writeCommandParameter error', err);
-      const msg = err?.response?.data ?? err.message ?? String(err);
-      alert('Command error: ' + msg);
-      return false;
-    }
-  }
-
-  async function setMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest', messId: string): Promise<void> {
-    if (sending) return;
-    if (!messId || messId.trim() === '') {
-      alert('Please enter a MessID first');
-      return;
-    }
-    setSending(true);
-    try {
-      const groupMap = {
-        'Langzeittest': 'Kommandos',
-        'Detailtest': 'Kommandos',
-        'Einzeltest': 'Kommandos'
-      };
-      const paramMap = {
-        'Langzeittest': 'MessIDLongterm',
-        'Detailtest': 'MessIDDetail',
-        'Einzeltest': 'MessIDSingle'
-      };
-      
-      const success = await writeCommandParameter(groupMap[commandType], paramMap[commandType], messId);
-      if (success) {
-        alert(`MessID${commandType === 'Langzeittest' ? 'Longterm' : commandType === 'Detailtest' ? 'Detail' : 'Single'} set to ${messId}`);
-        // Automatically read back the value after setting
-        await readMessId(commandType);
-      } else {
-        alert('Failed to set MessID');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function readMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest'): Promise<void> {
-    try {
-      const groupMap = {
-        'Langzeittest': 'Kommandos',
-        'Detailtest': 'Kommandos',
-        'Einzeltest': 'Kommandos'
-      };
-      const paramMap = {
-        'Langzeittest': 'MessIDLongterm',
-        'Detailtest': 'MessIDDetail',
-        'Einzeltest': 'MessIDSingle'
-      };
-      
-      const res = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/value`, { 
-        params: { group: groupMap[commandType], name: paramMap[commandType] } 
-      });
-      
-      const value = formatValue(res.data.value);
-      
-      if (commandType === 'Langzeittest') {
-        setLiveMessIdLangzeittest(value);
-      } else if (commandType === 'Detailtest') {
-        setLiveMessIdDetailtest(value);
-      } else if (commandType === 'Einzeltest') {
-        setLiveMessIdEinzeltest(value);
-      }
-    } catch (e) {
-      console.error('readMessId', e);
-      alert('Failed to read MessID. See console.');
-    }
-  }
-
-  async function sendLangzeittestCommand(paramName: string): Promise<void> {
-    if (sending) return;
-    setSending(true);
-    try {
-      const success = await writeCommandParameter('Kommandos', paramName, 'true');
-      if (success) {
-        alert('Langzeittest command sent successfully');
-      } else {
-        alert('Langzeittest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function sendDetailtestCommand(paramName: string): Promise<void> {
-    if (sending) return;
-    setSending(true);
-    try {
-      const success = await writeCommandParameter('Kommandos', paramName, 'true');
-      if (success) {
-        alert('Detailtest command sent successfully');
-      } else {
-        alert('Detailtest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function sendEinzeltestCommand(paramName: string, ventilnummer: string): Promise<void> {
-    if (sending) return;
-    if (!ventilnummer || ventilnummer.trim() === '') {
-      alert('Please enter a Ventilnummer first');
-      return;
-    }
-    setSending(true);
-    try {
-      // First write the Ventilnummer
-      const ventilSuccess = await writeCommandParameter('Kommandos', 'Einzeltest_Ventilnummer', ventilnummer);
-      if (!ventilSuccess) {
-        alert('Failed to write Ventilnummer');
-        return;
-      }
-      // Then execute the command
-      const cmdSuccess = await writeCommandParameter('Kommandos/Einzeltest', paramName, 'true');
-      if (cmdSuccess) {
-        alert('Einzeltest command sent successfully');
-      } else {
-        alert('Einzeltest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
 
   async function fetchLiveData(): Promise<void> {
     try {
@@ -528,36 +371,10 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
   return (
     <div>
       <div className="actions">
-        <div style={{display:'flex',gap:8,flexDirection:'column'}}>
-          <div>
-            <b>Langzeittest</b>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
-            <label style={{marginLeft:16}}>MessID {liveMessIdLangzeittest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}: <input value={messIdLangzeittest} onChange={e=>setMessIdLangzeittest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set MessID</button>
-            <button style={{marginLeft:8}} onClick={() => readMessId('Langzeittest')}>Read MessID</button>
-          </div>
-          <div style={{marginTop:8}}>
-            <b>Detailtest</b>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
-            <label style={{marginLeft:16}}>MessID {liveMessIdDetailtest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}: <input value={messIdDetailtest} onChange={e=>setMessIdDetailtest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set MessID</button>
-            <button style={{marginLeft:8}} onClick={() => readMessId('Detailtest')}>Read MessID</button>
-          </div>
-          <div style={{marginTop:8}}>
-            <b>Einzeltest</b>
-            <label style={{marginLeft:8}}>Ventilnummer: <input value={einzelVentil} onChange={e=>setEinzelVentil(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
-            <label style={{marginLeft:16}}>MessID {liveMessIdEinzeltest && <span style={{fontSize:12,color:'#666'}}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}: <input value={messIdEinzeltest} onChange={e=>setMessIdEinzeltest(e.target.value)} style={{marginLeft:8,width:'100px'}} /></label>
-            <button style={{marginLeft:8}} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set MessID</button>
-            <button style={{marginLeft:8}} onClick={() => readMessId('Einzeltest')}>Read MessID</button>
-          </div>
-          {showModal && (
+        <CommandsPanel apiBase={apiBase} selectedBlock={selectedBlock} compact={true} />
+      </div>
+      
+      {showModal && (
             <div style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>
               <div style={{background:'#fff',padding:16,width:'80%',height:'80%',overflow:'auto',boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
@@ -623,13 +440,10 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
               </div>
             </div>
           )}
-        </div>
-      </div>
 
       <div style={{borderTop:'1px solid #ddd', marginTop:12, paddingTop:12}}>
         <h4>Measurements</h4>
         <div style={{display:'flex',gap:8,flexDirection:'row',alignItems:'center'}}>
-          <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/langzeittest/${selectedBlock}`); setLtData(res.data); }}>Refresh Langzeittest</button>
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/status/${selectedBlock}`); setMeasurements(prev=>({ ...prev, status: res.data })); }}>Block Status</button>
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/status`); setMeasurements(prev=>({ ...prev, allStatus: res.data })); }}>All Status</button>
           <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/block/${selectedBlock}`); setMeasurements(prev=>({ ...prev, block: res.data })); }}>Block Data</button>
@@ -670,15 +484,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
             ))}
           </div>
         </div>
-
-        {ltData && ltData.blockIndex === selectedBlock && (
-          <div style={{padding:8}}>
-            <h4>Langzeittest - Ventils</h4>
-            <ul>
-              {ltData.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
-            </ul>
-          </div>
-        )}
 
         <div style={{padding:8}}>
           {measurements.status && (

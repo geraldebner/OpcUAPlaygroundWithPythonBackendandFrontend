@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useCache } from '../hooks/useCache';
+import CommandsPanel from './shared/CommandsPanel';
 
 interface TestOverviewViewProps {
   apiBase: string;
@@ -9,167 +10,6 @@ interface TestOverviewViewProps {
 export default function TestOverviewView({ apiBase, selectedBlock }: TestOverviewViewProps) {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { data, loading, error, refresh } = useCache(apiBase, selectedBlock, autoRefresh, 2000);
-  
-  // Command sending state
-  const [sending, setSending] = useState<boolean>(false);
-  
-  // MessID state for each command type
-  const [messIdLangzeittest, setMessIdLangzeittest] = useState<string>('');
-  const [messIdDetailtest, setMessIdDetailtest] = useState<string>('');
-  const [messIdEinzeltest, setMessIdEinzeltest] = useState<string>('');
-  const [einzelVentil, setEinzelVentil] = useState<string>('');
-  
-  // Live MessID values from OPC UA server
-  const [liveMessIdLangzeittest, setLiveMessIdLangzeittest] = useState<string>('');
-  const [liveMessIdDetailtest, setLiveMessIdDetailtest] = useState<string>('');
-  const [liveMessIdEinzeltest, setLiveMessIdEinzeltest] = useState<string>('');
-
-  // Helper function to write command parameters
-  async function writeCommandParameter(group: string, paramName: string, value: string = 'true'): Promise<boolean> {
-    try {
-      const response = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=${group}&name=${paramName}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value })
-      });
-      return response.ok;
-    } catch (err: any) {
-      console.error('writeCommandParameter error', err);
-      alert('Command error: ' + err.message);
-      return false;
-    }
-  }
-
-  // Helper function to format values
-  function formatValue(v: any): string {
-    if (v === null || v === undefined) return '';
-    if (typeof v === 'boolean') return v ? 'True' : 'False';
-    if (typeof v === 'number') return v.toString();
-    if (typeof v === 'string') return v;
-    return String(v);
-  }
-
-  // Set MessID for different command types
-  async function setMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest', messId: string): Promise<void> {
-    if (sending) return;
-    if (!messId || messId.trim() === '') {
-      alert('Please enter a MessID first');
-      return;
-    }
-    setSending(true);
-    try {
-      const groupMap = {
-        'Langzeittest': 'Kommandos',
-        'Detailtest': 'Kommandos',
-        'Einzeltest': 'Kommandos'
-      };
-      const paramMap = {
-        'Langzeittest': 'MessIDLongterm',
-        'Detailtest': 'MessIDDetail',
-        'Einzeltest': 'MessIDSingle'
-      };
-      
-      const success = await writeCommandParameter(groupMap[commandType], paramMap[commandType], messId);
-      if (success) {
-        alert(`MessID${commandType === 'Langzeittest' ? 'Longterm' : commandType === 'Detailtest' ? 'Detail' : 'Single'} set to ${messId}`);
-        await readMessId(commandType);
-      } else {
-        alert('Failed to set MessID');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  // Read MessID for different command types
-  async function readMessId(commandType: 'Langzeittest' | 'Detailtest' | 'Einzeltest'): Promise<void> {
-    try {
-      const groupMap = {
-        'Langzeittest': 'Kommandos',
-        'Detailtest': 'Kommandos',
-        'Einzeltest': 'Kommandos'
-      };
-      const paramMap = {
-        'Langzeittest': 'MessIDLongterm',
-        'Detailtest': 'MessIDDetail',
-        'Einzeltest': 'MessIDSingle'
-      };
-      
-      const res = await fetch(`${apiBase}/api/parameters/${selectedBlock}/value?group=${groupMap[commandType]}&name=${paramMap[commandType]}`);
-      const result = await res.json();
-      const value = formatValue(result.value);
-      
-      if (commandType === 'Langzeittest') {
-        setLiveMessIdLangzeittest(value);
-      } else if (commandType === 'Detailtest') {
-        setLiveMessIdDetailtest(value);
-      } else if (commandType === 'Einzeltest') {
-        setLiveMessIdEinzeltest(value);
-      }
-    } catch (e) {
-      console.error('readMessId', e);
-      alert('Failed to read MessID. See console.');
-    }
-  }
-
-  // Send Langzeittest commands
-  async function sendLangzeittestCommand(paramName: string): Promise<void> {
-    if (sending) return;
-    setSending(true);
-    try {
-      const success = await writeCommandParameter('Kommandos', paramName, 'true');
-      if (success) {
-        alert('Langzeittest command sent successfully');
-      } else {
-        alert('Langzeittest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  // Send Detailtest commands
-  async function sendDetailtestCommand(paramName: string): Promise<void> {
-    if (sending) return;
-    setSending(true);
-    try {
-      const success = await writeCommandParameter('Kommandos', paramName, 'true');
-      if (success) {
-        alert('Detailtest command sent successfully');
-      } else {
-        alert('Detailtest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  // Send Einzeltest commands
-  async function sendEinzeltestCommand(paramName: string, ventilnummer: string): Promise<void> {
-    if (sending) return;
-    if (!ventilnummer || ventilnummer.trim() === '') {
-      alert('Please enter a Ventilnummer first');
-      return;
-    }
-    setSending(true);
-    try {
-      // First write the Ventilnummer
-      const ventilSuccess = await writeCommandParameter('Kommandos', 'Einzeltest_Ventilnummer', ventilnummer);
-      if (!ventilSuccess) {
-        alert('Failed to write Ventilnummer');
-        return;
-      }
-      // Then execute the command
-      const cmdSuccess = await writeCommandParameter('Kommandos/Einzeltest', paramName, 'true');
-      if (cmdSuccess) {
-        alert('Einzeltest command sent successfully');
-      } else {
-        alert('Einzeltest command failed');
-      }
-    } finally {
-      setSending(false);
-    }
-  }
 
   // Styles
   const thStyle: React.CSSProperties = {
@@ -287,7 +127,7 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         </div>
       )}
 
-      {/* Commands Section - same as original */}
+      {/* Commands Section */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '8px',
@@ -295,73 +135,7 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '14px', fontWeight: 'bold' }}>Commands</h2>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* All three command blocks side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-            {/* Langzeittest */}
-            <div style={{
-              padding: '8px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '6px'
-            }}>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Langzeittest</h3>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
-                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
-                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdLangzeittest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}:</label>
-                  <input value={messIdLangzeittest} onChange={e => setMessIdLangzeittest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
-                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set</button>
-                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Langzeittest')}>Read</button>
-                </div>
-              </div>
-            </div>
-
-            {/* Detailtest */}
-            <div style={{
-              padding: '8px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '6px'
-            }}>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Detailtest</h3>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
-                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
-                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdDetailtest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}:</label>
-                  <input value={messIdDetailtest} onChange={e => setMessIdDetailtest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
-                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set</button>
-                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Detailtest')}>Read</button>
-                </div>
-              </div>
-            </div>
-
-            {/* Einzeltest */}
-            <div style={{
-              padding: '8px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '6px'
-            }}>
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
-                <label style={{ fontSize: '12px' }}>Ventilnr:</label>
-                <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '60px', fontSize: '12px' }} />
-                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
-                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
-                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
-                  <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
-                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set</button>
-                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Einzeltest')}>Read</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CommandsPanel apiBase={apiBase} selectedBlock={selectedBlock} compact={true} />
       </div>
 
       {/* Ventil Data Table */}
