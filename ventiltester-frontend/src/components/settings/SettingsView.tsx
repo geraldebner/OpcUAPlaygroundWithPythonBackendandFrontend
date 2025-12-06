@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MappingSection from './MappingSection';
-import BlockSelector from './shared/BlockSelector';
+import BlockSelector from '../shared/BlockSelector';
 
 interface SettingsViewProps {
   apiBase: string;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ParameterMappingPanelProps } from '../types';
+import { ParameterMappingPanelProps } from '../../types';
 
 export default function ParameterMappingPanel({ 
   selectedBlock, 

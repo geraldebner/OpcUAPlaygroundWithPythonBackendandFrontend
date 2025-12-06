@@ -1,5 +1,5 @@
 import React from 'react';
-import { ParameterLiveDataPanelProps } from '../types';
+import { ParameterLiveDataPanelProps } from '../../types';
 
 export default function ParameterLiveDataPanel({
   selectedBlock,

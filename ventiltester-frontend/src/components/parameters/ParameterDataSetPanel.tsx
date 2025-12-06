@@ -1,5 +1,5 @@
 import React from 'react';
-import { ParameterDataSetPanelProps } from '../types';
+import { ParameterDataSetPanelProps } from '../../types';
 
 export default function ParameterDataSetPanel({ 
   parameterDatasets, 

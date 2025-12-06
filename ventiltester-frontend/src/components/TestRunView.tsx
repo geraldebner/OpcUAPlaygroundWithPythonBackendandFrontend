@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useCache } from '../hooks/useCache';
 import CommandsPanel from './shared/CommandsPanel';
 
-interface TestOverviewViewProps {
+interface TestRunViewProps {
   apiBase: string;
   selectedBlock: number;
 }
 
-export default function TestOverviewView({ apiBase, selectedBlock }: TestOverviewViewProps) {
+export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps) {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { data, loading, error, refresh } = useCache(apiBase, selectedBlock, autoRefresh, 2000);
 

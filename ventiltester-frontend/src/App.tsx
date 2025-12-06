@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import './App.css';
 import Navigation from './components/Navigation';
-import StatusView from './components/StatusView';
-import ParametersView from './components/ParametersView';
+import StatusView from './components/status/StatusView';
+import ParametersView from './components/parameters/ParametersView';
 import CommandsMeasurementsView from './components/CommandsMeasurementsView';
 import HistoricalDataSetsView from './components/HistoricalDataSetsView';
-import SettingsView from './components/SettingsView';
-import TestOverviewView from './components/TestOverviewView';
+import SettingsView from './components/settings/SettingsView';
+import TestRunView from './components/TestRunView';
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -14,7 +14,7 @@ const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BAS
 type Block = { index: number };
 
 export default function App() {
-  const [selectedTab, setSelectedTab] = useState<'parameters'|'commandsandmeasurements'|'status'|'historical'|'settings'|'testoverview'>('parameters');
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commandsandmeasurements'|'status'|'historical'|'settings'|'testrun'>('parameters');
   // Hardcoded 4 blocks instead of loading from API
   const [blocks] = useState<Block[]>([
     { index: 1 },
@@ -82,8 +82,8 @@ export default function App() {
           <HistoricalDataSetsView apiBase={API_BASE} selectedBlock={selectedBlock} />
         )}
 
-        {selectedTab === 'testoverview' && selectedBlock && (
-          <TestOverviewView apiBase={API_BASE} selectedBlock={selectedBlock} />
+        {selectedTab === 'testrun' && selectedBlock && (
+          <TestRunView apiBase={API_BASE} selectedBlock={selectedBlock} />
         )}
 
         {selectedTab === 'status' && (

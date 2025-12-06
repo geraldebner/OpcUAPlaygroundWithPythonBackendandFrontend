@@ -9,7 +9,7 @@ import {
   BusyGroups,
   ParametersViewProps,
   TabType
-} from '../types';
+} from '../../types';
 
 export default function ParametersView({ apiBase, selectedBlock }: ParametersViewProps) {
   function formatValue(v: any): string {

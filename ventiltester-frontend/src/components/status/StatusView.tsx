@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "../App.css";
+import "../../App.css";
 
 // Keep the same API_BASE resolution as App.tsx so this component works standalone
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";

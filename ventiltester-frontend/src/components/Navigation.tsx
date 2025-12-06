@@ -3,8 +3,8 @@ import binderLogo from '../binder_logo_2.png';
 import BlockSelector from './shared/BlockSelector';
 
 interface NavigationProps {
-  selectedTab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testoverview';
-  onTabChange: (tab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testoverview') => void;
+  selectedTab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testrun';
+  onTabChange: (tab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testrun') => void;
   selectedBlock: number | null;
   blocks: Array<{ index: number }>;
   onBlockChange: (block: number | null) => void;
@@ -20,7 +20,7 @@ export default function Navigation({
   const tabs = [
     { id: 'parameters' as const, label: 'Parameters', icon: '📊' },
     { id: 'commandsandmeasurements' as const, label: 'Commands & Measurements', icon: '⚙️' },
-    { id: 'testoverview' as const, label: 'TestOverview', icon: '📡' },
+    { id: 'testrun' as const, label: 'Test Run', icon: '📡' },
     { id: 'historical' as const, label: 'Historical Data', icon: '📈' },
     { id: 'status' as const, label: 'Status', icon: '🔍' },
     { id: 'settings' as const, label: 'Settings', icon: '⚙️' }
