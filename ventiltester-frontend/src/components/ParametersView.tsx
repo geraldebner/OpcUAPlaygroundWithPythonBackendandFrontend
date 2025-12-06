@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import ParameterMappingPanel from './ParameterMappingPanel';
 import ParameterLiveDataPanel from './ParameterLiveDataPanel';
 import ParameterDataSetPanel from './ParameterDataSetPanel';
 import {
@@ -412,15 +411,6 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
           <button className={paramInnerTab === 'stored' ? 'active' : ''} onClick={() => setParamInnerTab('stored')} style={{ marginLeft: 8 }}>Stored</button>
         </div>
       </div>
-
-      {/* Mapping Panel */}
-      <ParameterMappingPanel
-        selectedBlock={selectedBlock}
-        refreshBlock={refreshBlock}
-        fetchMappingOnly={fetchMappingOnly}
-        isRefreshing={isRefreshing}
-        mappingLoading={mappingLoading}
-      />
 
       <div style={{ height: 12 }} />
 

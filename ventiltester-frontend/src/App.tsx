@@ -49,7 +49,6 @@ export default function App() {
         selectedBlock={selectedBlock}
         blocks={blocks}
         onBlockChange={setSelectedBlock}
-        onCheckBackend={loadBlockList}
       />
 
       <div style={{ padding: '24px' }}>
@@ -92,7 +91,7 @@ export default function App() {
         )}
 
         {selectedTab === 'settings' && (
-          <SettingsView apiBase={API_BASE} />
+          <SettingsView apiBase={API_BASE} selectedBlock={selectedBlock} onBlockChange={setSelectedBlock} />
         )}
       </div>
     </div>

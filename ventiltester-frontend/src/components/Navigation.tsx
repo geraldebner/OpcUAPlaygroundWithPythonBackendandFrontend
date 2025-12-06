@@ -1,5 +1,6 @@
 import React from 'react';
 import binderLogo from '../binder_logo_2.png';
+import BlockSelector from './shared/BlockSelector';
 
 interface NavigationProps {
   selectedTab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testoverview';
@@ -7,7 +8,6 @@ interface NavigationProps {
   selectedBlock: number | null;
   blocks: Array<{ index: number }>;
   onBlockChange: (block: number | null) => void;
-  onCheckBackend: () => void;
 }
 
 export default function Navigation({
@@ -15,8 +15,7 @@ export default function Navigation({
   onTabChange,
   selectedBlock,
   blocks,
-  onBlockChange,
-  onCheckBackend
+  onBlockChange
 }: NavigationProps) {
   const tabs = [
     { id: 'parameters' as const, label: 'Parameters', icon: '📊' },
@@ -94,69 +93,13 @@ export default function Navigation({
           alignItems: 'center',
           gap: '12px'
         }}>
-          <label style={{
-            fontSize: '14px',
-            fontWeight: '500',
-            color: 'rgba(255,255,255,0.9)'
-          }}>
-            Test Block:
-          </label>
-          <select
-            value={selectedBlock ?? ""}
-            onChange={e => onBlockChange(e.target.value ? Number(e.target.value) : null)}
+          <BlockSelector
+            selectedBlock={selectedBlock}
+            onBlockChange={onBlockChange}
             style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '2px solid rgba(255,255,255,0.2)',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              outline: 'none',
-              minWidth: '120px'
+              color: 'rgba(255,255,255,0.9)'
             }}
-          >
-            <option value="" style={{ backgroundColor: '#2c3e50', color: 'white' }}>
-              -- Select Block --
-            </option>
-            {blocks.map(b => (
-              <option
-                key={b.index}
-                value={b.index}
-                style={{ backgroundColor: '#2c3e50', color: 'white' }}
-              >
-                Block {b.index}
-              </option>
-            ))}
-          </select>
-          
-          <button
-            onClick={onCheckBackend}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.2)',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-            }}
-            title="Check backend connection"
-          >
-            🔄 Check Backend
-          </button>
+          />
         </div>
       </div>
 

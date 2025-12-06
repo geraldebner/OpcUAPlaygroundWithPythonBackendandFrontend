@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import MappingSection from './MappingSection';
+import BlockSelector from './shared/BlockSelector';
 
 interface SettingsViewProps {
   apiBase: string;
+  selectedBlock: number | null;
+  onBlockChange: (block: number | null) => void;
 }
 
 interface MeasurementServiceSettings {
@@ -11,7 +15,7 @@ interface MeasurementServiceSettings {
   monitoredGroups: string[];
 }
 
-export default function SettingsView({ apiBase }: SettingsViewProps) {
+export default function SettingsView({ apiBase, selectedBlock, onBlockChange }: SettingsViewProps) {
   const [settings, setSettings] = useState<MeasurementServiceSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [pollingInterval, setPollingInterval] = useState<string>('1000');
@@ -94,6 +98,33 @@ export default function SettingsView({ apiBase }: SettingsViewProps) {
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ marginTop: 0, marginBottom: '24px', color: '#1e3a5f' }}>Settings</h2>
+
+      {/* Block Selection */}
+      <div style={{
+        backgroundColor: 'white',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        padding: '20px',
+        marginBottom: '24px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+      }}>
+        <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#1e3a5f', fontSize: '18px' }}>
+          Block Selection
+        </h3>
+        <BlockSelector
+          selectedBlock={selectedBlock}
+          onBlockChange={onBlockChange}
+        />
+      </div>
+
+      {/* Mapping Section */}
+      <div style={{ marginBottom: '24px' }}>
+        <MappingSection 
+          apiBase={apiBase} 
+          selectedBlock={selectedBlock}
+          onMappingRefresh={fetchSettings}
+        />
+      </div>
 
       {/* Measurement Data Service Section */}
       <div style={{
