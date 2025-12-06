@@ -251,7 +251,7 @@ public class CacheService : IDisposable
             // Read Durchflussmessung
             var durchflussStatus = _opc.ReadNode(blockIndex, $"Daten_Durchflussmessung/Ventil{ventilNr}", "Status");
             var durchflussReady = _opc.ReadNode(blockIndex, $"Daten_Durchflussmessung/Ventil{ventilNr}", "DatenReady");
-            var durchflussMessID = _opc.ReadNode(blockIndex, $"Daten_Durchflussmessung/Ventil{ventilNr}", "MessIDCurrent");
+            var durchflussMessID = _opc.ReadNode(blockIndex, $"Daten_Durchflussmessung/Ventil{ventilNr}", "MessID");
             
             ventilData.Durchfluss = new MeasurementTypeData
             {
@@ -263,7 +263,7 @@ public class CacheService : IDisposable
             // Read Kraftmessung
             var kraftStatus = _opc.ReadNode(blockIndex, $"Daten_Kraftmessung/Ventil{ventilNr}", "Status");
             var kraftReady = _opc.ReadNode(blockIndex, $"Daten_Kraftmessung/Ventil{ventilNr}", "DatenReady");
-            var kraftMessID = _opc.ReadNode(blockIndex, $"Daten_Kraftmessung/Ventil{ventilNr}", "MessIDCurrent");
+            var kraftMessID = _opc.ReadNode(blockIndex, $"Daten_Kraftmessung/Ventil{ventilNr}", "MessID");
             
             ventilData.Kraft = new MeasurementTypeData
             {
