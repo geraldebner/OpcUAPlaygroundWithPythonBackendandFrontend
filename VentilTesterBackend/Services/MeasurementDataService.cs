@@ -13,6 +13,7 @@ namespace VentilTesterBackend.Services;
 public class MeasurementDataService : IDisposable
 {
     private readonly OpcUaService _opc;
+    private readonly CacheService _cacheService;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MeasurementDataService>? _logger;
     private readonly CancellationTokenSource _cts = new();
@@ -80,10 +81,12 @@ public class MeasurementDataService : IDisposable
 
     public MeasurementDataService(
         OpcUaService opc,
+        CacheService cacheService,
         IServiceScopeFactory scopeFactory,
         ILogger<MeasurementDataService>? logger = null)
     {
         _opc = opc;
+        _cacheService = cacheService;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -164,60 +167,114 @@ public class MeasurementDataService : IDisposable
     {
         try
         {
-            // Try to read DatenReady parameter from the group
-            var datenReadyParam = _opc.ReadNode(blockIndex, groupName, "DatenReady");
-            
-            if (datenReadyParam == null || string.IsNullOrEmpty(datenReadyParam.Value))
+            // Get cached data for this block
+            var cachedData = _cacheService.GetCachedData(blockIndex);
+            if (cachedData == null || cachedData.VentilData == null)
             {
-                // DatenReady not available in this group, skip
+                // Cache not ready yet, skip
                 return;
             }
 
-            // Parse DatenReady value
-            if (!int.TryParse(datenReadyParam.Value, out int currentDatenReady))
+            // Determine measurement type and ventil number from group name
+            int? currentDatenReady = null;
+            int? messId = null;
+            
+            if (groupName.StartsWith("Daten_Strommessung/Ventil"))
             {
-                _logger?.LogWarning(
-                    "Could not parse DatenReady value '{Value}' for block {Block} group {Group}",
-                    datenReadyParam.Value,
-                    blockIndex,
-                    groupName);
+                var ventilNr = ExtractVentilNumber(groupName);
+                if (ventilNr.HasValue)
+                {
+                    var ventilData = cachedData.VentilData.FirstOrDefault(v => v.VentilNr == ventilNr.Value);
+                    if (ventilData != null)
+                    {
+                        currentDatenReady = ventilData.Strom.DatenReady;
+                        messId = ventilData.Strom.MessID;
+                    }
+                }
+            }
+            else if (groupName.StartsWith("Daten_Durchflussmessung/Ventil"))
+            {
+                var ventilNr = ExtractVentilNumber(groupName);
+                if (ventilNr.HasValue)
+                {
+                    var ventilData = cachedData.VentilData.FirstOrDefault(v => v.VentilNr == ventilNr.Value);
+                    if (ventilData != null)
+                    {
+                        currentDatenReady = ventilData.Durchfluss.DatenReady;
+                        messId = ventilData.Durchfluss.MessID;
+                    }
+                }
+            }
+            else if (groupName.StartsWith("Daten_Kraftmessung/Ventil"))
+            {
+                var ventilNr = ExtractVentilNumber(groupName);
+                if (ventilNr.HasValue)
+                {
+                    var ventilData = cachedData.VentilData.FirstOrDefault(v => v.VentilNr == ventilNr.Value);
+                    if (ventilData != null)
+                    {
+                        currentDatenReady = ventilData.Kraft.DatenReady;
+                        messId = ventilData.Kraft.MessID;
+                    }
+                }
+            }
+            else if (groupName == "DB_Daten_Langzeittest_1")
+            {
+                // For Langzeittest, read DatenReady directly from OPC UA since it's not in cache
+                var datenReadyParam = _opc.ReadNode(blockIndex, groupName, "DatenReady");
+                if (datenReadyParam != null && int.TryParse(datenReadyParam.Value, out int drValue))
+                {
+                    currentDatenReady = drValue;
+                }
+                
+                var messIdParam = _opc.ReadNode(blockIndex, groupName, "MessID");
+                if (messIdParam != null && int.TryParse(messIdParam.Value, out int miValue))
+                {
+                    messId = miValue;
+                }
+            }
+
+            if (!currentDatenReady.HasValue)
+            {
+                // DatenReady not available for this group, skip
                 return;
             }
 
             var key = $"{blockIndex}_{groupName}";
-            var lastValue = _lastDatenReadyValues.GetOrAdd(key, currentDatenReady);
+            var lastValue = _lastDatenReadyValues.GetOrAdd(key, currentDatenReady.Value);
 
             // Check if DatenReady increased
-            if (currentDatenReady > lastValue)
+            if (currentDatenReady.Value > lastValue)
             {
                 _logger?.LogInformation(
-                    "DatenReady increased from {Old} to {New} for block {Block} group {Group} - saving dataset",
+                    "DatenReady increased from {Old} to {New} for block {Block} group {Group} (MessID: {MessId}) - saving dataset",
                     lastValue,
-                    currentDatenReady,
+                    currentDatenReady.Value,
                     blockIndex,
-                    groupName);
+                    groupName,
+                    messId);
 
                 // Update tracked value
-                _lastDatenReadyValues[key] = currentDatenReady;
+                _lastDatenReadyValues[key] = currentDatenReady.Value;
 
                 // Save the entire group as a dataset
-                await SaveGroupAsDataset(blockIndex, groupName, currentDatenReady);
+                await SaveGroupAsDataset(blockIndex, groupName, currentDatenReady.Value, messId);
             }
-            else if (currentDatenReady < lastValue)
+            else if (currentDatenReady.Value < lastValue)
             {
                 // DatenReady was reset, update tracking
                 _logger?.LogDebug(
                     "DatenReady reset from {Old} to {New} for block {Block} group {Group}",
                     lastValue,
-                    currentDatenReady,
+                    currentDatenReady.Value,
                     blockIndex,
                     groupName);
-                _lastDatenReadyValues[key] = currentDatenReady;
+                _lastDatenReadyValues[key] = currentDatenReady.Value;
             }
         }
         catch (InvalidOperationException)
         {
-            // Expected when OPC UA not connected or parameter not found, don't spam logs
+            // Expected when OPC UA not connected or cache not ready, don't spam logs
         }
         catch (Exception ex)
         {
@@ -229,7 +286,24 @@ public class MeasurementDataService : IDisposable
         }
     }
 
-    private async Task SaveGroupAsDataset(int blockIndex, string groupName, int datenReadyValue)
+    /// <summary>
+    /// Extract ventil number from group name like "Daten_Strommessung/Ventil5"
+    /// </summary>
+    private int? ExtractVentilNumber(string groupName)
+    {
+        var parts = groupName.Split('/');
+        if (parts.Length >= 2)
+        {
+            var ventilPart = parts[1]; // e.g., "Ventil5"
+            if (ventilPart.StartsWith("Ventil") && int.TryParse(ventilPart.Substring(6), out int ventilNr))
+            {
+                return ventilNr;
+            }
+        }
+        return null;
+    }
+
+    private async Task SaveGroupAsDataset(int blockIndex, string groupName, int datenReadyValue, int? messIdFromCache = null)
     {
         try
         {
@@ -245,27 +319,39 @@ public class MeasurementDataService : IDisposable
                 return;
             }
 
-            // Find MessID or MessIDCurrent parameter to use as identifier
-            int? messId = null;
-            var messIdParam = parameters.FirstOrDefault(p => 
-                p.Name != null && (
-                    p.Name.Equals("MessID", StringComparison.OrdinalIgnoreCase) ||
-                    p.Name.Equals("MessIDCurrent", StringComparison.OrdinalIgnoreCase) ||
-                    p.Name.Contains("MessID", StringComparison.OrdinalIgnoreCase)
-                ));
+            // Use MessID from cache if provided, otherwise search in parameters
+            int? messId = messIdFromCache;
             
-            if (messIdParam != null && !string.IsNullOrEmpty(messIdParam.Value))
+            if (!messId.HasValue)
             {
-                if (int.TryParse(messIdParam.Value, out int parsedMessId))
+                var messIdParam = parameters.FirstOrDefault(p => 
+                    p.Name != null && (
+                        p.Name.Equals("MessID", StringComparison.OrdinalIgnoreCase) ||
+                        p.Name.Equals("MessIDCurrent", StringComparison.OrdinalIgnoreCase) ||
+                        p.Name.Contains("MessID", StringComparison.OrdinalIgnoreCase)
+                    ));
+                
+                if (messIdParam != null && !string.IsNullOrEmpty(messIdParam.Value))
                 {
-                    messId = parsedMessId;
-                    _logger?.LogDebug(
-                        "Found MessID parameter '{ParamName}' with value {MessId} for block {Block} group {Group}",
-                        messIdParam.Name,
-                        messId,
-                        blockIndex,
-                        groupName);
+                    if (int.TryParse(messIdParam.Value, out int parsedMessId))
+                    {
+                        messId = parsedMessId;
+                        _logger?.LogDebug(
+                            "Found MessID parameter '{ParamName}' with value {MessId} for block {Block} group {Group}",
+                            messIdParam.Name,
+                            messId,
+                            blockIndex,
+                            groupName);
+                    }
                 }
+            }
+            else
+            {
+                _logger?.LogDebug(
+                    "Using MessID {MessId} from cache for block {Block} group {Group}",
+                    messId,
+                    blockIndex,
+                    groupName);
             }
 
             // Fallback to DatenReady if MessID not found
@@ -273,9 +359,9 @@ public class MeasurementDataService : IDisposable
             {
                 messId = datenReadyValue;
                 _logger?.LogDebug(
-                    "MessID not found in group {Group}, using DatenReady value {Value} as identifier",
-                    groupName,
-                    datenReadyValue);
+                    "MessID not found, using DatenReady value {Value} as identifier for group {Group}",
+                    datenReadyValue,
+                    groupName);
             }
 
             // Create a data structure to store with lowercase property names to match manual saves

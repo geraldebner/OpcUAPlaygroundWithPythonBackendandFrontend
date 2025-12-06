@@ -46,6 +46,9 @@ builder.Services.AddSingleton<OpcUaService>();
 // Measurement Data Service
 builder.Services.AddSingleton<MeasurementDataService>();
 
+// Test Overview Cache Service
+builder.Services.AddSingleton<CacheService>();
+
 var app = builder.Build();
 
 // Ensure DB created
@@ -150,5 +153,13 @@ try
     }
 }
 catch { }
+
+// Initialize and start the CacheService
+{
+    var cacheService = app.Services.GetRequiredService<CacheService>();
+    cacheService.Start();
+    var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("Startup");
+    logger?.LogInformation("CacheService started automatically on startup");
+}
 
 app.Run();

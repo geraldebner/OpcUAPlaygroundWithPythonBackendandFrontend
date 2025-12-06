@@ -6,16 +6,21 @@ const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BAS
 
 export default function StatusView() {
   const [status, setStatus] = useState<any>(null);
+  const [cacheStatus, setCacheStatus] = useState<any>(null);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [intervalSec, setIntervalSec] = useState<number>(5);
 
   useEffect(() => {
     fetchStatus();
+    fetchCacheStatus();
   }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const id = setInterval(() => fetchStatus(), Math.max(1, intervalSec) * 1000);
+    const id = setInterval(() => {
+      fetchStatus();
+      fetchCacheStatus();
+    }, Math.max(1, intervalSec) * 1000);
     return () => clearInterval(id);
   }, [autoRefresh, intervalSec]);
 
@@ -32,11 +37,24 @@ export default function StatusView() {
     }
   }
 
+  async function fetchCacheStatus() {
+    try {
+      setCacheStatus(null);
+      const res = await fetch(`${API_BASE}/api/cache/status`);
+      if (!res.ok) throw new Error(`Cache status request failed: ${res.status}`);
+      const data = await res.json();
+      setCacheStatus(data);
+    } catch (e) {
+      console.error(e);
+      setCacheStatus({ error: String(e) });
+    }
+  }
+
   return (
     <div style={{ marginTop: 8 }}>
       <h3>System Status</h3>
       <div style={{ marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <button onClick={() => fetchStatus()}>Refresh Status</button>
+        <button onClick={() => { fetchStatus(); fetchCacheStatus(); }}>Refresh Status</button>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} /> Auto-refresh
         </label>
@@ -59,6 +77,17 @@ export default function StatusView() {
           </div>
           <div style={{ marginTop: 8 }}><strong>Database:</strong>
             <div>Connected: {String(status.database?.connected)}</div>
+          </div>
+          <div style={{ marginTop: 8 }}><strong>Cache Service:</strong>
+            {!cacheStatus && <div style={{ marginLeft: 12 }}>Loading cache status...</div>}
+            {cacheStatus && cacheStatus.error && <div style={{ color: 'red', marginLeft: 12 }}>Error: {cacheStatus.error}</div>}
+            {cacheStatus && !cacheStatus.error && (
+              <div style={{ marginLeft: 12 }}>
+                <div>Enabled: <span style={{ color: cacheStatus.isEnabled ? 'green' : 'red', fontWeight: 700 }}>{String(cacheStatus.isEnabled)}</span></div>
+                <div>Update Interval: <code>{cacheStatus.updateIntervalMs}ms</code></div>
+                <div>Cached Blocks: <code>{cacheStatus.cachedBlocks?.join(', ') || 'none'}</code></div>
+              </div>
+            )}
           </div>
           {status.globalData && (
             <div style={{ marginTop: 12, padding: 12, border: '1px solid #ddd', borderRadius: 4, backgroundColor: '#f9f9f9' }}>
