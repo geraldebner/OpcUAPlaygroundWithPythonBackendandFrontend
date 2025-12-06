@@ -247,48 +247,8 @@ export default function SettingsView({ apiBase, selectedBlock, onBlockChange }: 
               </div>
             </div>
 
-            {/* Monitored Groups */}
-            <div style={{
-              padding: '16px',
-              backgroundColor: '#f5f7fa',
-              borderRadius: '6px',
-              border: '1px solid #e0e0e0'
-            }}>
-              <h4 style={{ marginTop: 0, marginBottom: '12px', fontSize: '15px', color: '#555' }}>
-                Monitored Groups (for all blocks 1-4):
-              </h4>
-              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#666', lineHeight: '1.8' }}>
-                {settings.monitoredGroups.map((group, idx) => (
-                  <li key={idx}>
-                    <code style={{ backgroundColor: '#e3f2fd', padding: '2px 6px', borderRadius: '3px' }}>
-                      {group}
-                    </code>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         )}
-      </div>
-
-      {/* Info Section */}
-      <div style={{
-        backgroundColor: '#e3f2fd',
-        border: '1px solid #2196F3',
-        borderRadius: '8px',
-        padding: '16px',
-        fontSize: '13px',
-        color: '#1565c0',
-        lineHeight: '1.6'
-      }}>
-        <strong>ℹ️ How it works:</strong>
-        <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-          <li>The service checks monitored groups every polling interval</li>
-          <li>When <code>DatenReady</code> increases by 1 or more, the group data is saved</li>
-          <li>The <code>DatenReady</code> value is used as the dataset identifier number</li>
-          <li>Datasets are automatically named with timestamp and saved to the database</li>
-          <li>All saved datasets can be viewed in the Historical Data tab</li>
-        </ul>
       </div>
     </div>
   );
