@@ -227,50 +227,62 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         </div>
       )}
 
-      {/* Global Data Section */}
-      {data?.globalData && (
+      {/* Status Section - Global Data and Allgemeine Parameter */}
+      {(data?.globalData || data?.allgemeineParameter) && (
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '24px',
+          borderRadius: '8px',
+          padding: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <h2 style={{ margin: '0 0 12px 0', color: '#2c3e50', fontSize: '16px' }}>Global Data</h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px'
-          }}>
-            <DataCard label="Battery Status" value={data.globalData.batteryStatus} unit="%" />
-            <DataCard label="General Errors" value={data.globalData.generalErrors} />
-            <DataCard label="Temperature PLC" value={data.globalData.temperaturePLC} unit="°C" />
-            <DataCard label="Version" value={data.globalData.version} />
-          </div>
-        </div>
-      )}
-
-      {/* AllgemeineParameter Section */}
-      {data?.allgemeineParameter && (
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{ margin: '0 0 12px 0', color: '#2c3e50', fontSize: '16px' }}>
-            Allgemeine Parameter - Block {selectedBlock}
+          <h2 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '14px', fontWeight: 'bold' }}>
+            Status - Block {selectedBlock}
           </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px'
-          }}>
-            <BitfieldCard label="Fehlerbit" value={data.allgemeineParameter.fehlerbit} />
-            <DataCard label="Current Air Pressure" value={data.allgemeineParameter.currentAirPressure} unit="mbar" />
-            <DataCard label="Current Air Flow" value={data.allgemeineParameter.currentAirFlow} unit="l/min" />
-            <DataCard label="Current Force" value={data.allgemeineParameter.currentForce} unit="N" />
-            <DataCard label="Mess Mode" value={data.allgemeineParameter.messMode} />
-            <DataCard label="Operation Mode" value={data.allgemeineParameter.operationMode} />
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Global Data */}
+            {data?.globalData && (
+              <div style={{
+                padding: '8px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px'
+              }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 'bold', color: '#495057' }}>Global Data</h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '8px'
+                }}>
+                  <DataCard label="Battery Status" value={data.globalData.batteryStatus} unit="%" />
+                  <DataCard label="General Errors" value={data.globalData.generalErrors} />
+                  <DataCard label="Temperature PLC" value={data.globalData.temperaturePLC} unit="°C" />
+                  <DataCard label="Version" value={data.globalData.version} />
+                </div>
+              </div>
+            )}
+            
+            {/* Allgemeine Parameter */}
+            {data?.allgemeineParameter && (
+              <div style={{
+                padding: '8px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px'
+              }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 'bold', color: '#495057' }}>Allgemeine Parameter</h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '8px'
+                }}>
+                  <BitfieldCard label="Fehlerbit" value={data.allgemeineParameter.fehlerbit} />
+                  <DataCard label="Air Pressure" value={data.allgemeineParameter.currentAirPressure} unit="mbar" />
+                  <DataCard label="Air Flow" value={data.allgemeineParameter.currentAirFlow} unit="l/min" />
+                  <DataCard label="Force" value={data.allgemeineParameter.currentForce} unit="N" />
+                  <DataCard label="Mess Mode" value={data.allgemeineParameter.messMode} />
+                  <DataCard label="Operation Mode" value={data.allgemeineParameter.operationMode} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -278,71 +290,74 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
       {/* Commands Section - same as original */}
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '24px',
+        borderRadius: '8px',
+        padding: '12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <h2 style={{ margin: '0 0 12px 0', color: '#2c3e50', fontSize: '16px' }}>Commands</h2>
+        <h2 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '14px', fontWeight: 'bold' }}>Commands</h2>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Langzeittest */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px'
-          }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Langzeittest</h3>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
-              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ fontSize: '14px' }}>MessID {liveMessIdLangzeittest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}:</label>
-                <input value={messIdLangzeittest} onChange={e => setMessIdLangzeittest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
-                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set MessID</button>
-                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Langzeittest')}>Read MessID</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Langzeittest and Detailtest side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {/* Langzeittest */}
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px'
+            }}>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Langzeittest</h3>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
+                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Start')}>Start</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Pause')}>Pause</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendLangzeittestCommand('Langzeittest_Stop')}>Stop</button>
+                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdLangzeittest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdLangzeittest}</code>)</span>}:</label>
+                  <input value={messIdLangzeittest} onChange={e => setMessIdLangzeittest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
+                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Langzeittest', messIdLangzeittest)}>Set</button>
+                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Langzeittest')}>Read</button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Detailtest */}
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px'
-          }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Detailtest</h3>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
-              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ fontSize: '14px' }}>MessID {liveMessIdDetailtest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}:</label>
-                <input value={messIdDetailtest} onChange={e => setMessIdDetailtest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
-                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set MessID</button>
-                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Detailtest')}>Read MessID</button>
+            {/* Detailtest */}
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px'
+            }}>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Detailtest</h3>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
+                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Start')}>Start</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Pause')}>Pause</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendDetailtestCommand('Detailtest_Stop')}>Stop</button>
+                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdDetailtest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdDetailtest}</code>)</span>}:</label>
+                  <input value={messIdDetailtest} onChange={e => setMessIdDetailtest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
+                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Detailtest', messIdDetailtest)}>Set</button>
+                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Detailtest')}>Read</button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Einzeltest */}
           <div style={{
-            padding: '16px',
+            padding: '8px',
             backgroundColor: '#f8f9fa',
-            borderRadius: '8px'
+            borderRadius: '6px'
           }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '14px' }}>Ventilnummer:</label>
-              <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
-              <button style={{ padding: '8px 16px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
-              <button style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
-              <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ fontSize: '14px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '12px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
-                <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px', width: '100px' }} />
-                <button style={{ padding: '6px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set MessID</button>
-                <button style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }} onClick={() => readMessId('Einzeltest')}>Read MessID</button>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
+              <label style={{ fontSize: '12px' }}>Ventilnr:</label>
+              <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '60px', fontSize: '12px' }} />
+              <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
+              <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
+              <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
+              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <label style={{ fontSize: '12px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
+                <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
+                <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set</button>
+                <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Einzeltest')}>Read</button>
               </div>
             </div>
           </div>
