@@ -14,7 +14,7 @@ const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BAS
 type Block = { index: number };
 
 export default function App() {
-  const [selectedTab, setSelectedTab] = useState<'parameters'|'commands'|'status'|'historical'|'settings'|'testoverview'>('parameters');
+  const [selectedTab, setSelectedTab] = useState<'parameters'|'commandsandmeasurements'|'status'|'historical'|'settings'|'testoverview'>('parameters');
   // Hardcoded 4 blocks instead of loading from API
   const [blocks] = useState<Block[]>([
     { index: 1 },
@@ -75,7 +75,7 @@ export default function App() {
           <ParametersView apiBase={API_BASE} selectedBlock={selectedBlock} />
         )}
 
-        {selectedTab === 'commands' && selectedBlock && (
+        {selectedTab === 'commandsandmeasurements' && selectedBlock && (
           <CommandsMeasurementsView apiBase={API_BASE} selectedBlock={selectedBlock} />
         )}
 

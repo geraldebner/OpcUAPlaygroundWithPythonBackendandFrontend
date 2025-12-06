@@ -2,8 +2,8 @@ import React from 'react';
 import binderLogo from '../binder_logo_2.png';
 
 interface NavigationProps {
-  selectedTab: 'parameters' | 'commands' | 'status' | 'historical' | 'settings' | 'testoverview';
-  onTabChange: (tab: 'parameters' | 'commands' | 'status' | 'historical' | 'settings' | 'testoverview') => void;
+  selectedTab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testoverview';
+  onTabChange: (tab: 'parameters' | 'commandsandmeasurements' | 'status' | 'historical' | 'settings' | 'testoverview') => void;
   selectedBlock: number | null;
   blocks: Array<{ index: number }>;
   onBlockChange: (block: number | null) => void;
@@ -20,7 +20,7 @@ export default function Navigation({
 }: NavigationProps) {
   const tabs = [
     { id: 'parameters' as const, label: 'Parameters', icon: '📊' },
-    { id: 'commands' as const, label: 'Commands', icon: '⚙️' },
+    { id: 'commandsandmeasurements' as const, label: 'Commands & Measurements', icon: '⚙️' },
     { id: 'testoverview' as const, label: 'TestOverview', icon: '📡' },
     { id: 'historical' as const, label: 'Historical Data', icon: '📈' },
     { id: 'status' as const, label: 'Status', icon: '🔍' },
