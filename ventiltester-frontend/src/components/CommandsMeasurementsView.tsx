@@ -3,42 +3,6 @@ import axios from 'axios';
 import { CommandsMeasurementsViewProps } from '../types';
 import CommandsPanel from './shared/CommandsPanel';
 
-interface Measurement {
-  status?: {
-    blockIndex: number;
-    status: string;
-    datenReady: boolean;
-  };
-  allStatus?: Array<{
-    blockIndex: number;
-    status: string;
-    datenReady: boolean;
-  }>;
-  block?: {
-    ventils: Array<{
-      index: number;
-      name: string;
-      value: any;
-    }>;
-  };
-  all?: Array<{
-    blockIndex: number;
-    ventils: Array<{
-      index: number;
-      name: string;
-      value: any;
-    }>;
-  }>;
-}
-
-interface Snapshot {
-  id: number;
-  name: string;
-  createdAt: string;
-  comment?: string;
-  identifierNumber?: number;
-}
-
 export default function CommandsMeasurementsView({ apiBase, selectedBlock }: CommandsMeasurementsViewProps) {
   function formatValue(v: any): string {
     if (v === null || v === undefined) return '';
@@ -54,12 +18,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     return String(v);
   }
   
-  const [measurements, setMeasurements] = useState<Measurement>({});
   const [liveData, setLiveData] = useState<any>(null);
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [snapshotName, setSnapshotName] = useState<string>('');
-  const [snapshotComment, setSnapshotComment] = useState<string>('');
-  const [snapshotIdentifier, setSnapshotIdentifier] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalJson, setModalJson] = useState<string>('');
   const [modalTitle, setModalTitle] = useState<string>('');
@@ -211,54 +170,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     }
   }
 
-  async function listSnapshots(): Promise<void> {
-    try {
-      const res = await axios.get(`${apiBase}/api/measurementsets`, { params: { blockIndex: selectedBlock } });
-      setSnapshots(res.data || []);
-    } catch (e) {
-      console.error('listSnapshots', e);
-      alert('Failed to list snapshots');
-    }
-  }
-
-  async function saveSnapshot(): Promise<void> {
-    try {
-      const payloadObj = measurements.block || liveData || {};
-      if (!payloadObj || Object.keys(payloadObj).length === 0) {
-        alert('No block data available to save. Refresh Block Data or Live Data first.');
-        return;
-      }
-      
-      // Parse identifier number if provided
-      const identifierNumber = snapshotIdentifier.trim() ? parseInt(snapshotIdentifier.trim()) : undefined;
-      if (snapshotIdentifier.trim() && isNaN(identifierNumber!)) {
-        alert('Identifier number must be a valid integer.');
-        return;
-      }
-      
-      const body = {
-        name: snapshotName && snapshotName.length ? snapshotName : `Snapshot ${new Date().toISOString()}`,
-        blockIndex: selectedBlock,
-        comment: snapshotComment.trim() || undefined,
-        identifierNumber: identifierNumber,
-        jsonPayload: JSON.stringify(payloadObj),
-      };
-      const res = await axios.post(`${apiBase}/api/measurementsets`, body);
-      if (res.status >= 200 && res.status < 300) {
-        alert('Snapshot saved');
-        setSnapshotName('');
-        setSnapshotComment('');
-        setSnapshotIdentifier('');
-        listSnapshots();
-      } else {
-        alert('Save failed: ' + res.status);
-      }
-    } catch (e) {
-      console.error('saveSnapshot', e);
-      alert('Save snapshot failed');
-    }
-  }
-
   async function saveGroupSnapshot(group: string): Promise<void> {
     try {
       if (!liveData?.groups?.[group]) {
@@ -294,7 +205,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         setGroupSnapshotName('');
         setGroupSnapshotComment('');
         setGroupSnapshotIdentifier('');
-        listSnapshots();
       } else {
         alert('Save failed: ' + res.status);
       }
@@ -321,51 +231,6 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
     }
     setGroupSnapshotIdentifier(messId);
     setShowGroupSnapshotModal(true);
-  }
-
-  async function previewSnapshot(id: number, name?: string): Promise<void> {
-    try {
-      const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
-      const payload = res.data?.payload;
-      if (!payload) { alert('Snapshot has no payload'); return; }
-      let pretty = payload;
-      try { pretty = JSON.stringify(JSON.parse(payload), null, 2); } catch { /* keep as-is */ }
-      setModalTitle(name || `Snapshot ${id}`);
-      setModalJson(pretty);
-      setShowModal(true);
-    } catch (e) {
-      console.error('previewSnapshot', e);
-      alert('Preview failed');
-    }
-  }
-
-  async function restoreSnapshot(id: number): Promise<void> {
-    if (!confirm('Restore this snapshot to the device? This will write values to the OPC UA server.')) return;
-    try {
-      const res = await axios.post(`${apiBase}/api/measurementsets/${id}/restore`);
-      if (res.status >= 200 && res.status < 300) {
-        alert('Snapshot restored to device');
-        // optional: refresh live data
-        fetchLiveData();
-      } else {
-        alert('Restore failed: ' + res.status);
-      }
-    } catch (e: any) {
-      console.error('restoreSnapshot', e);
-      const msg = e?.response?.data ?? e.message ?? String(e);
-      alert('Restore error: ' + JSON.stringify(msg));
-    }
-  }
-
-  async function deleteSnapshot(id: number): Promise<void> {
-    if (!confirm('Delete snapshot?')) return;
-    try {
-      await axios.delete(`${apiBase}/api/measurementsets/${id}`);
-      listSnapshots();
-    } catch (e) {
-      console.error('deleteSnapshot', e);
-      alert('Delete failed');
-    }
   }
 
   return (
@@ -442,95 +307,15 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
           )}
 
       <div style={{borderTop:'1px solid #ddd', marginTop:12, paddingTop:12}}>
-        <h4>Measurements</h4>
-        <div style={{display:'flex',gap:8,flexDirection:'row',alignItems:'center'}}>
-          <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/status/${selectedBlock}`); setMeasurements(prev=>({ ...prev, status: res.data })); }}>Block Status</button>
-          <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/status`); setMeasurements(prev=>({ ...prev, allStatus: res.data })); }}>All Status</button>
-          <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/block/${selectedBlock}`); setMeasurements(prev=>({ ...prev, block: res.data })); }}>Block Data</button>
-          <button onClick={async ()=>{ const res = await axios.get(`${apiBase}/api/strommessung/all`); setMeasurements(prev=>({ ...prev, all: res.data })); }}>All Data</button>
+        <h4>Live Data (Daten / Kommando groups)</h4>
+        <div style={{marginBottom:8}}>
+          <button onClick={fetchLiveData}>Refresh Live Data</button>
         </div>
-
-        <div style={{marginTop:10, padding:8, borderTop:'1px dashed #ccc'}}>
-          <h5>Snapshots</h5>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <input placeholder="Snapshot name" value={snapshotName} onChange={e=>setSnapshotName(e.target.value)} style={{flex:1}} />
-              <input placeholder="Identifier number (optional)" value={snapshotIdentifier} onChange={e=>setSnapshotIdentifier(e.target.value)} style={{width:'150px'}} />
-              <button onClick={saveSnapshot}>Save Snapshot</button>
-              <button onClick={listSnapshots}>List Snapshots</button>
-            </div>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <input placeholder="Comment (optional)" value={snapshotComment} onChange={e=>setSnapshotComment(e.target.value)} style={{flex:1}} />
-            </div>
-          </div>
-          <div style={{marginTop:8}}>
-            {snapshots.length === 0 && <div style={{fontSize:12,color:'#666'}}>No snapshots. Click "List Snapshots" to refresh.</div>}
-            {snapshots.map(s => (
-              <div key={s.id} style={{display:'flex',gap:8,alignItems:'center',padding:'6px 0',borderBottom:'1px solid #eee'}}>
-                <div style={{flex:1}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <b>{s.name}</b>
-                    {s.identifierNumber && <span style={{backgroundColor:'#e3f2fd',color:'#1976d2',padding:'2px 6px',borderRadius:'4px',fontSize:'11px'}}>#{s.identifierNumber}</span>}
-                    <span style={{color:'#666'}}>({new Date(s.createdAt).toLocaleString()})</span>
-                  </div>
-                  {s.comment && <div style={{fontSize:12,color:'#666',fontStyle:'italic',marginTop:2}}>{s.comment}</div>}
-                </div>
-                <div>
-                  <button onClick={()=>previewSnapshot(s.id, s.name)}>Preview</button>
-                  <button style={{marginLeft:6}} onClick={()=>restoreSnapshot(s.id)}>Restore</button>
-                  <button style={{marginLeft:6}} onClick={()=>deleteSnapshot(s.id)}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{padding:8}}>
-          {measurements.status && (
-            <div>
-              <h4>Block Status</h4>
-              <div>Block {measurements.status.blockIndex}: Status={measurements.status.status} DatenReady={String(measurements.status.datenReady)}</div>
-            </div>
-          )}
-          {measurements.allStatus && (
-            <div>
-              <h4>All Status</h4>
-              <ul>
-                {measurements.allStatus.map(s => <li key={s.blockIndex}>Block {s.blockIndex}: {s.status} (DatenReady={String(s.datenReady)})</li>)}
-              </ul>
-            </div>
-          )}
-          {measurements.block && (
-            <div>
-              <h4>Block Data</h4>
-              <ul>
-                {measurements.block.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
-              </ul>
-            </div>
-          )}
-          {measurements.all && (
-            <div>
-              <h4>All Blocks</h4>
-              {measurements.all.map(b => (
-                <div key={b.blockIndex} style={{marginBottom:8}}>
-                  <b>Block {b.blockIndex}</b>
-                  <ul>
-                    {b.ventils.map(v => <li key={v.index}>#{v.index} {v.name}: {formatValue(v.value)}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{borderTop:'1px solid #eee', marginTop:12, paddingTop:12}}>
-          <h4>Live Data (Daten / Kommando groups)</h4>
-          <div style={{marginBottom:8}}>
-            <button onClick={fetchLiveData}>Refresh Live Data</button>
-          </div>
+        <div>
           {liveData && liveData.groups && (
             Object.keys(liveData.groups).filter((g: string) => {
               const n = (g||'').toLowerCase();
-              return n.includes('daten') || n.includes('strom') || n.includes('kommand');
+              return (n.includes('daten') || n.includes('strom')) && !n.includes('kommand');
             }).map((g: string) => (
               <div key={g} className="group-card" style={{marginBottom: '16px', border: '1px solid #ddd', padding: '12px', borderRadius: '4px'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
