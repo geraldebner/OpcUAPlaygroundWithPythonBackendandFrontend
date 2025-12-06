@@ -254,9 +254,9 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
                   gap: '8px'
                 }}>
                   <DataCard label="Battery Status" value={data.globalData.batteryStatus} unit="%" />
-                  <DataCard label="General Errors" value={data.globalData.generalErrors} />
+                  <BitfieldCard label="General Errors" value={data.globalData.generalErrors} />
                   <DataCard label="Temperature PLC" value={data.globalData.temperaturePLC} unit="°C" />
-                  <DataCard label="Version" value={data.globalData.version} />
+                  <IntegerCard label="Version" value={data.globalData.version} />
                 </div>
               </div>
             )}
@@ -297,8 +297,8 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
         <h2 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '14px', fontWeight: 'bold' }}>Commands</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Langzeittest and Detailtest side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {/* All three command blocks side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
             {/* Langzeittest */}
             <div style={{
               padding: '8px',
@@ -338,26 +338,26 @@ export default function TestOverviewView({ apiBase, selectedBlock }: TestOvervie
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Einzeltest */}
-          <div style={{
-            padding: '8px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '6px'
-          }}>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
-              <label style={{ fontSize: '12px' }}>Ventilnr:</label>
-              <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '60px', fontSize: '12px' }} />
-              <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
-              <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
-              <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
-              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <label style={{ fontSize: '12px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
-                <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
-                <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set</button>
-                <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Einzeltest')}>Read</button>
+            {/* Einzeltest */}
+            <div style={{
+              padding: '8px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px'
+            }}>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>Einzeltest (Ventiltest)</h3>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', fontSize: '12px' }}>
+                <label style={{ fontSize: '12px' }}>Ventilnr:</label>
+                <input value={einzelVentil} onChange={e => setEinzelVentil(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '60px', fontSize: '12px' }} />
+                <button style={{ padding: '4px 10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Start', einzelVentil)}>Start</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Pause', einzelVentil)}>Pause</button>
+                <button style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '12px' }} disabled={sending} onClick={() => sendEinzeltestCommand('Einzeltest_Stop', einzelVentil)}>Stop</button>
+                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: '12px' }}>MessID {liveMessIdEinzeltest && <span style={{ fontSize: '11px', color: '#666' }}>(Live: <code>{liveMessIdEinzeltest}</code>)</span>}:</label>
+                  <input value={messIdEinzeltest} onChange={e => setMessIdEinzeltest(e.target.value)} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '3px', width: '80px', fontSize: '12px' }} />
+                  <button style={{ padding: '4px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: sending ? 'not-allowed' : 'pointer', fontSize: '11px' }} disabled={sending} onClick={() => setMessId('Einzeltest', messIdEinzeltest)}>Set</button>
+                  <button style={{ padding: '4px 8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', fontSize: '11px' }} onClick={() => readMessId('Einzeltest')}>Read</button>
+                </div>
               </div>
             </div>
           </div>
@@ -474,6 +474,31 @@ function BitfieldCard({ label, value }: { label: string; value: number | null | 
         fontFamily: 'monospace'
       }}>
         {binaryString} <span style={{ fontSize: '12px', color: '#7f8c8d' }}>(0x{bitValue.toString(16).toUpperCase()})</span>
+      </div>
+    </div>
+  );
+}
+
+// Integer display component (no decimal places)
+function IntegerCard({ label, value }: { label: string; value: number | null | undefined }) {
+  const displayValue = value != null && typeof value === 'number' ? Math.round(value).toString() : '--';
+  
+  return (
+    <div style={{
+      padding: '12px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '8px',
+      border: '1px solid #e9ecef'
+    }}>
+      <div style={{ fontSize: '11px', color: '#7f8c8d', marginBottom: '6px' }}>
+        {label}
+      </div>
+      <div style={{
+        fontSize: '18px',
+        fontWeight: 'bold',
+        color: '#2c3e50'
+      }}>
+        {displayValue}
       </div>
     </div>
   );

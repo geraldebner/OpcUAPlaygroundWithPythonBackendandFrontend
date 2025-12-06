@@ -143,21 +143,28 @@ public class CacheService : IDisposable
     {
         try
         {
-            // Read global parameters (not block-specific)
-            var batteryStatus = _opc.ReadNode(1, "GlobalData", "BatteryStatus");
-            var generalErrors = _opc.ReadNode(1, "GlobalData", "GeneralErrors");
-            var temperaturePLC = _opc.ReadNode(1, "GlobalData", "TemperaturePLC");
-            var version = _opc.ReadNode(1, "GlobalData", "Version");
+            // Read global parameters using direct NodeId (GlobalData is not block-specific in XML mapping)
+            // NodeIds from Mapping_Ventiltester_V4_NS5.xml <DB_GlobalData1> section
+            object? batteryStatusVal = null, generalErrorsVal = null, temperaturePLCVal = null, versionVal = null;
+            
+            _opc.TryReadNode("ns=5;i=8018", out batteryStatusVal);     // BatteryStatus
+            _opc.TryReadNode("ns=5;i=8019", out generalErrorsVal);      // GeneralErrors
+            _opc.TryReadNode("ns=5;i=8017", out temperaturePLCVal);     // TemperaturePLC
+            _opc.TryReadNode("ns=5;i=8016", out versionVal);            // Version
 
             _globalDataCache = new GlobalData
             {
-                BatteryStatus = ConvertToDouble(batteryStatus?.Value),
-                GeneralErrors = ConvertToDouble(generalErrors?.Value),
-                TemperaturePLC = ConvertToDouble(temperaturePLC?.Value),
-                Version = ConvertToDouble(version?.Value)
+                BatteryStatus = ConvertToDouble(batteryStatusVal),
+                GeneralErrors = ConvertToDouble(generalErrorsVal),
+                TemperaturePLC = ConvertToDouble(temperaturePLCVal),
+                Version = ConvertToDouble(versionVal)
             };
             
             _globalDataLastUpdated = DateTime.UtcNow;
+            
+            _logger?.LogDebug("GlobalData updated: Battery={Battery}, Errors={Errors}, Temp={Temp}, Version={Version}",
+                _globalDataCache.BatteryStatus, _globalDataCache.GeneralErrors, 
+                _globalDataCache.TemperaturePLC, _globalDataCache.Version);
         }
         catch (Exception ex)
         {
