@@ -17,7 +17,6 @@ export default function LoadedDataDisplay({
   if (!loadedData) {
     return (
       <div style={{ flex: '1', minWidth: '400px' }}>
-        <h4>Loaded Dataset</h4>
         <div style={{ 
           padding: '40px', 
           textAlign: 'center', 
@@ -35,7 +34,6 @@ export default function LoadedDataDisplay({
 
   return (
     <div style={{ flex: '1', minWidth: '400px' }}>
-      <h4>Loaded Dataset</h4>
       <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '12px' }}>
         <div style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #eee' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>

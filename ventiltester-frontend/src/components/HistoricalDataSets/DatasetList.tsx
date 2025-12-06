@@ -26,7 +26,7 @@ export default function DatasetList({
           No historical datasets found
         </div>
       ) : (
-        <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #ddd' }}>
+        <div style={{ maxHeight: '900px', overflowY: 'auto', border: '1px solid #ddd' }}>
           {snapshots.map(snapshot => (
             <div 
               key={snapshot.id} 

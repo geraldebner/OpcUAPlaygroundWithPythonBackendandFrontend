@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { LoadedData, ChartZoomState, MeasurementState } from './types';
 
-interface PressureChartProps {
+interface CurveChartProps {
   loadedData: LoadedData | null;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   zoomState: ChartZoomState;
@@ -16,7 +16,7 @@ interface PressureChartProps {
   getMesskurveData: () => number[] | null;
 }
 
-export default function PressureChart({
+export default function CurveChart({
   loadedData,
   canvasRef,
   zoomState,
@@ -29,7 +29,7 @@ export default function PressureChart({
   onToggleMeasurement,
   onClearMeasurementLines,
   getMesskurveData
-}: PressureChartProps) {
+}: CurveChartProps) {
   const { zoomLevel, panOffset, isDragging } = zoomState;
   const { enabled: measurementEnabled, line1: measurementLine1, line2: measurementLine2 } = measurementState;
 
@@ -121,7 +121,7 @@ export default function PressureChart({
     ctx.save();
     ctx.translate(15, height / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Pressure Value', 0, 0);
+    ctx.fillText('Curve Value', 0, 0);
     ctx.restore();
 
     // Clip to chart area
@@ -245,10 +245,10 @@ export default function PressureChart({
   if (!messkurveData) return null;
 
   return (
-    <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #ddd' }}>
+    <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <h5 style={{ margin: 0, color: '#333' }}>
-          Pressure Measurement Curve (pMesskurve)
+          Measurement Curve (pMesskurve)
         </h5>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', color: '#666' }}>
@@ -311,8 +311,8 @@ export default function PressureChart({
       }}>
         <canvas
           ref={canvasRef}
-          width={800}
-          height={400}
+          width={600}
+          height={300}
           onWheel={onWheel}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}

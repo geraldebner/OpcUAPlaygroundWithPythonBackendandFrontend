@@ -4,7 +4,7 @@ import { HistoricalDataSetsViewProps } from '../types';
 import { Snapshot, LoadedData } from './HistoricalDataSets/types';
 import DatasetList from './HistoricalDataSets/DatasetList';
 import LoadedDataDisplay from './HistoricalDataSets/LoadedDataDisplay';
-import PressureChart from './HistoricalDataSets/PressureChart';
+import CurveChart from './HistoricalDataSets/CurveChart';
 import { useChartInteractions } from './HistoricalDataSets/useChartInteractions';
 import { formatValue, getMesskurveData, exportToJSON, exportToCSV } from './HistoricalDataSets/utils';
 
@@ -13,6 +13,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
   const [loading, setLoading] = useState<boolean>(false);
   const [commentFilter, setCommentFilter] = useState<string>('');
   const [identifierFilter, setIdentifierFilter] = useState<string>('');
+  const [messIdFilter, setMessIdFilter] = useState<string>('');
   const [loadedData, setLoadedData] = useState<LoadedData | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalJson, setModalJson] = useState<string>('');
@@ -121,7 +122,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     });
   }
 
-  // Filter snapshots based on comment and identifier
+  // Filter snapshots based on comment, identifier, and messId
   const filteredSnapshots = snapshots.filter(snapshot => {
     const commentMatch = !commentFilter.trim() || 
       (snapshot.comment && snapshot.comment.toLowerCase().includes(commentFilter.toLowerCase()));
@@ -129,7 +130,10 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     const identifierMatch = !identifierFilter.trim() || 
       (snapshot.identifierNumber && snapshot.identifierNumber.toString().includes(identifierFilter));
     
-    return commentMatch && identifierMatch;
+    const messIdMatch = !messIdFilter.trim() || 
+      (snapshot.name && snapshot.name.toLowerCase().includes(messIdFilter.toLowerCase()));
+    
+    return commentMatch && identifierMatch && messIdMatch;
   });
 
   return (
@@ -149,6 +153,12 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
             onChange={e => setIdentifierFilter(e.target.value)}
             style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', width: '150px' }}
           />
+          <input
+            placeholder="Filter by MessID..."
+            value={messIdFilter}
+            onChange={e => setMessIdFilter(e.target.value)}
+            style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', width: '150px' }}
+          />
           <button onClick={loadSnapshots} disabled={loading}>
             {loading ? 'Loading...' : 'Refresh'}
           </button>
@@ -159,40 +169,49 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
       </div>
 
       <div style={{ display: 'flex', gap: '16px' }}>
-        <DatasetList
-          snapshots={filteredSnapshots}
-          loadedData={loadedData}
-          loading={loading}
-          onLoadDataset={loadDataset}
-          onPreviewDataset={previewDataset}
-          onDeleteDataset={deleteDataset}
-        />
+        {/* Left side: Dataset list */}
+        <div style={{ flex: '0 0 300px' }}>
+          <DatasetList
+            snapshots={filteredSnapshots}
+            loadedData={loadedData}
+            loading={loading}
+            onLoadDataset={loadDataset}
+            onPreviewDataset={previewDataset}
+            onDeleteDataset={deleteDataset}
+          />
+        </div>
 
-        <LoadedDataDisplay
-          loadedData={loadedData}
-          onExportJSON={() => exportToJSON(loadedData)}
-          onExportCSV={() => exportToCSV(loadedData)}
-          formatValue={formatValue}
-        />
+        {/* Right side: Data Sets label, Plot, and Values */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h4>Loaded Dataset</h4>
+      
+          {/* pMesskurve Chart */}
+          {loadedData && (
+            <CurveChart
+              loadedData={loadedData}
+              canvasRef={canvasRef}
+              zoomState={zoomState}
+              measurementState={measurementState}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onResetZoom={resetZoom}
+              onToggleMeasurement={toggleMeasurement}
+              onClearMeasurementLines={clearMeasurementLines}
+              getMesskurveData={() => getMesskurveData(loadedData)}
+            />
+          )}
+
+          {/* Dataset values below the chart */}
+          <LoadedDataDisplay
+            loadedData={loadedData}
+            onExportJSON={() => exportToJSON(loadedData)}
+            onExportCSV={() => exportToCSV(loadedData)}
+            formatValue={formatValue}
+          />
+        </div>
       </div>
-
-      {/* pMesskurve Chart */}
-      {loadedData && (
-        <PressureChart
-          loadedData={loadedData}
-          canvasRef={canvasRef}
-          zoomState={zoomState}
-          measurementState={measurementState}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onResetZoom={resetZoom}
-          onToggleMeasurement={toggleMeasurement}
-          onClearMeasurementLines={clearMeasurementLines}
-          getMesskurveData={() => getMesskurveData(loadedData)}
-        />
-      )}
 
       {/* Preview Modal */}
       {showModal && (
