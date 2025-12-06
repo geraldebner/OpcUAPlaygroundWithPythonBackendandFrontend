@@ -154,12 +154,17 @@ try
 }
 catch { }
 
-// Initialize and start the CacheService
+// Initialize and start the CacheService and MeasurementDataService
 {
     var cacheService = app.Services.GetRequiredService<CacheService>();
     cacheService.Start();
+    
+    var measurementService = app.Services.GetRequiredService<MeasurementDataService>();
+    measurementService.Start();
+    
     var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("Startup");
     logger?.LogInformation("CacheService started automatically on startup");
+    logger?.LogInformation("MeasurementDataService started automatically on startup");
 }
 
 app.Run();

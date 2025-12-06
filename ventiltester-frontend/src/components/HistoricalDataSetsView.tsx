@@ -13,7 +13,6 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
   const [loading, setLoading] = useState<boolean>(false);
   const [commentFilter, setCommentFilter] = useState<string>('');
   const [identifierFilter, setIdentifierFilter] = useState<string>('');
-  const [messIdFilter, setMessIdFilter] = useState<string>('');
   const [loadedData, setLoadedData] = useState<LoadedData | null>(null);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalJson, setModalJson] = useState<string>('');
@@ -122,7 +121,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     });
   }
 
-  // Filter snapshots based on comment, identifier, and messId
+  // Filter snapshots based on comment and identifier
   const filteredSnapshots = snapshots.filter(snapshot => {
     const commentMatch = !commentFilter.trim() || 
       (snapshot.comment && snapshot.comment.toLowerCase().includes(commentFilter.toLowerCase()));
@@ -130,10 +129,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     const identifierMatch = !identifierFilter.trim() || 
       (snapshot.identifierNumber && snapshot.identifierNumber.toString().includes(identifierFilter));
     
-    const messIdMatch = !messIdFilter.trim() || 
-      (snapshot.name && snapshot.name.toLowerCase().includes(messIdFilter.toLowerCase()));
-    
-    return commentMatch && identifierMatch && messIdMatch;
+    return commentMatch && identifierMatch;
   });
 
   return (
@@ -151,12 +147,6 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
             placeholder="Filter by identifier..."
             value={identifierFilter}
             onChange={e => setIdentifierFilter(e.target.value)}
-            style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', width: '150px' }}
-          />
-          <input
-            placeholder="Filter by MessID..."
-            value={messIdFilter}
-            onChange={e => setMessIdFilter(e.target.value)}
             style={{ padding: '6px 12px', border: '1px solid #ccc', borderRadius: '4px', width: '150px' }}
           />
           <button onClick={loadSnapshots} disabled={loading}>
