@@ -1,8 +1,37 @@
 using Microsoft.EntityFrameworkCore;
 using VentilTesterBackend.Data;
 using VentilTesterBackend.Services;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog - console by default, file logging optional via config
+var loggerConfig = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console(
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}");
+
+// Optionally enable file logging if configured
+var fileLoggingEnabled = builder.Configuration.GetValue<bool>("FileLogging:Enabled");
+if (fileLoggingEnabled)
+{
+    var logPath = builder.Configuration.GetValue<string>("FileLogging:Path") ?? "logs/ventiltester-.log";
+    var retainedFiles = builder.Configuration.GetValue<int>("FileLogging:RetainedFileCountLimit", 7);
+    
+    loggerConfig.WriteTo.File(
+        path: logPath,
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: retainedFiles,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}");
+    
+    Console.WriteLine($"File logging enabled: {logPath}");
+}
+
+Log.Logger = loggerConfig.CreateLogger();
+
+// Use Serilog for logging
+builder.Host.UseSerilog();
 
 // Configuration
 builder.Services.AddControllers();
