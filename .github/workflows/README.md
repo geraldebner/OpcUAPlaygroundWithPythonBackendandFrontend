@@ -93,7 +93,7 @@ dotnet run
 
 ### Frontend
 ```bash
-cd ventiltester-frontend
+cd VentiltesterFrontend
 npm install
 npm start
 ```

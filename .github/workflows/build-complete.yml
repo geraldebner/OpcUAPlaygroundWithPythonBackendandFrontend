@@ -37,7 +37,7 @@ jobs:
       run: |
         npm ci
         npm run build
-      working-directory: ./ventiltester-frontend
+      working-directory: ./VentiltesterFrontend
       env:
         CI: false
         GENERATE_SOURCEMAP: false
@@ -55,7 +55,7 @@ jobs:
         Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./VentilTesterApp/backend/ -ErrorAction SilentlyContinue
         
         # Copy frontend build
-        Copy-Item -Path ./ventiltester-frontend/build/* -Destination ./VentilTesterApp/frontend/ -Recurse
+        Copy-Item -Path ./VentiltesterFrontend/build/* -Destination ./VentilTesterApp/frontend/ -Recurse
         
         # Copy SPSData if exists
         if (Test-Path ./SPSData) {

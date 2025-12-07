@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'ventiltester-frontend/**'
+      - 'VentiltesterFrontend/**'
       - '.github/workflows/build-frontend.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'ventiltester-frontend/**'
+      - 'VentiltesterFrontend/**'
   workflow_dispatch:
 
 jobs:
@@ -25,15 +25,15 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ./ventiltester-frontend/package-lock.json
+        cache-dependency-path: ./VentiltesterFrontend/package-lock.json
         
     - name: Install dependencies
       run: npm ci
-      working-directory: ./ventiltester-frontend
+      working-directory: ./VentiltesterFrontend
       
     - name: Build production
       run: npm run build
-      working-directory: ./ventiltester-frontend
+      working-directory: ./VentiltesterFrontend
       env:
         CI: false
         GENERATE_SOURCEMAP: false
@@ -41,7 +41,7 @@ jobs:
     - name: Create deployment package
       run: |
         mkdir -p release
-        cp -r ventiltester-frontend/build/* release/
+        cp -r VentiltesterFrontend/build/* release/
         echo "Build completed: $(date)" > release/BUILD_INFO.txt
         echo "Commit: ${{ github.sha }}" >> release/BUILD_INFO.txt
         cd release
