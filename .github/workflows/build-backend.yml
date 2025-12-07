@@ -49,7 +49,13 @@ jobs:
       run: |
         New-Item -ItemType Directory -Path ./release -Force
         Copy-Item -Path ./VentilTesterBackend/publish/win-x64/* -Destination ./release/ -Recurse
-        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./release/ -ErrorAction SilentlyContinue
+        
+        # Copy and update appsettings.json with correct path
+        $config = Get-Content ./VentilTesterBackend/appsettings.json | ConvertFrom-Json
+        $config.SpsMappingPath = "SPSData\Mapping_Ventiltester_V4_NS5.xml"
+        $config | ConvertTo-Json -Depth 10 | Set-Content ./release/appsettings.json
+        
+        # Copy SPSData folder
         Copy-Item -Path ./SPSData -Destination ./release/SPSData -Recurse -ErrorAction SilentlyContinue
         Compress-Archive -Path ./release/* -DestinationPath ./VentilTesterBackend-win-x64.zip
         

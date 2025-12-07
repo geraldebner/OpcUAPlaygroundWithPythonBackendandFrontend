@@ -55,7 +55,14 @@ jobs:
         
         # Copy backend
         Copy-Item -Path ./VentilTesterBackend/publish/backend/* -Destination ./VentilTesterApp/backend/ -Recurse
-        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./VentilTesterApp/backend/ -ErrorAction SilentlyContinue
+        
+        # Copy and update appsettings.json with correct path
+        $config = Get-Content ./VentilTesterBackend/appsettings.json | ConvertFrom-Json
+        $config.SpsMappingPath = "SPSData\Mapping_Ventiltester_V4_NS5.xml"
+        $config | ConvertTo-Json -Depth 10 | Set-Content ./VentilTesterApp/backend/appsettings.json
+        
+        # Copy SPSData folder to backend directory
+        Copy-Item -Path ./SPSData -Destination ./VentilTesterApp/backend/SPSData -Recurse -ErrorAction SilentlyContinue
         
         # Copy frontend build and server files
         Copy-Item -Path ./VentiltesterFrontend/build -Destination ./VentilTesterApp/frontend/build -Recurse
@@ -67,11 +74,6 @@ jobs:
         Push-Location ./VentilTesterApp/frontend
         npm install --production --omit=dev
         Pop-Location
-        
-        # Copy SPSData if exists
-        if (Test-Path ./SPSData) {
-            Copy-Item -Path ./SPSData -Destination ./VentilTesterApp/SPSData -Recurse
-        }
         
         # Create README
         @"
