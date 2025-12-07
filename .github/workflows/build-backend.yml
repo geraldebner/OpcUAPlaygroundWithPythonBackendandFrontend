@@ -1,5 +1,8 @@
 name: Build VentilTester Backend
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main, develop ]
