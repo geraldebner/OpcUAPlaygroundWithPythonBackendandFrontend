@@ -114,6 +114,4 @@ npm start
 - Complete application: 90 days
 - GitHub releases: Permanent
 
-## Support
 
-For issues or questions about the build process, please open an issue in this repository.
