@@ -1,0 +1,146 @@
+name: Build Complete VentilTester Application
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+jobs:
+  build-all:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Backend Build
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Build Backend (Windows)
+      run: |
+        dotnet restore
+        dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true --output ./publish/backend
+      working-directory: ./VentilTesterBackend
+      
+    # Frontend Build
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Build Frontend
+      run: |
+        npm ci
+        npm run build
+      working-directory: ./ventiltester-frontend
+      env:
+        CI: false
+        GENERATE_SOURCEMAP: false
+        
+    # Package Everything
+    - name: Create complete application package
+      run: |
+        # Create package structure
+        New-Item -ItemType Directory -Path ./VentilTesterApp -Force
+        New-Item -ItemType Directory -Path ./VentilTesterApp/backend -Force
+        New-Item -ItemType Directory -Path ./VentilTesterApp/frontend -Force
+        
+        # Copy backend
+        Copy-Item -Path ./VentilTesterBackend/publish/backend/* -Destination ./VentilTesterApp/backend/ -Recurse
+        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./VentilTesterApp/backend/ -ErrorAction SilentlyContinue
+        
+        # Copy frontend build
+        Copy-Item -Path ./ventiltester-frontend/build/* -Destination ./VentilTesterApp/frontend/ -Recurse
+        
+        # Copy SPSData if exists
+        if (Test-Path ./SPSData) {
+            Copy-Item -Path ./SPSData -Destination ./VentilTesterApp/SPSData -Recurse
+        }
+        
+        # Create README
+        @"
+        # VentilTester Application
+        
+        ## Installation and Usage
+        
+        ### Backend
+        1. Navigate to the `backend` folder
+        2. Edit `appsettings.json` to configure:
+           - OPC UA endpoint URL
+           - Database connection (SQLite or PostgreSQL)
+           - SPS mapping path
+        3. Run `VentilTesterBackend.exe` (Windows)
+        4. Backend will start on http://localhost:5000
+        
+        ### Frontend
+        1. Serve the `frontend` folder using any web server:
+           - Option 1: Use a simple HTTP server (e.g., `python -m http.server 8080`)
+           - Option 2: Use nginx, IIS, or Apache
+           - Option 3: Open `index.html` directly in browser (may have CORS issues)
+        2. Access the application at http://localhost:8080 (or your configured port)
+        3. Configure API base URL in browser console if needed:
+           ```javascript
+           window.__API_BASE = 'http://your-backend-url:5000'
+           ```
+        
+        ### Requirements
+        - Backend: Windows x64 (self-contained, no .NET installation needed)
+        - Frontend: Any web server capable of serving static files
+        - OPC UA server must be accessible from the backend
+        
+        ### Default Configuration
+        - Backend: http://localhost:5000
+        - Frontend: Connects to backend at http://localhost:5000
+        - Database: SQLite (ventiltester.db) or PostgreSQL
+        
+        Build Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        Commit: ${{ github.sha }}
+        "@ | Out-File -FilePath ./VentilTesterApp/README.md -Encoding UTF8
+        
+        # Create startup script
+        @"
+        @echo off
+        echo Starting VentilTester Backend...
+        cd backend
+        start VentilTesterBackend.exe
+        echo Backend started. Access the frontend by opening frontend/index.html in your browser.
+        echo Backend API is running at http://localhost:5000
+        pause
+        "@ | Out-File -FilePath ./VentilTesterApp/START.bat -Encoding ASCII
+        
+        # Create zip
+        Compress-Archive -Path ./VentilTesterApp/* -DestinationPath ./VentilTesterApp-Complete.zip
+        
+    - name: Upload complete application
+      uses: actions/upload-artifact@v4
+      with:
+        name: VentilTesterApp-Complete
+        path: ./VentilTesterApp-Complete.zip
+        retention-days: 90
+        
+    - name: Create Release
+      if: github.event_name == 'push' || github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: VentilTester Complete Application v${{ github.run_number }}
+        body: |
+          Complete VentilTester Application Package
+          
+          This package includes:
+          - Backend (Windows x64, self-contained)
+          - Frontend (static files, ready to serve)
+          - Configuration files
+          - README with installation instructions
+          
+          Download, extract, configure, and run!
+        draft: false
+        prerelease: false
+        files: ./VentilTesterApp-Complete.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

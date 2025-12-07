@@ -1,0 +1,78 @@
+name: Build VentilTester Frontend
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'ventiltester-frontend/**'
+      - '.github/workflows/build-frontend.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ventiltester-frontend/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: ./ventiltester-frontend/package-lock.json
+        
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./ventiltester-frontend
+      
+    - name: Build production
+      run: npm run build
+      working-directory: ./ventiltester-frontend
+      env:
+        CI: false
+        GENERATE_SOURCEMAP: false
+        
+    - name: Create deployment package
+      run: |
+        mkdir -p release
+        cp -r ventiltester-frontend/build/* release/
+        echo "Build completed: $(date)" > release/BUILD_INFO.txt
+        echo "Commit: ${{ github.sha }}" >> release/BUILD_INFO.txt
+        cd release
+        tar -czf ../VentilTesterFrontend.tar.gz *
+        cd ..
+        zip -r VentilTesterFrontend.zip release/*
+        
+    - name: Upload build artifacts (tar.gz)
+      uses: actions/upload-artifact@v4
+      with:
+        name: VentilTesterFrontend-tar
+        path: ./VentilTesterFrontend.tar.gz
+        retention-days: 30
+        
+    - name: Upload build artifacts (zip)
+      uses: actions/upload-artifact@v4
+      with:
+        name: VentilTesterFrontend-zip
+        path: ./VentilTesterFrontend.zip
+        retention-days: 30
+        
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: frontend-v${{ github.run_number }}
+        name: VentilTester Frontend v${{ github.run_number }}
+        draft: false
+        prerelease: false
+        files: |
+          ./VentilTesterFrontend.tar.gz
+          ./VentilTesterFrontend.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -16,7 +16,7 @@ Edit `appsettings.json`:
     "Provider": "PostgreSQL"
   },
   "ConnectionStrings": {
-    "PostgreSQL": "Host=localhost;Port=5432;Database=ventiltester;Username=admin;Password=admin123"
+    "PostgreSQL": "Host=localhost;Port=5432;;Username=admin;Password=admin123"
   }
 }
 ```
