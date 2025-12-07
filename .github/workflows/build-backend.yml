@@ -45,38 +45,19 @@ jobs:
       run: dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true --output ./publish/win-x64
       working-directory: ./VentilTesterBackend
       
-    - name: Publish Linux x64
-      run: dotnet publish --configuration Release --runtime linux-x64 --self-contained true -p:PublishSingleFile=true --output ./publish/linux-x64
-      working-directory: ./VentilTesterBackend
-      
-    - name: Create release package (Windows)
+    - name: Create release package
       run: |
-        New-Item -ItemType Directory -Path ./release-win -Force
-        Copy-Item -Path ./VentilTesterBackend/publish/win-x64/* -Destination ./release-win/ -Recurse
-        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./release-win/ -ErrorAction SilentlyContinue
-        Copy-Item -Path ./SPSData -Destination ./release-win/SPSData -Recurse -ErrorAction SilentlyContinue
-        Compress-Archive -Path ./release-win/* -DestinationPath ./VentilTesterBackend-win-x64.zip
+        New-Item -ItemType Directory -Path ./release -Force
+        Copy-Item -Path ./VentilTesterBackend/publish/win-x64/* -Destination ./release/ -Recurse
+        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./release/ -ErrorAction SilentlyContinue
+        Copy-Item -Path ./SPSData -Destination ./release/SPSData -Recurse -ErrorAction SilentlyContinue
+        Compress-Archive -Path ./release/* -DestinationPath ./VentilTesterBackend-win-x64.zip
         
-    - name: Create release package (Linux)
-      run: |
-        New-Item -ItemType Directory -Path ./release-linux -Force
-        Copy-Item -Path ./VentilTesterBackend/publish/linux-x64/* -Destination ./release-linux/ -Recurse
-        Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./release-linux/ -ErrorAction SilentlyContinue
-        Copy-Item -Path ./SPSData -Destination ./release-linux/SPSData -Recurse -ErrorAction SilentlyContinue
-        Compress-Archive -Path ./release-linux/* -DestinationPath ./VentilTesterBackend-linux-x64.zip
-        
-    - name: Upload Windows artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: VentilTesterBackend-win-x64
         path: ./VentilTesterBackend-win-x64.zip
-        retention-days: 30
-        
-    - name: Upload Linux artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: VentilTesterBackend-linux-x64
-        path: ./VentilTesterBackend-linux-x64.zip
         retention-days: 30
         
     - name: Create Release
@@ -87,8 +68,6 @@ jobs:
         name: VentilTester Backend v${{ github.run_number }}
         draft: false
         prerelease: false
-        files: |
-          ./VentilTesterBackend-win-x64.zip
-          ./VentilTesterBackend-linux-x64.zip
+        files: ./VentilTesterBackend-win-x64.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -57,8 +57,16 @@ jobs:
         Copy-Item -Path ./VentilTesterBackend/publish/backend/* -Destination ./VentilTesterApp/backend/ -Recurse
         Copy-Item -Path ./VentilTesterBackend/appsettings.json -Destination ./VentilTesterApp/backend/ -ErrorAction SilentlyContinue
         
-        # Copy frontend build
-        Copy-Item -Path ./VentiltesterFrontend/build/* -Destination ./VentilTesterApp/frontend/ -Recurse
+        # Copy frontend build and server files
+        Copy-Item -Path ./VentiltesterFrontend/build -Destination ./VentilTesterApp/frontend/build -Recurse
+        Copy-Item -Path ./VentiltesterFrontend/server.js -Destination ./VentilTesterApp/frontend/
+        Copy-Item -Path ./VentiltesterFrontend/START_FRONTEND.bat -Destination ./VentilTesterApp/frontend/
+        Copy-Item -Path ./VentiltesterFrontend/package.json -Destination ./VentilTesterApp/frontend/
+        
+        # Install frontend production dependencies
+        Push-Location ./VentilTesterApp/frontend
+        npm install --production --omit=dev
+        Pop-Location
         
         # Copy SPSData if exists
         if (Test-Path ./SPSData) {
@@ -81,19 +89,14 @@ jobs:
         4. Backend will start on http://localhost:5000
         
         ### Frontend
-        1. Serve the `frontend` folder using any web server:
-           - Option 1: Use a simple HTTP server (e.g., `python -m http.server 8080`)
-           - Option 2: Use nginx, IIS, or Apache
-           - Option 3: Open `index.html` directly in browser (may have CORS issues)
-        2. Access the application at http://localhost:8080 (or your configured port)
-        3. Configure API base URL in browser console if needed:
-           ```javascript
-           window.__API_BASE = 'http://your-backend-url:5000'
-           ```
+        1. Navigate to the `frontend` folder
+        2. Run `START_FRONTEND.bat` (Windows) or `node server.js`
+        3. Frontend will start on http://localhost:3000
+        4. Open your browser at http://localhost:3000
         
         ### Requirements
         - Backend: Windows x64 (self-contained, no .NET installation needed)
-        - Frontend: Any web server capable of serving static files
+        - Frontend: Node.js (v18 or later) must be installed
         - OPC UA server must be accessible from the backend
         
         ### Default Configuration
@@ -108,12 +111,29 @@ jobs:
         # Create startup script
         @"
         @echo off
-        echo Starting VentilTester Backend...
+        echo ========================================
+        echo    VentilTester Application Startup
+        echo ========================================
+        echo.
+        echo Starting Backend...
         cd backend
-        start VentilTesterBackend.exe
-        echo Backend started. Access the frontend by opening frontend/index.html in your browser.
-        echo Backend API is running at http://localhost:5000
-        pause
+        start "VentilTester Backend" VentilTesterBackend.exe
+        cd ..
+        echo Backend started on http://localhost:5000
+        echo.
+        echo Starting Frontend...
+        cd frontend
+        start "VentilTester Frontend" START_FRONTEND.bat
+        cd ..
+        echo.
+        echo ========================================
+        echo Application is starting...
+        echo Backend: http://localhost:5000
+        echo Frontend: http://localhost:3000
+        echo ========================================
+        echo.
+        echo Press any key to exit...
+        pause > nul
         "@ | Out-File -FilePath ./VentilTesterApp/START.bat -Encoding ASCII
         
         # Create zip
