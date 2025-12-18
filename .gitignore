@@ -197,4 +197,6 @@ Release/
 
 VentilTesterBackend/ventiltester.db-shm
 VentiltesterFrontend/build/**
+VentiltesterFrontend/build/*
+VentiltesterFrontend/build/*.*
 VentiltesterFrontend/build/index.html
