@@ -41,35 +41,37 @@ jobs:
         CI: false
         GENERATE_SOURCEMAP: false
         
+    - name: Install pkg globally
+      run: npm install -g pkg
+        
+    - name: Create standalone executable with pkg
+      run: |
+        cd VentiltesterFrontend
+        pkg . --targets win-x64 --icon app.ico --output dist/VentilTesterFrontend.exe
+        
     - name: Create deployment package
       run: |
         mkdir -p release
-        cp -r VentiltesterFrontend/build release/
-        cp VentiltesterFrontend/server.js release/
-        cp VentiltesterFrontend/START_FRONTEND.bat release/
-        cp VentiltesterFrontend/package.json release/
+        cp VentiltesterFrontend/dist/VentilTesterFrontend.exe release/
+        echo '@echo off' > release/START_FRONTEND.bat
+        echo 'echo Starting VentilTester Frontend...' >> release/START_FRONTEND.bat
+        echo 'echo.' >> release/START_FRONTEND.bat
+        echo 'echo The frontend will be available at: http://localhost:3000' >> release/START_FRONTEND.bat
+        echo 'echo Press Ctrl+C to stop' >> release/START_FRONTEND.bat
+        echo '%~dp0VentilTesterFrontend.exe' >> release/START_FRONTEND.bat
+        echo 'pause' >> release/START_FRONTEND.bat
         echo "Build completed: $(date)" > release/README.txt
+        echo "Standalone executable created with pkg" >> release/README.txt
         echo "Commit: ${{ github.sha }}" >> release/README.txt
         echo "" >> release/README.txt
         echo "To start the frontend:" >> release/README.txt
-        echo "1. Run START_FRONTEND.bat (Windows)" >> release/README.txt
-        echo "2. Or run: node server.js" >> release/README.txt
+        echo "1. Run VentilTesterFrontend.exe directly" >> release/README.txt
+        echo "2. Or run START_FRONTEND.bat" >> release/README.txt
         echo "3. Open browser at http://localhost:3000" >> release/README.txt
         echo "" >> release/README.txt
-        echo "Note: Node.js must be installed on your system" >> release/README.txt
-        cd release
-        npm install --production --omit=dev
-        cd ..
-        tar -czf VentilTesterFrontend.tar.gz -C release .
+        echo "No installation required - fully standalone executable!" >> release/README.txt
         cd release
         zip -r ../VentilTesterFrontend.zip *
-        
-    - name: Upload build artifacts (tar.gz)
-      uses: actions/upload-artifact@v4
-      with:
-        name: VentilTesterFrontend-tar
-        path: ./VentilTesterFrontend.tar.gz
-        retention-days: 30
         
     - name: Upload build artifacts (zip)
       uses: actions/upload-artifact@v4

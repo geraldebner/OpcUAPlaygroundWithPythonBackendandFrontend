@@ -36,10 +36,14 @@ jobs:
       with:
         node-version: '18'
         
-    - name: Build Frontend
+    - name: Install pkg globally
+      run: npm install -g pkg
+        
+    - name: Build Frontend Executable
       run: |
         npm ci
         npm run build
+        pkg . --targets win-x64 --icon app.ico --output dist/VentilTesterFrontend.exe
       working-directory: ./VentiltesterFrontend
       env:
         CI: false
@@ -64,11 +68,18 @@ jobs:
         # Copy SPSData folder to backend directory
         Copy-Item -Path ./SPSData -Destination ./VentilTesterApp/backend/SPSData -Recurse -ErrorAction SilentlyContinue
         
-        # Copy frontend build and server files
-        Copy-Item -Path ./VentiltesterFrontend/build -Destination ./VentilTesterApp/frontend/build -Recurse
-        Copy-Item -Path ./VentiltesterFrontend/server.js -Destination ./VentilTesterApp/frontend/
-        Copy-Item -Path ./VentiltesterFrontend/START_FRONTEND.bat -Destination ./VentilTesterApp/frontend/
-        Copy-Item -Path ./VentiltesterFrontend/package.json -Destination ./VentilTesterApp/frontend/
+        # Copy frontend executable and batch launcher
+        Copy-Item -Path ./VentiltesterFrontend/dist/VentilTesterFrontend.exe -Destination ./VentilTesterApp/frontend/
+        @"
+@echo off
+echo Starting VentilTester Frontend...
+echo.
+echo The frontend will be available at: http://localhost:3000
+echo Press Ctrl+C to stop
+echo.
+"%~dp0VentilTesterFrontend.exe"
+pause
+"@ | Out-File -FilePath ./VentilTesterApp/frontend/START_FRONTEND.bat -Encoding ASCII
         
         # Install frontend production dependencies
         Push-Location ./VentilTesterApp/frontend
@@ -92,13 +103,13 @@ jobs:
         
         ### Frontend
         1. Navigate to the `frontend` folder
-        2. Run `START_FRONTEND.bat` (Windows) or `node server.js`
+        2. Run `VentilTesterFrontend.exe` directly or `START_FRONTEND.bat`
         3. Frontend will start on http://localhost:3000
         4. Open your browser at http://localhost:3000
         
         ### Requirements
         - Backend: Windows x64 (self-contained, no .NET installation needed)
-        - Frontend: Node.js (v18 or later) must be installed
+        - Frontend: Standalone executable (no additional installation needed!)
         - OPC UA server must be accessible from the backend
         
         ### Default Configuration
