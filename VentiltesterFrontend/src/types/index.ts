@@ -17,6 +17,7 @@ export interface Dataset {
   comment: string;
   createdAt: string;
   blockIndex: number;
+  type: string;
   payload?: string;
 }
 

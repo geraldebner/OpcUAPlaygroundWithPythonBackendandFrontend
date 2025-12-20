@@ -39,6 +39,7 @@ namespace VentilTesterBackend.Controllers
                     p.BlockIndex,
                     p.CreatedAt,
                     p.Comment,
+                    p.Type,
                 })
             );
         }
@@ -63,6 +64,7 @@ namespace VentilTesterBackend.Controllers
                     item.BlockIndex,
                     item.CreatedAt,
                     item.Comment,
+                    item.Type,
                     payload = item.JsonPayload,
                 }
             );
@@ -79,6 +81,7 @@ namespace VentilTesterBackend.Controllers
                 string name = string.Empty;
                 string? comment = null;
                 int blockIndex = 1;
+                string type = "All";
                 string jsonPayload = "{}";
 
                 if (body.ValueKind == JsonValueKind.Object)
@@ -87,6 +90,8 @@ namespace VentilTesterBackend.Controllers
                         name = n.GetString() ?? string.Empty;
                     if (body.TryGetProperty("comment", out var c))
                         comment = c.GetString();
+                    if (body.TryGetProperty("type", out var t))
+                        type = t.GetString() ?? "All";
                     if (
                         body.TryGetProperty("blockIndex", out var bi) && bi.TryGetInt32(out var bix)
                     )
@@ -108,6 +113,7 @@ namespace VentilTesterBackend.Controllers
                     Name = name,
                     Comment = comment,
                     BlockIndex = blockIndex,
+                    Type = type,
                     CreatedAt = DateTime.UtcNow,
                     JsonPayload = jsonPayload,
                 };
@@ -122,6 +128,7 @@ namespace VentilTesterBackend.Controllers
                         p.Id,
                         p.Name,
                         p.BlockIndex,
+                        p.Type,
                         p.CreatedAt,
                     }
                 );

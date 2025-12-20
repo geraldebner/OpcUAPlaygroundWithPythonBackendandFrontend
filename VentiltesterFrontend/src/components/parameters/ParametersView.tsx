@@ -222,11 +222,46 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
   async function saveParameterDataset(selectedBlock: number): Promise<void> {
     const b = blocks.find(x => x.index === selectedBlock);
     if (!b) return;
+    
+    // Show a custom dialog for name, comment, and type
     const name = prompt('Name for dataset', `Snapshot_${selectedBlock}_${new Date().toISOString()}`) || '';
-    const comment = prompt('Comment', '') || '';
+    if (!name) return; // User cancelled
+    
+    const comment = prompt('Comment (optional)', '') || '';
+    
+    // Ask for type - show options based on requirements
+    const typeOptions = [
+      'All',
+      'VentilAnsteuerparameter',
+      'VentilLangzeittestparameter',
+      'VentilDetailtestparameter',
+      'VentilEinzeltestparameter'
+    ];
+    
+    const typeChoice = prompt(
+      'Select parameter set type:\n' +
+      '1 = All (all parameters)\n' +
+      '2 = VentilAnsteuerparameter (Ventilkonfiguration/Ansteuerparameter)\n' +
+      '3 = VentilLangzeittestparameter (Ventilkonfiguration/Langzeittest)\n' +
+      '4 = VentilDetailtestparameter (Ventilkonfiguration/Detailtest)\n' +
+      '5 = VentilEinzeltestparameter (Ventilkonfiguration/Einzeltest)\n\n' +
+      'Enter number (1-5):',
+      '1'
+    );
+    
+    const typeIndex = parseInt(typeChoice || '1', 10) - 1;
+    const type = typeOptions[Math.max(0, Math.min(typeIndex, typeOptions.length - 1))];
+    
     // send as legacy dataset shape to /api/datasets (supports { block: ... } for backwards compatibility)
     try {
-      await axios.post(`${apiBase}/api/datasets`, { name, comment, blockIndex: selectedBlock, block: b });
+      await axios.post(`${apiBase}/api/datasets`, { 
+        name, 
+        comment, 
+        blockIndex: selectedBlock, 
+        type, 
+        block: b 
+      });
+      alert(`Dataset saved with type: ${type}`);
     } catch (e) {
       console.error('saveParameterDataset', e);
       alert('Save dataset failed');
