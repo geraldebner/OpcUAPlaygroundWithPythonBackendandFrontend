@@ -72,4 +72,7 @@ public class TestRun
     public ParameterSet? VentilkonfigurationParameterSet { get; set; }
     public ParameterSet? KonfigurationLangzeittestParameterSet { get; set; }
     public ParameterSet? KonfigurationDetailtestParameterSet { get; set; }
+
+    // Navigation property to VentilConfigs (up to 16 ventils per test run)
+    public ICollection<TestRunVentilConfig> VentilConfigs { get; set; } = new List<TestRunVentilConfig>();
 }

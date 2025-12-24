@@ -59,6 +59,7 @@ namespace VentilTesterBackend.Controllers
         {
             var item = await _db.MeasurementSets
                 .Include(m => m.TestRun)
+                    .ThenInclude(tr => tr.VentilConfigs)
                 .FirstOrDefaultAsync(m => m.Id == id);
             
             if (item == null) return NotFound();
@@ -80,7 +81,13 @@ namespace VentilTesterBackend.Controllers
                     item.TestRun.Status,
                     item.TestRun.StartedAt,
                     item.TestRun.CompletedAt,
-                    item.TestRun.Comment
+                    item.TestRun.Comment,
+                    VentilConfigs = item.TestRun.VentilConfigs.Select(vc => new
+                    {
+                        vc.VentilNumber,
+                        vc.Enabled,
+                        vc.Comment
+                    }).ToList()
                 } : null
             });
         }

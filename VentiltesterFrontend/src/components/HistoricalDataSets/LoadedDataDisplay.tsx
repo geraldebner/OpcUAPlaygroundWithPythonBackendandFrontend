@@ -127,6 +127,39 @@ export default function LoadedDataDisplay({
               </div>
             </div>
           )}
+          {loadedData.testRun?.ventilConfigs && loadedData.identifierNumber && (() => {
+            const ventilConfig = loadedData.testRun.ventilConfigs.find(
+              vc => vc.ventilNumber === loadedData.identifierNumber
+            );
+            return ventilConfig ? (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px',
+                backgroundColor: '#e1f5fe',
+                border: '1px solid #b3e5fc',
+                borderRadius: '4px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#01579b', marginBottom: '4px' }}>
+                  🔧 Ventil {loadedData.identifierNumber} Konfiguration
+                </div>
+                <div style={{ fontSize: '11px', color: '#555', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px' }}>
+                  <span style={{ fontWeight: 'bold' }}>Status:</span>
+                  <span style={{ 
+                    color: ventilConfig.enabled ? '#2e7d32' : '#d32f2f',
+                    fontWeight: 'bold'
+                  }}>
+                    {ventilConfig.enabled ? '✓ Aktiviert' : '✗ Deaktiviert'}
+                  </span>
+                  {ventilConfig.comment && (
+                    <>
+                      <span style={{ fontWeight: 'bold' }}>Kommentar:</span>
+                      <span>{ventilConfig.comment}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         <div style={{ maxHeight: '350px', overflowY: 'auto' }}>

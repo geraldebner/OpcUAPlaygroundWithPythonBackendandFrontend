@@ -73,6 +73,30 @@ public class TestRunsController : ControllerBase
     {
         try
         {
+            // Parse ventil configs from additionalInfo if not provided directly
+            List<TestRunVentilConfig>? ventilConfigs = request.VentilConfigs;
+            
+            if (ventilConfigs == null && !string.IsNullOrEmpty(request.AdditionalInfo))
+            {
+                try
+                {
+                    var additionalData = System.Text.Json.JsonSerializer.Deserialize<AdditionalInfoData>(request.AdditionalInfo);
+                    if (additionalData?.VentilConfigs != null)
+                    {
+                        ventilConfigs = additionalData.VentilConfigs.Select(vc => new TestRunVentilConfig
+                        {
+                            VentilNumber = vc.Number,
+                            Enabled = vc.Enabled,
+                            Comment = vc.Comment
+                        }).ToList();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse ventil configs from additionalInfo");
+                }
+            }
+
             var testRun = await _testRunService.CreateTestRunAsync(
                 request.TestType,
                 request.BlockIndex,
@@ -80,7 +104,8 @@ public class TestRunsController : ControllerBase
                 request.KonfigurationLangzeittestId,
                 request.KonfigurationDetailtestId,
                 request.Comment,
-                request.AdditionalInfo
+                request.AdditionalInfo,
+                ventilConfigs
             );
 
             return CreatedAtAction(nameof(GetTestRun), new { messID = testRun.MessID }, testRun);
@@ -219,6 +244,7 @@ public class CreateTestRunRequest
     public int? KonfigurationDetailtestId { get; set; }
     public string? Comment { get; set; }
     public string? AdditionalInfo { get; set; }
+    public List<TestRunVentilConfig>? VentilConfigs { get; set; }
 }
 
 public class UpdateTestRunRequest
@@ -231,4 +257,17 @@ public class UpdateTestRunRequest
     public string? AdditionalInfo { get; set; }
     public string? Status { get; set; }
     public DateTime? CompletedAt { get; set; }
+}
+
+// Helper class for parsing additionalInfo JSON
+public class AdditionalInfoData
+{
+    public List<VentilConfigData>? VentilConfigs { get; set; }
+}
+
+public class VentilConfigData
+{
+    public int Number { get; set; }
+    public bool Enabled { get; set; }
+    public string? Comment { get; set; }
 }

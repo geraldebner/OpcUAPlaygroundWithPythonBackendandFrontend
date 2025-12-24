@@ -100,7 +100,12 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
           status: testRunData.Status || testRunData.status,
           startedAt: testRunData.StartedAt || testRunData.startedAt,
           completedAt: testRunData.CompletedAt || testRunData.completedAt,
-          comment: testRunData.Comment || testRunData.comment
+          comment: testRunData.Comment || testRunData.comment,
+          ventilConfigs: (testRunData.VentilConfigs || testRunData.ventilConfigs || []).map((vc: any) => ({
+            ventilNumber: vc.VentilNumber || vc.ventilNumber,
+            enabled: vc.Enabled !== undefined ? vc.Enabled : vc.enabled,
+            comment: vc.Comment || vc.comment
+          }))
         } : undefined
       };
 

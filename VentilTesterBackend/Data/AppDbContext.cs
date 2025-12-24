@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<ParameterSet> ParameterSets { get; set; } = null!;
     public DbSet<MeasurementSet> MeasurementSets { get; set; } = null!;
     public DbSet<TestRun> TestRuns { get; set; } = null!;
+    public DbSet<TestRunVentilConfig> TestRunVentilConfigs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,5 +44,17 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(ms => ms.TestRunMessID)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure TestRunVentilConfig relationship to TestRun
+        modelBuilder.Entity<TestRunVentilConfig>()
+            .HasOne(vc => vc.TestRun)
+            .WithMany(tr => tr.VentilConfigs)
+            .HasForeignKey(vc => vc.TestRunMessID)
+            .OnDelete(DeleteBehavior.Cascade); // Delete ventil configs when test run is deleted
+
+        // Create unique index on TestRunMessID + VentilNumber to prevent duplicates
+        modelBuilder.Entity<TestRunVentilConfig>()
+            .HasIndex(vc => new { vc.TestRunMessID, vc.VentilNumber })
+            .IsUnique();
     }
 }

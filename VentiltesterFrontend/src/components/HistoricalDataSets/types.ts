@@ -7,6 +7,12 @@ export interface Snapshot {
   testRunMessID?: number;
 }
 
+export interface VentilConfig {
+  ventilNumber: number;
+  enabled: boolean;
+  comment?: string;
+}
+
 export interface TestRunInfo {
   messID: number;
   testType: string;
@@ -14,6 +20,7 @@ export interface TestRunInfo {
   startedAt: string;
   completedAt?: string;
   comment?: string;
+  ventilConfigs?: VentilConfig[];
 }
 
 export interface LoadedData {

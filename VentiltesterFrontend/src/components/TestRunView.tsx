@@ -27,6 +27,12 @@ interface TestRun {
   comment?: string;
 }
 
+interface VentilConfig {
+  number: number;
+  enabled: boolean;
+  comment: string;
+}
+
 export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps) {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { data, loading, error, refresh } = useCache(apiBase, selectedBlock, autoRefresh, 2000);
@@ -46,6 +52,15 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   const [isStartingTest, setIsStartingTest] = useState(false);
   const [activeTestRun, setActiveTestRun] = useState<TestRun | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  
+  // Ventil configuration (16 valves)
+  const [ventilConfigs, setVentilConfigs] = useState<VentilConfig[]>(
+    Array.from({ length: 16 }, (_, i) => ({
+      number: i + 1,
+      enabled: true,
+      comment: ''
+    }))
+  );
   
   // System status from AllgemeineParameter
   const messMode = data?.allgemeineParameter?.messMode ?? null;
@@ -197,13 +212,24 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
 
       // Step 3: Create TestRun entry in database
       setStatusMessage('Erstelle Prüflauf-Eintrag...');
+      
+      // Prepare ventil configuration as additional info
+      const additionalInfo = JSON.stringify({
+        ventilConfigs: ventilConfigs.map(v => ({
+          number: v.number,
+          enabled: v.enabled,
+          comment: v.comment
+        }))
+      });
+      
       console.log('Creating TestRun with data:', {
         testType: testType,
         blockIndex: selectedBlock,
         ventilkonfigurationId: selectedVentilConfig,
         konfigurationLangzeittestId: testType === 'Langzeittest' ? selectedLangzeitConfig : null,
         konfigurationDetailtestId: testType === 'Detailtest' ? selectedDetailConfig : null,
-        comment: testComment || `${testType} - Block ${selectedBlock}`
+        comment: testComment || `${testType} - Block ${selectedBlock}`,
+        additionalInfo: additionalInfo
       });
       
       let testRunResponse;
@@ -214,7 +240,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
           ventilkonfigurationId: selectedVentilConfig,
           konfigurationLangzeittestId: testType === 'Langzeittest' ? selectedLangzeitConfig : null,
           konfigurationDetailtestId: testType === 'Detailtest' ? selectedDetailConfig : null,
-          comment: testComment || `${testType} - Block ${selectedBlock}`
+          comment: testComment || `${testType} - Block ${selectedBlock}`,
+          additionalInfo: additionalInfo
         });
       } catch (error: any) {
         console.error('Failed to create TestRun:', error.response?.data);
@@ -246,7 +273,16 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         throw new Error(`Fehler beim Starten des Prüflaufs: ${error.response?.data?.message || error.message}`);
       }
 
-      // Step 6: Write MessID to OPC UA Kommandos group
+      // Step 6: Write VentilSperre bitfield to OPC UA
+      setStatusMessage('Setze VentilSperre Bitfeld...');
+      try {
+        await writeVentilSperreToOPCUA();
+      } catch (error: any) {
+        console.error('Failed to write VentilSperre to OPC UA:', error.response?.data);
+        throw new Error(`Fehler beim Schreiben der VentilSperre: ${error.response?.data?.message || error.message}`);
+      }
+
+      // Step 7: Write MessID to OPC UA Kommandos group
       setStatusMessage(`Setze MessID ${newTestRun.messID} im PLC...`);
       try {
         await writeMessIDToOPCUA(newTestRun.messID);
@@ -255,7 +291,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         throw new Error(`Fehler beim Schreiben der MessID: ${error.response?.data?.message || error.message}`);
       }
 
-      // Step 7: Send start command to OPC UA
+      // Step 8: Send start command to OPC UA
       try {
         await sendStartCommand();
       } catch (error: any) {
@@ -263,7 +299,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         throw new Error(`Fehler beim Senden des Start-Kommandos: ${error.response?.data?.message || error.message}`);
       }
 
-      // Step 7: Verify that the test actually started by checking MessMode
+      // Step 9: Verify that the test actually started by checking MessMode
       setStatusMessage('Warte auf Bestätigung vom PLC...');
       const expectedMessMode = testType === 'Langzeittest' ? 1 : testType === 'Detailtest' ? 2 : 3;
       const testStarted = await waitForMessModeChange(expectedMessMode, 10000); // 10 second timeout
@@ -417,6 +453,36 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
       }
       
       throw new Error(`Fehler beim Senden von ${command}: ${error.response?.data?.error || error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async function writeVentilSperreToOPCUA() {
+    // Calculate VentilSperre bitfield: 1 = disabled, 0 = enabled
+    // Bit 0 = Ventil 1, Bit 1 = Ventil 2, etc.
+    let ventilSperre = 0;
+    for (let i = 0; i < 16; i++) {
+      if (!ventilConfigs[i].enabled) {
+        ventilSperre |= (1 << i);
+      }
+    }
+
+    console.log(`Writing VentilSperre bitfield: ${ventilSperre} (binary: ${ventilSperre.toString(2).padStart(16, '0')})`);
+    console.log('Ventil states:', ventilConfigs.map(v => `V${v.number}:${v.enabled ? 'ON' : 'OFF'}`).join(', '));
+    
+    try {
+      const response = await axios.post(
+        `${apiBase}/api/parameters/${selectedBlock}/value?group=AllgemeineParameter&name=${encodeURIComponent('VentilSperre')}`,
+        { value: String(ventilSperre) }
+      );
+      console.log(`VentilSperre written successfully:`, response.data);
+    } catch (error: any) {
+      console.error('Failed to write VentilSperre:', error.response?.data);
+      
+      if (error.response?.status === 404) {
+        throw new Error(`VentilSperre Parameter nicht gefunden in AllgemeineParameter. Bitte prüfen Sie die OPC UA Konfiguration.`);
+      }
+      
+      throw new Error(`Fehler beim Schreiben der VentilSperre: ${error.response?.data?.error || error.response?.data?.message || error.message}`);
     }
   }
 
@@ -623,16 +689,6 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         {/* Test Configuration */}
         {!activeTestRun && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Next MessID Display */}
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#e8f4f8',
-              borderRadius: '6px',
-              border: '1px solid #b3d9e6'
-            }}>
-              <strong>Nächste MessID:</strong> {nextMessID !== null ? nextMessID : 'Laden...'}
-            </div>
-
             {/* Test Type Selection */}
             <div>
               <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
@@ -656,107 +712,187 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
               </select>
             </div>
 
-            {/* Ventilkonfiguration Selection */}
-            <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
-                Ventilkonfiguration: *
-              </label>
-              <select
-                value={selectedVentilConfig || ''}
-                onChange={(e) => setSelectedVentilConfig(Number(e.target.value) || null)}
-                disabled={isStartingTest}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="">-- Bitte auswählen --</option>
-                {ventilParameterSets.map(ps => (
-                  <option key={ps.id} value={ps.id}>
-                    {ps.name} {ps.comment && `(${ps.comment})`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Configuration and Ventil Layout - Side by Side */}
+            <div style={{ display: 'flex', gap: '16px' }}>
+              {/* Left Column - Parameter Configurations */}
+              <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Next MessID Display */}
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#e8f4f8',
+                  borderRadius: '6px',
+                  border: '1px solid #b3d9e6'
+                }}>
+                  <strong>Nächste MessID:</strong> {nextMessID !== null ? nextMessID : 'Laden...'}
+                </div>
 
-            {/* Langzeittest Configuration */}
-            {testType === 'Langzeittest' && (
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
-                  Langzeittest-Konfiguration: *
-                </label>
-                <select
-                  value={selectedLangzeitConfig || ''}
-                  onChange={(e) => setSelectedLangzeitConfig(Number(e.target.value) || null)}
-                  disabled={isStartingTest}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">-- Bitte auswählen --</option>
-                  {langzeittestParameterSets.map(ps => (
-                    <option key={ps.id} value={ps.id}>
-                      {ps.name} {ps.comment && `(${ps.comment})`}
-                    </option>
-                  ))}
-                </select>
+                {/* Ventilkonfiguration Selection */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                    Ventilkonfiguration: *
+                  </label>
+                  <select
+                    value={selectedVentilConfig || ''}
+                    onChange={(e) => setSelectedVentilConfig(Number(e.target.value) || null)}
+                    disabled={isStartingTest}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="">-- Bitte auswählen --</option>
+                    {ventilParameterSets.map(ps => (
+                      <option key={ps.id} value={ps.id}>
+                        {ps.name} {ps.comment && `(${ps.comment})`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Langzeittest Configuration */}
+                {testType === 'Langzeittest' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                      Langzeittest-Konfiguration: *
+                    </label>
+                    <select
+                      value={selectedLangzeitConfig || ''}
+                      onChange={(e) => setSelectedLangzeitConfig(Number(e.target.value) || null)}
+                      disabled={isStartingTest}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="">-- Bitte auswählen --</option>
+                      {langzeittestParameterSets.map(ps => (
+                        <option key={ps.id} value={ps.id}>
+                          {ps.name} {ps.comment && `(${ps.comment})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Detailtest Configuration */}
+                {testType === 'Detailtest' && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                      Detailtest-Konfiguration: *
+                    </label>
+                    <select
+                      value={selectedDetailConfig || ''}
+                      onChange={(e) => setSelectedDetailConfig(Number(e.target.value) || null)}
+                      disabled={isStartingTest}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="">-- Bitte auswählen --</option>
+                      {detailtestParameterSets.map(ps => (
+                        <option key={ps.id} value={ps.id}>
+                          {ps.name} {ps.comment && `(${ps.comment})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Comment field */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                    Kommentar (optional):
+                  </label>
+                  <input
+                    type="text"
+                    value={testComment}
+                    onChange={(e) => setTestComment(e.target.value)}
+                    disabled={isStartingTest}
+                    placeholder="Optional: Beschreibung des Tests"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
               </div>
-            )}
 
-            {/* Detailtest Configuration */}
-            {testType === 'Detailtest' && (
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
-                  Detailtest-Konfiguration: *
+              {/* Right Column - Ventil Configuration */}
+              <div style={{ flex: '1' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
+                  Ventil-Konfiguration (16 Ventile):
                 </label>
-                <select
-                  value={selectedDetailConfig || ''}
-                  onChange={(e) => setSelectedDetailConfig(Number(e.target.value) || null)}
-                  disabled={isStartingTest}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">-- Bitte auswählen --</option>
-                  {detailtestParameterSets.map(ps => (
-                    <option key={ps.id} value={ps.id}>
-                      {ps.name} {ps.comment && `(${ps.comment})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Comment */}
-            <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
-                Kommentar (optional):
-              </label>
-              <input
-                type="text"
-                value={testComment}
-                onChange={(e) => setTestComment(e.target.value)}
-                disabled={isStartingTest}
-                placeholder="Optional: Beschreibung des Tests"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ccc',
+                <div style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  border: '1px solid #ddd',
                   borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              />
+                  padding: '8px',
+                  backgroundColor: '#f8f9fa'
+                }}>
+                  {ventilConfigs.map((ventil) => (
+                    <div key={ventil.number} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '6px',
+                      padding: '6px',
+                      backgroundColor: 'white',
+                      borderRadius: '3px',
+                      border: '1px solid #e9ecef'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={ventil.enabled}
+                        onChange={(e) => {
+                          const updated = [...ventilConfigs];
+                          updated[ventil.number - 1].enabled = e.target.checked;
+                          setVentilConfigs(updated);
+                        }}
+                        disabled={isStartingTest}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <label style={{ minWidth: '80px', fontSize: '13px', fontWeight: 'bold' }}>
+                        Ventil {ventil.number}:
+                      </label>
+                      <input
+                        type="text"
+                        value={ventil.comment}
+                        onChange={(e) => {
+                          const updated = [...ventilConfigs];
+                          updated[ventil.number - 1].comment = e.target.value;
+                          setVentilConfigs(updated);
+                        }}
+                        disabled={isStartingTest}
+                        placeholder="Kommentar..."
+                        style={{
+                          flex: 1,
+                          padding: '4px 8px',
+                          border: '1px solid #ccc',
+                          borderRadius: '3px',
+                          fontSize: '12px'
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '11px', color: '#666' }}>
+                  ℹ️ Aktivierte Ventile werden im Test berücksichtigt. Deaktivierte Ventile werden in VentilSperre gesetzt.
+                </div>
+              </div>
             </div>
 
             {/* Start Button */}

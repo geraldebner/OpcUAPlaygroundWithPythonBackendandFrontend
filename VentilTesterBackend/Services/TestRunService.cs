@@ -37,7 +37,8 @@ public class TestRunService
         int? konfigurationLangzeittestId = null,
         int? konfigurationDetailtestId = null,
         string? comment = null,
-        string? additionalInfo = null)
+        string? additionalInfo = null,
+        List<TestRunVentilConfig>? ventilConfigs = null)
     {
         var nextMessID = await GetNextMessIDAsync();
 
@@ -58,8 +59,19 @@ public class TestRunService
         _context.TestRuns.Add(testRun);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created new test run with MessID {MessID}, Type: {TestType}, Block: {BlockIndex}", 
-            nextMessID, testType, blockIndex);
+        // Add ventil configurations if provided
+        if (ventilConfigs != null && ventilConfigs.Count > 0)
+        {
+            foreach (var config in ventilConfigs)
+            {
+                config.TestRunMessID = testRun.MessID;
+                _context.TestRunVentilConfigs.Add(config);
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        _logger.LogInformation("Created new test run with MessID {MessID}, Type: {TestType}, Block: {BlockIndex}, Ventils: {VentilCount}", 
+            nextMessID, testType, blockIndex, ventilConfigs?.Count ?? 0);
 
         return testRun;
     }
@@ -73,6 +85,7 @@ public class TestRunService
             .Include(tr => tr.VentilkonfigurationParameterSet)
             .Include(tr => tr.KonfigurationLangzeittestParameterSet)
             .Include(tr => tr.KonfigurationDetailtestParameterSet)
+            .Include(tr => tr.VentilConfigs)
             .AsQueryable();
 
         if (blockIndex.HasValue)
@@ -92,6 +105,7 @@ public class TestRunService
             .Include(tr => tr.VentilkonfigurationParameterSet)
             .Include(tr => tr.KonfigurationLangzeittestParameterSet)
             .Include(tr => tr.KonfigurationDetailtestParameterSet)
+            .Include(tr => tr.VentilConfigs)
             .FirstOrDefaultAsync(tr => tr.MessID == messID);
     }
 
