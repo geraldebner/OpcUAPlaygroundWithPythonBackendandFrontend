@@ -26,10 +26,18 @@ namespace VentilTesterBackend.Controllers
 
         // GET api/datasets
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get([FromQuery] int? blockIndex = null)
         {
-            _logger.LogInformation("Get all datasets called");
-            var list = await _db.ParameterSets.OrderByDescending(p => p.CreatedAt).ToListAsync();
+            _logger.LogInformation("Get all datasets called with blockIndex={BlockIndex}", blockIndex);
+            
+            IQueryable<ParameterSet> query = _db.ParameterSets;
+            
+            if (blockIndex.HasValue)
+            {
+                query = query.Where(p => p.BlockIndex == blockIndex.Value);
+            }
+            
+            var list = await query.OrderByDescending(p => p.CreatedAt).ToListAsync();
             _logger.LogDebug("Found {count} parameter sets", list.Count);
             return Ok(
                 list.Select(p => new

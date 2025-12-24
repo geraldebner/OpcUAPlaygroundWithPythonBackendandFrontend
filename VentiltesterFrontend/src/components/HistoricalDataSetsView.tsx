@@ -60,6 +60,16 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
     try {
       const res = await axios.get(`${apiBase}/api/measurementsets/${id}`);
       const dataset = res.data;
+      
+      // Detailed debugging
+      console.log('=== DATASET RESPONSE DEBUG ===');
+      console.log('Full response:', JSON.stringify(dataset, null, 2));
+      console.log('Response keys:', Object.keys(dataset));
+      console.log('TestRunMessID:', dataset.testRunMessID, dataset.TestRunMessID);
+      console.log('testRun:', dataset.testRun);
+      console.log('TestRun:', dataset.TestRun);
+      console.log('==============================');
+      
       if (!dataset) {
         alert('Dataset not found');
         return;
@@ -73,6 +83,10 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
         parsedData = dataset.payload;
       }
 
+      // Handle both TestRun (PascalCase from backend) and testRun (camelCase)
+      const testRunData = dataset.TestRun || dataset.testRun;
+      console.log('Using testRunData:', testRunData);
+
       const loadedDataset: LoadedData = {
         id: dataset.id,
         name: dataset.name,
@@ -80,16 +94,17 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
         identifierNumber: dataset.identifierNumber,
         createdAt: dataset.createdAt,
         data: parsedData,
-        testRun: dataset.testRun ? {
-          messID: dataset.testRun.messID,
-          testType: dataset.testRun.testType,
-          status: dataset.testRun.status,
-          startedAt: dataset.testRun.startedAt,
-          completedAt: dataset.testRun.completedAt,
-          comment: dataset.testRun.comment
+        testRun: testRunData ? {
+          messID: testRunData.MessID || testRunData.messID,
+          testType: testRunData.TestType || testRunData.testType,
+          status: testRunData.Status || testRunData.status,
+          startedAt: testRunData.StartedAt || testRunData.startedAt,
+          completedAt: testRunData.CompletedAt || testRunData.completedAt,
+          comment: testRunData.Comment || testRunData.comment
         } : undefined
       };
 
+      console.log('Final loadedDataset.testRun:', loadedDataset.testRun);
       setLoadedData(loadedDataset);
     } catch (e) {
       console.error('Failed to load dataset', e);

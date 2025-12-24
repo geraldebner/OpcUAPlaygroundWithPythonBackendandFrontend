@@ -252,6 +252,35 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     const typeIndex = parseInt(typeChoice || '1', 10) - 1;
     const type = typeOptions[Math.max(0, Math.min(typeIndex, typeOptions.length - 1))];
     
+    // Filter the block based on the selected type
+    let filteredBlock = b;
+    if (type !== 'All') {
+      // Map type to the specific group name
+      const groupMapping: { [key: string]: string } = {
+        'VentilAnsteuerparameter': 'Ventilkonfiguration/Ansteuerparameter',
+        'VentilLangzeittestparameter': 'Ventilkonfiguration/Langzeittest',
+        'VentilDetailtestparameter': 'Ventilkonfiguration/Detailtest',
+        'VentilEinzeltestparameter': 'Ventilkonfiguration/Einzeltest'
+      };
+      
+      const targetGroup = groupMapping[type];
+      if (targetGroup && b?.groups) {
+        // Create a filtered block with only the target group
+        filteredBlock = {
+          ...b,
+          groups: {
+            [targetGroup]: b.groups[targetGroup]
+          }
+        };
+        
+        // Verify the group exists
+        if (!b.groups[targetGroup]) {
+          alert(`Warnung: Gruppe '${targetGroup}' nicht gefunden im aktuellen Block!`);
+          return;
+        }
+      }
+    }
+    
     // send as legacy dataset shape to /api/datasets (supports { block: ... } for backwards compatibility)
     try {
       await axios.post(`${apiBase}/api/datasets`, { 
@@ -259,7 +288,7 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
         comment, 
         blockIndex: selectedBlock, 
         type, 
-        block: b 
+        block: filteredBlock 
       });
       alert(`Dataset saved with type: ${type}`);
     } catch (e) {
