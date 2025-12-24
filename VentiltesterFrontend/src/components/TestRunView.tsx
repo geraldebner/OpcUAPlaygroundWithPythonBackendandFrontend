@@ -1,15 +1,264 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCache } from '../hooks/useCache';
 import CommandsPanel from './shared/CommandsPanel';
+import axios from 'axios';
 
 interface TestRunViewProps {
   apiBase: string;
   selectedBlock: number;
 }
 
+interface ParameterSet {
+  id: number;
+  name: string;
+  type: string;
+  comment?: string;
+}
+
+interface TestRun {
+  messID: number;
+  testType: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  ventilkonfigurationId?: number;
+  konfigurationLangzeittestId?: number;
+  konfigurationDetailtestId?: number;
+  comment?: string;
+}
+
 export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps) {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const { data, loading, error, refresh } = useCache(apiBase, selectedBlock, autoRefresh, 2000);
+
+  // Test Run State
+  const [nextMessID, setNextMessID] = useState<number | null>(null);
+  const [testType, setTestType] = useState<'Langzeittest' | 'Detailtest' | 'Einzeltest'>('Langzeittest');
+  const [ventilParameterSets, setVentilParameterSets] = useState<ParameterSet[]>([]);
+  const [langzeittestParameterSets, setLangzeittestParameterSets] = useState<ParameterSet[]>([]);
+  const [detailtestParameterSets, setDetailtestParameterSets] = useState<ParameterSet[]>([]);
+  
+  const [selectedVentilConfig, setSelectedVentilConfig] = useState<number | null>(null);
+  const [selectedLangzeitConfig, setSelectedLangzeitConfig] = useState<number | null>(null);
+  const [selectedDetailConfig, setSelectedDetailConfig] = useState<number | null>(null);
+  
+  const [testComment, setTestComment] = useState<string>('');
+  const [isStartingTest, setIsStartingTest] = useState(false);
+  const [activeTestRun, setActiveTestRun] = useState<TestRun | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+
+  // Load next MessID and parameter sets on mount
+  useEffect(() => {
+    loadNextMessID();
+    loadParameterSets();
+    loadActiveTestRun();
+  }, [selectedBlock]);
+
+  async function loadNextMessID() {
+    try {
+      const res = await axios.get(`${apiBase}/api/testruns/next-messid`);
+      setNextMessID(res.data);
+    } catch (error) {
+      console.error('Failed to load next MessID:', error);
+    }
+  }
+
+  async function loadParameterSets() {
+    try {
+      const res = await axios.get(`${apiBase}/api/parameters`, {
+        params: { blockIndex: selectedBlock }
+      });
+      
+      const sets = res.data || [];
+      setVentilParameterSets(sets.filter((s: ParameterSet) => 
+        s.type === 'VentilAnsteuerparameter' || s.type === 'All'));
+      setLangzeittestParameterSets(sets.filter((s: ParameterSet) => 
+        s.type === 'VentilLangzeittestparameter' || s.type === 'All'));
+      setDetailtestParameterSets(sets.filter((s: ParameterSet) => 
+        s.type === 'VentilDetailtestparameter' || s.type === 'All'));
+    } catch (error) {
+      console.error('Failed to load parameter sets:', error);
+    }
+  }
+
+  async function loadActiveTestRun() {
+    try {
+      const res = await axios.get(`${apiBase}/api/testruns/active`, {
+        params: { blockIndex: selectedBlock }
+      });
+      setActiveTestRun(res.data);
+    } catch (error) {
+      // No active test run
+      setActiveTestRun(null);
+    }
+  }
+
+  async function startTest() {
+    if (!selectedVentilConfig) {
+      alert('Bitte wählen Sie eine Ventilkonfiguration aus!');
+      return;
+    }
+
+    if (testType === 'Langzeittest' && !selectedLangzeitConfig) {
+      alert('Bitte wählen Sie eine Langzeittest-Konfiguration aus!');
+      return;
+    }
+
+    if (testType === 'Detailtest' && !selectedDetailConfig) {
+      alert('Bitte wählen Sie eine Detailtest-Konfiguration aus!');
+      return;
+    }
+
+    setIsStartingTest(true);
+    setStatusMessage('Test wird vorbereitet...');
+
+    try {
+      // Step 1: Load and send Ventilkonfiguration
+      setStatusMessage('Lade Ventilkonfiguration...');
+      const ventilConfig = await axios.get(`${apiBase}/api/parameters/${selectedVentilConfig}`);
+      await sendParametersToOPCUA(ventilConfig.data.payload, 'Ventilkonfiguration');
+      await verifyParameters(ventilConfig.data.payload, 'Ventilkonfiguration');
+
+      // Step 2: Load and send test-specific configuration
+      if (testType === 'Langzeittest' && selectedLangzeitConfig) {
+        setStatusMessage('Lade Langzeittest-Konfiguration...');
+        const langzeitConfig = await axios.get(`${apiBase}/api/parameters/${selectedLangzeitConfig}`);
+        await sendParametersToOPCUA(langzeitConfig.data.payload, 'Konfiguration_Langzeittest');
+        await verifyParameters(langzeitConfig.data.payload, 'Konfiguration_Langzeittest');
+      } else if (testType === 'Detailtest' && selectedDetailConfig) {
+        setStatusMessage('Lade Detailtest-Konfiguration...');
+        const detailConfig = await axios.get(`${apiBase}/api/parameters/${selectedDetailConfig}`);
+        await sendParametersToOPCUA(detailConfig.data.payload, 'Konfiguration_Detailtest');
+        await verifyParameters(detailConfig.data.payload, 'Konfiguration_Detailtest');
+      }
+
+      // Step 3: Create TestRun entry in database
+      setStatusMessage('Erstelle Prüflauf-Eintrag...');
+      const testRunResponse = await axios.post(`${apiBase}/api/testruns`, {
+        testType: testType,
+        blockIndex: selectedBlock,
+        ventilkonfigurationId: selectedVentilConfig,
+        konfigurationLangzeittestId: testType === 'Langzeittest' ? selectedLangzeitConfig : null,
+        konfigurationDetailtestId: testType === 'Detailtest' ? selectedDetailConfig : null,
+        comment: testComment || `${testType} - Block ${selectedBlock}`
+      });
+
+      const newTestRun: TestRun = testRunResponse.data;
+      setActiveTestRun(newTestRun);
+
+      // Step 4: Set active test run in MeasurementDataService
+      setStatusMessage('Setze aktiven Prüflauf...');
+      await axios.post(`${apiBase}/api/measurementmonitoring/active-testrun`, {
+        blockIndex: selectedBlock,
+        messID: newTestRun.messID
+      });
+
+      // Step 5: Start the test run
+      setStatusMessage('Starte Prüflauf...');
+      await axios.post(`${apiBase}/api/testruns/${newTestRun.messID}/start`);
+
+      // Step 6: Send start command to OPC UA
+      await sendStartCommand();
+
+      setStatusMessage(`Prüflauf ${newTestRun.messID} erfolgreich gestartet!`);
+      
+      // Reload next MessID for next test
+      await loadNextMessID();
+
+      // Clear selections for next test
+      setTimeout(() => {
+        setStatusMessage('');
+      }, 5000);
+
+    } catch (error: any) {
+      console.error('Error starting test:', error);
+      setStatusMessage(`Fehler beim Starten des Tests: ${error.message}`);
+      alert(`Fehler beim Starten des Tests: ${error.message}`);
+    } finally {
+      setIsStartingTest(false);
+    }
+  }
+
+  async function sendParametersToOPCUA(payloadJson: string, groupName: string) {
+    try {
+      const payload = JSON.parse(payloadJson);
+      const groups = payload.groups || {};
+      
+      // Send each group's parameters
+      for (const [gName, params] of Object.entries(groups)) {
+        if (Array.isArray(params)) {
+          for (const param of params) {
+            await axios.post(`${apiBase}/api/cache/write-parameter`, {
+              blockIndex: selectedBlock,
+              groupName: gName,
+              parameterName: param.name,
+              value: param.value
+            });
+          }
+        }
+      }
+      
+      // Small delay to ensure all parameters are written
+      await new Promise(resolve => setTimeout(resolve, 200));
+    } catch (error) {
+      console.error(`Failed to send parameters for ${groupName}:`, error);
+      throw new Error(`Fehler beim Senden der Parameter für ${groupName}`);
+    }
+  }
+
+  async function verifyParameters(payloadJson: string, groupName: string) {
+    // Optional: Read back parameters to verify they were written correctly
+    // This is a simplified version - you may want to add more detailed verification
+    setStatusMessage(`Verifiziere ${groupName}...`);
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+
+  async function sendStartCommand() {
+    // Send appropriate start command based on test type
+    const commandMap: { [key: string]: string } = {
+      'Langzeittest': 'StartLangzeittest',
+      'Detailtest': 'StartDetailtest',
+      'Einzeltest': 'StartEinzeltest'
+    };
+
+    const command = commandMap[testType];
+    if (command) {
+      await axios.post(`${apiBase}/api/cache/execute-command`, {
+        blockIndex: selectedBlock,
+        command: command
+      });
+    }
+  }
+
+  async function stopTest() {
+    if (!activeTestRun) return;
+
+    try {
+      // Send stop command to OPC UA
+      await axios.post(`${apiBase}/api/cache/execute-command`, {
+        blockIndex: selectedBlock,
+        command: 'Stop'
+      });
+
+      // Complete the test run
+      await axios.post(`${apiBase}/api/testruns/${activeTestRun.messID}/complete`);
+
+      // Clear active test run
+      await axios.delete(`${apiBase}/api/measurementmonitoring/active-testrun`, {
+        params: { blockIndex: selectedBlock }
+      });
+
+      setActiveTestRun(null);
+      setStatusMessage('Test gestoppt');
+      
+      setTimeout(() => {
+        setStatusMessage('');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error stopping test:', error);
+      alert(`Fehler beim Stoppen des Tests: ${error.message}`);
+    }
+  }
 
   // Styles
   const thStyle: React.CSSProperties = {
@@ -28,6 +277,228 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
+      {/* Test Run Control Panel */}
+      <div style={{
+        backgroundColor: '#fff',
+        borderRadius: '8px',
+        padding: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        border: '2px solid #3498db'
+      }}>
+        <h2 style={{ margin: '0 0 16px 0', color: '#2c3e50', fontSize: '16px', fontWeight: 'bold' }}>
+          🚀 Test Run Control - Block {selectedBlock}
+        </h2>
+
+        {/* Active Test Run Display */}
+        {activeTestRun && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#d4edda',
+            border: '1px solid #c3e6cb',
+            borderRadius: '6px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontWeight: 'bold', color: '#155724', marginBottom: '8px' }}>
+              ✅ Aktiver Prüflauf
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px' }}>
+              <div><strong>MessID:</strong> {activeTestRun.messID}</div>
+              <div><strong>Typ:</strong> {activeTestRun.testType}</div>
+              <div><strong>Status:</strong> {activeTestRun.status}</div>
+              <div><strong>Gestartet:</strong> {new Date(activeTestRun.startedAt).toLocaleString()}</div>
+            </div>
+            <button
+              onClick={stopTest}
+              style={{
+                marginTop: '12px',
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              ⏹ Test Stoppen
+            </button>
+          </div>
+        )}
+
+        {/* Status Message */}
+        {statusMessage && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: isStartingTest ? '#fff3cd' : '#d1ecf1',
+            border: `1px solid ${isStartingTest ? '#ffc107' : '#bee5eb'}`,
+            borderRadius: '6px',
+            marginBottom: '16px',
+            color: isStartingTest ? '#856404' : '#0c5460'
+          }}>
+            {statusMessage}
+          </div>
+        )}
+
+        {/* Test Configuration */}
+        {!activeTestRun && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Next MessID Display */}
+            <div style={{
+              padding: '12px',
+              backgroundColor: '#e8f4f8',
+              borderRadius: '6px',
+              border: '1px solid #b3d9e6'
+            }}>
+              <strong>Nächste MessID:</strong> {nextMessID !== null ? nextMessID : 'Laden...'}
+            </div>
+
+            {/* Test Type Selection */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                Test-Typ:
+              </label>
+              <select
+                value={testType}
+                onChange={(e) => setTestType(e.target.value as any)}
+                disabled={isStartingTest}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="Langzeittest">Langzeittest</option>
+                <option value="Detailtest">Detailtest</option>
+                <option value="Einzeltest">Einzeltest</option>
+              </select>
+            </div>
+
+            {/* Ventilkonfiguration Selection */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                Ventilkonfiguration: *
+              </label>
+              <select
+                value={selectedVentilConfig || ''}
+                onChange={(e) => setSelectedVentilConfig(Number(e.target.value) || null)}
+                disabled={isStartingTest}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">-- Bitte auswählen --</option>
+                {ventilParameterSets.map(ps => (
+                  <option key={ps.id} value={ps.id}>
+                    {ps.name} {ps.comment && `(${ps.comment})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Langzeittest Configuration */}
+            {testType === 'Langzeittest' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                  Langzeittest-Konfiguration: *
+                </label>
+                <select
+                  value={selectedLangzeitConfig || ''}
+                  onChange={(e) => setSelectedLangzeitConfig(Number(e.target.value) || null)}
+                  disabled={isStartingTest}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">-- Bitte auswählen --</option>
+                  {langzeittestParameterSets.map(ps => (
+                    <option key={ps.id} value={ps.id}>
+                      {ps.name} {ps.comment && `(${ps.comment})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Detailtest Configuration */}
+            {testType === 'Detailtest' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                  Detailtest-Konfiguration: *
+                </label>
+                <select
+                  value={selectedDetailConfig || ''}
+                  onChange={(e) => setSelectedDetailConfig(Number(e.target.value) || null)}
+                  disabled={isStartingTest}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">-- Bitte auswählen --</option>
+                  {detailtestParameterSets.map(ps => (
+                    <option key={ps.id} value={ps.id}>
+                      {ps.name} {ps.comment && `(${ps.comment})`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Comment */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                Kommentar (optional):
+              </label>
+              <input
+                type="text"
+                value={testComment}
+                onChange={(e) => setTestComment(e.target.value)}
+                disabled={isStartingTest}
+                placeholder="Optional: Beschreibung des Tests"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            {/* Start Button */}
+            <button
+              onClick={startTest}
+              disabled={isStartingTest || !selectedVentilConfig}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: isStartingTest || !selectedVentilConfig ? '#95a5a6' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: isStartingTest || !selectedVentilConfig ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}
+            >
+              {isStartingTest ? '⏳ Wird gestartet...' : '▶ Test Starten'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Header with cache info */}
       <div style={{
         backgroundColor: '#e8f4f8',

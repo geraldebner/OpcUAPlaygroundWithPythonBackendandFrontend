@@ -4,6 +4,16 @@ export interface Snapshot {
   createdAt: string;
   comment?: string;
   identifierNumber?: number;
+  testRunMessID?: number;
+}
+
+export interface TestRunInfo {
+  messID: number;
+  testType: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  comment?: string;
 }
 
 export interface LoadedData {
@@ -13,6 +23,7 @@ export interface LoadedData {
   identifierNumber?: number;
   createdAt: string;
   data: any;
+  testRun?: TestRunInfo;
 }
 
 export interface ChartZoomState {

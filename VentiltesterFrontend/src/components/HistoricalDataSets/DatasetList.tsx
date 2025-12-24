@@ -60,6 +60,19 @@ export default function DatasetList({
                       {snapshot.comment}
                     </div>
                   )}
+                  {snapshot.testRunMessID && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#2e7d32',
+                      backgroundColor: '#e8f5e9',
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      marginTop: '4px',
+                      display: 'inline-block'
+                    }}>
+                      🔬 Prüflauf MessID: {snapshot.testRunMessID}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                   <button 

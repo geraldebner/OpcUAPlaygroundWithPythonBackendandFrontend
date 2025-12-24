@@ -23,6 +23,9 @@ public class MeasurementDataService : IDisposable
     // Track last known DatenReady values for each block/group
     private readonly ConcurrentDictionary<string, int> _lastDatenReadyValues = new();
     
+    // Track active test runs (MessID) per block
+    private readonly ConcurrentDictionary<int, int> _activeTestRunMessID = new();
+    
     // Configurable groups to monitor (group names that contain measurement data)
     private readonly List<string> _monitoredGroups = new()
     {
@@ -100,6 +103,32 @@ public class MeasurementDataService : IDisposable
     }
 
     public List<string> MonitoredGroups => _monitoredGroups;
+
+    /// <summary>
+    /// Set the active test run for a block
+    /// </summary>
+    public void SetActiveTestRun(int blockIndex, int messID)
+    {
+        _activeTestRunMessID[blockIndex] = messID;
+        _logger?.LogInformation("Set active test run MessID {MessID} for block {Block}", messID, blockIndex);
+    }
+
+    /// <summary>
+    /// Get the active test run MessID for a block (if any)
+    /// </summary>
+    public int? GetActiveTestRun(int blockIndex)
+    {
+        return _activeTestRunMessID.TryGetValue(blockIndex, out var messID) ? messID : null;
+    }
+
+    /// <summary>
+    /// Clear the active test run for a block
+    /// </summary>
+    public void ClearActiveTestRun(int blockIndex)
+    {
+        _activeTestRunMessID.TryRemove(blockIndex, out _);
+        _logger?.LogInformation("Cleared active test run for block {Block}", blockIndex);
+    }
 
     /// <summary>
     /// Start monitoring measurement groups for data changes
@@ -384,6 +413,9 @@ public class MeasurementDataService : IDisposable
             };
             var jsonPayload = System.Text.Json.JsonSerializer.Serialize(groupData, jsonOptions);
 
+            // Get active test run for this block
+            var activeTestRunMessID = GetActiveTestRun(blockIndex);
+
             // Create dataset entry
             var dataset = new MeasurementSet
             {
@@ -392,8 +424,15 @@ public class MeasurementDataService : IDisposable
                 Comment = $"Auto-saved by MeasurementDataService (DatenReady={datenReadyValue}, MessID={messId})",
                 IdentifierNumber = messId,
                 JsonPayload = jsonPayload,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                TestRunMessID = activeTestRunMessID // Link to active test run
             };
+
+            _logger?.LogDebug(
+                "Creating dataset for block {Block} group {Group} with TestRunMessID={TestRunMessID}",
+                blockIndex,
+                groupName,
+                activeTestRunMessID);
 
             // Create a scope to access the DbContext
             using (var scope = _scopeFactory.CreateScope())

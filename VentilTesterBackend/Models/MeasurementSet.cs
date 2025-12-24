@@ -15,4 +15,10 @@ public class MeasurementSet
     public int BlockIndex { get; set; }
     // JSON payload containing measurement snapshot (e.g. ventils, counters)
     public string JsonPayload { get; set; } = string.Empty;
+    
+    // Foreign key reference to TestRun - links measurement to a test run
+    public int? TestRunMessID { get; set; }
+    
+    // Navigation property to TestRun
+    public TestRun? TestRun { get; set; }
 }

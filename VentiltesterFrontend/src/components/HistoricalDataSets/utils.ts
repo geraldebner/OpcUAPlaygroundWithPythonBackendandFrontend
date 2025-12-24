@@ -77,6 +77,23 @@ export function exportToCSV(loadedData: LoadedData | null): void {
   if (loadedData.comment) {
     rows.push(`Comment,"${loadedData.comment.replace(/"/g, '""')}"`);
   }
+  
+  // Add TestRun information if available
+  if (loadedData.testRun) {
+    rows.push('');
+    rows.push('Test Run Information');
+    rows.push(`MessID,${loadedData.testRun.messID}`);
+    rows.push(`Test Type,${loadedData.testRun.testType}`);
+    rows.push(`Status,${loadedData.testRun.status}`);
+    rows.push(`Started At,${new Date(loadedData.testRun.startedAt).toLocaleString()}`);
+    if (loadedData.testRun.completedAt) {
+      rows.push(`Completed At,${new Date(loadedData.testRun.completedAt).toLocaleString()}`);
+    }
+    if (loadedData.testRun.comment) {
+      rows.push(`Test Comment,"${loadedData.testRun.comment.replace(/"/g, '""')}"`);
+    }
+  }
+  
   rows.push('');
 
   // Add parameter data

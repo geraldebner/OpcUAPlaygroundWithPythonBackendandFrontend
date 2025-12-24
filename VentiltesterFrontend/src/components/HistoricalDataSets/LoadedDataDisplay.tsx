@@ -92,6 +92,41 @@ export default function LoadedDataDisplay({
               "{loadedData.comment}"
             </div>
           )}
+          {loadedData.testRun && (
+            <div style={{
+              marginTop: '8px',
+              padding: '8px',
+              backgroundColor: '#e8f5e9',
+              border: '1px solid #c8e6c9',
+              borderRadius: '4px'
+            }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#2e7d32', marginBottom: '4px' }}>
+                🔬 Prüflauf Information
+              </div>
+              <div style={{ fontSize: '11px', color: '#555', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px' }}>
+                <span style={{ fontWeight: 'bold' }}>MessID:</span>
+                <span>{loadedData.testRun.messID}</span>
+                <span style={{ fontWeight: 'bold' }}>Typ:</span>
+                <span>{loadedData.testRun.testType}</span>
+                <span style={{ fontWeight: 'bold' }}>Status:</span>
+                <span>{loadedData.testRun.status}</span>
+                <span style={{ fontWeight: 'bold' }}>Gestartet:</span>
+                <span>{new Date(loadedData.testRun.startedAt).toLocaleString()}</span>
+                {loadedData.testRun.completedAt && (
+                  <>
+                    <span style={{ fontWeight: 'bold' }}>Beendet:</span>
+                    <span>{new Date(loadedData.testRun.completedAt).toLocaleString()}</span>
+                  </>
+                )}
+                {loadedData.testRun.comment && (
+                  <>
+                    <span style={{ fontWeight: 'bold' }}>Kommentar:</span>
+                    <span>{loadedData.testRun.comment}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ maxHeight: '350px', overflowY: 'auto' }}>

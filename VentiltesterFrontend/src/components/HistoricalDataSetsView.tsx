@@ -79,7 +79,15 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
         comment: dataset.comment,
         identifierNumber: dataset.identifierNumber,
         createdAt: dataset.createdAt,
-        data: parsedData
+        data: parsedData,
+        testRun: dataset.testRun ? {
+          messID: dataset.testRun.messID,
+          testType: dataset.testRun.testType,
+          status: dataset.testRun.status,
+          startedAt: dataset.testRun.startedAt,
+          completedAt: dataset.testRun.completedAt,
+          comment: dataset.testRun.comment
+        } : undefined
       };
 
       setLoadedData(loadedDataset);

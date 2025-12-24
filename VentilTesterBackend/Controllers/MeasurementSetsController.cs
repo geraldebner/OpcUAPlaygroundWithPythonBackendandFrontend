@@ -24,20 +24,65 @@ namespace VentilTesterBackend.Controllers
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] int? blockIndex)
         {
-            IQueryable<MeasurementSet> q = _db.MeasurementSets;
+            IQueryable<MeasurementSet> q = _db.MeasurementSets
+                .Include(m => m.TestRun);
+            
             if (blockIndex.HasValue)
                 q = q.Where(m => m.BlockIndex == blockIndex.Value);
+            
             var list = await q.OrderByDescending(m => m.CreatedAt).ToListAsync();
-            return Ok(list.Select(m => new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment, m.IdentifierNumber }));
+            
+            return Ok(list.Select(m => new 
+            { 
+                m.Id, 
+                m.Name, 
+                m.BlockIndex, 
+                m.CreatedAt, 
+                m.Comment, 
+                m.IdentifierNumber,
+                TestRunMessID = m.TestRunMessID,
+                TestRun = m.TestRun != null ? new
+                {
+                    m.TestRun.MessID,
+                    m.TestRun.TestType,
+                    m.TestRun.Status,
+                    m.TestRun.StartedAt,
+                    m.TestRun.CompletedAt,
+                    m.TestRun.Comment
+                } : null
+            }));
         }
 
         // GET api/measurementsets/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var item = await _db.MeasurementSets.FindAsync(id);
+            var item = await _db.MeasurementSets
+                .Include(m => m.TestRun)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            
             if (item == null) return NotFound();
-            return Ok(new { item.Id, item.Name, item.BlockIndex, item.CreatedAt, item.Comment, item.IdentifierNumber, payload = item.JsonPayload });
+            
+            return Ok(new 
+            { 
+                item.Id, 
+                item.Name, 
+                item.BlockIndex, 
+                item.CreatedAt, 
+                item.Comment, 
+                item.IdentifierNumber, 
+                payload = item.JsonPayload,
+                TestRunMessID = item.TestRunMessID,
+                TestRun = item.TestRun != null ? new
+                {
+                    item.TestRun.MessID,
+                    item.TestRun.TestType,
+                    item.TestRun.Status,
+                    item.TestRun.StartedAt,
+                    item.TestRun.CompletedAt,
+                    item.TestRun.Comment
+                } : null
+            });
         }
 
         // POST api/measurementsets
