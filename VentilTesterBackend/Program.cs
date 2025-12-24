@@ -78,6 +78,9 @@ builder.Services.AddSingleton<MeasurementDataService>();
 // Test Overview Cache Service
 builder.Services.AddSingleton<CacheService>();
 
+// TestRun Service
+builder.Services.AddScoped<TestRunService>();
+
 var app = builder.Build();
 
 // Ensure DB created
