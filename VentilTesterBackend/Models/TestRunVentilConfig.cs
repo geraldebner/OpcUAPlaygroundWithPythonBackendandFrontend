@@ -44,6 +44,12 @@ public class TestRunVentilConfig
     /// </summary>
     public int StartCounterValue { get; set; } = 0;
 
+    /// <summary>
+    /// Counter value read from the PLC at the time the test run is stopped/completed.
+    /// Will be null until the stop event persists the current counter.
+    /// </summary>
+    public int? EndCounterValue { get; set; }
+
     // Navigation property
     public TestRun TestRun { get; set; } = null!;
 }

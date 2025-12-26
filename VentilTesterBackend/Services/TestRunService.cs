@@ -240,6 +240,65 @@ public class TestRunService
     /// </summary>
     public async Task<bool> CompleteTestRunAsync(int messID)
     {
+        try
+        {
+            // Load test run with configs to persist end counters
+            var testRun = await _context.TestRuns
+                .Include(tr => tr.VentilConfigs)
+                .FirstOrDefaultAsync(tr => tr.MessID == messID);
+
+            if (testRun == null)
+            {
+                _logger.LogWarning("Test run with MessID {MessID} not found for completion", messID);
+            }
+            else
+            {
+                // Read current counters from OPC UA group 'Daten_Langzeittest' and store them
+                try
+                {
+                    var blockIndex = testRun.BlockIndex;
+                    var groupValues = _opcUaService.ReadGroup(blockIndex, "Daten_Langzeittest");
+
+                    // Build quick lookup by param name (case-insensitive)
+                    var map = groupValues
+                        .Where(p => p?.Name != null)
+                        .ToDictionary(p => p.Name!, p => p.Value, StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var vc in testRun.VentilConfigs)
+                    {
+                        var key = $"ZaehlerVentil_{vc.VentilNumber}";
+                        if (map.TryGetValue(key, out var raw))
+                        {
+                            if (int.TryParse(Convert.ToString(raw), out var parsed))
+                            {
+                                vc.EndCounterValue = parsed;
+                            }
+                            else
+                            {
+                                // fall back: try parsing strings that might contain decimals
+                                var s = Convert.ToString(raw) ?? "";
+                                if (double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                                {
+                                    vc.EndCounterValue = (int)Math.Round(d);
+                                }
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Persisted end counters for test run {MessID}", messID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to read/persist end counters for test run {MessID}", messID);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during completion flow for test run {MessID}", messID);
+        }
+
         return await UpdateTestRunStatusAsync(messID, "Completed", DateTime.UtcNow);
     }
 
@@ -248,6 +307,60 @@ public class TestRunService
     /// </summary>
     public async Task<bool> FailTestRunAsync(int messID)
     {
+        try
+        {
+            var testRun = await _context.TestRuns
+                .Include(tr => tr.VentilConfigs)
+                .FirstOrDefaultAsync(tr => tr.MessID == messID);
+
+            if (testRun == null)
+            {
+                _logger.LogWarning("Test run with MessID {MessID} not found for fail", messID);
+            }
+            else
+            {
+                try
+                {
+                    var blockIndex = testRun.BlockIndex;
+                    var groupValues = _opcUaService.ReadGroup(blockIndex, "Daten_Langzeittest");
+                    var map = groupValues
+                        .Where(p => p?.Name != null)
+                        .ToDictionary(p => p.Name!, p => p.Value, StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var vc in testRun.VentilConfigs)
+                    {
+                        var key = $"ZaehlerVentil_{vc.VentilNumber}";
+                        if (map.TryGetValue(key, out var raw))
+                        {
+                            if (int.TryParse(Convert.ToString(raw), out var parsed))
+                            {
+                                vc.EndCounterValue = parsed;
+                            }
+                            else
+                            {
+                                var s = Convert.ToString(raw) ?? "";
+                                if (double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                                {
+                                    vc.EndCounterValue = (int)Math.Round(d);
+                                }
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Persisted end counters for failed test run {MessID}", messID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to read/persist end counters for failed test run {MessID}", messID);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during fail flow for test run {MessID}", messID);
+        }
+
         return await UpdateTestRunStatusAsync(messID, "Failed", DateTime.UtcNow);
     }
 
@@ -256,6 +369,60 @@ public class TestRunService
     /// </summary>
     public async Task<bool> CancelTestRunAsync(int messID)
     {
+        try
+        {
+            var testRun = await _context.TestRuns
+                .Include(tr => tr.VentilConfigs)
+                .FirstOrDefaultAsync(tr => tr.MessID == messID);
+
+            if (testRun == null)
+            {
+                _logger.LogWarning("Test run with MessID {MessID} not found for cancel", messID);
+            }
+            else
+            {
+                try
+                {
+                    var blockIndex = testRun.BlockIndex;
+                    var groupValues = _opcUaService.ReadGroup(blockIndex, "Daten_Langzeittest");
+                    var map = groupValues
+                        .Where(p => p?.Name != null)
+                        .ToDictionary(p => p.Name!, p => p.Value, StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var vc in testRun.VentilConfigs)
+                    {
+                        var key = $"ZaehlerVentil_{vc.VentilNumber}";
+                        if (map.TryGetValue(key, out var raw))
+                        {
+                            if (int.TryParse(Convert.ToString(raw), out var parsed))
+                            {
+                                vc.EndCounterValue = parsed;
+                            }
+                            else
+                            {
+                                var s = Convert.ToString(raw) ?? "";
+                                if (double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                                {
+                                    vc.EndCounterValue = (int)Math.Round(d);
+                                }
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Persisted end counters for cancelled test run {MessID}", messID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to read/persist end counters for cancelled test run {MessID}", messID);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during cancel flow for test run {MessID}", messID);
+        }
+
         return await UpdateTestRunStatusAsync(messID, "Cancelled", DateTime.UtcNow);
     }
 }
