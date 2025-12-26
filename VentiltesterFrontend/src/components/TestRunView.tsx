@@ -31,6 +31,7 @@ interface VentilConfig {
   number: number;
   enabled: boolean;
   comment: string;
+  startCounterValue: number;
 }
 
 export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps) {
@@ -58,7 +59,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     Array.from({ length: 16 }, (_, i) => ({
       number: i + 1,
       enabled: true,
-      comment: ''
+      comment: '',
+      startCounterValue: 0
     }))
   );
   
@@ -218,7 +220,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         ventilConfigs: ventilConfigs.map(v => ({
           number: v.number,
           enabled: v.enabled,
-          comment: v.comment
+          comment: v.comment,
+          startCounterValue: v.startCounterValue
         }))
       });
       
@@ -302,7 +305,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
       // Step 9: Verify that the test actually started by checking MessMode
       setStatusMessage('Warte auf Bestätigung vom PLC...');
       const expectedMessMode = testType === 'Langzeittest' ? 1 : testType === 'Detailtest' ? 2 : 3;
-      const testStarted = await waitForMessModeChange(expectedMessMode, 10000); // 10 second timeout
+      const testStarted = await waitForMessModeChange(expectedMessMode, 30000); // extended timeout to 30s with direct-read fallback
 
       if (!testStarted) {
         // Test didn't start, rollback
@@ -341,33 +344,55 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   }
 
   async function waitForMessModeChange(expectedMode: number, timeoutMs: number): Promise<boolean> {
+    // Give PLC a moment to react before polling
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     const startTime = Date.now();
-    const pollInterval = 500; // Check every 500ms
+    let intervalMs = 500; // start fast, then back off up to 2.5s
 
     while (Date.now() - startTime < timeoutMs) {
       try {
-        // Fetch fresh data directly from cache endpoint
-        const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
-        const freshData = response.data;
-        
-        const currentMessMode = freshData?.allgemeineParameter?.messMode;
-        console.log(`Checking MessMode: current=${currentMessMode}, expected=${expectedMode}`);
-        
-        if (currentMessMode === expectedMode) {
-          console.log('MessMode confirmed - test started successfully');
-          // Trigger a refresh to update the UI
-          refresh();
-          return true;
+        // 1) Try cache endpoint (fast path)
+        try {
+          const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
+          const freshData = response.data;
+          const currentMessMode = freshData?.allgemeineParameter?.messMode;
+          console.log(`Checking MessMode (cache): current=${currentMessMode}, expected=${expectedMode}`);
+          if (currentMessMode === expectedMode) {
+            console.log('MessMode confirmed via cache - test started successfully');
+            refresh();
+            return true;
+          }
+        } catch (e) {
+          console.warn('Cache read failed, will try direct parameter read next.', e);
+        }
+
+        // 2) Direct read from parameters endpoint (more up-to-date than cache)
+        try {
+          const grp = encodeURIComponent('AllgemeineParameter');
+          const paramsResp = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${grp}`);
+          const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
+          const messModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'messmode');
+          const directMessMode = messModeParam != null ? Number(messModeParam.value) : undefined;
+          console.log(`Checking MessMode (direct): current=${directMessMode}, expected=${expectedMode}`);
+          if (directMessMode === expectedMode) {
+            console.log('MessMode confirmed via direct read - test started successfully');
+            refresh();
+            return true;
+          }
+        } catch (e) {
+          console.warn('Direct parameter read failed.', e);
         }
       } catch (error) {
-        console.error('Error fetching MessMode:', error);
+        console.error('Error while checking MessMode:', error);
       }
-      
-      // Wait before next poll
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+      // progressive backoff up to 2500ms
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      intervalMs = Math.min(2500, Math.round(intervalMs * 1.5));
     }
-    
-    console.error('Timeout waiting for MessMode change');
+
+    console.error('Timeout waiting for MessMode change after extended checks');
     return false;
   }
 
@@ -886,11 +911,33 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                           fontSize: '12px'
                         }}
                       />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', color: '#555' }}>Startzähler:</label>
+                        <input
+                          type="number"
+                          value={ventil.startCounterValue}
+                          onChange={(e) => {
+                            const updated = [...ventilConfigs];
+                            const val = Number(e.target.value);
+                            updated[ventil.number - 1].startCounterValue = isNaN(val) ? 0 : val;
+                            setVentilConfigs(updated);
+                          }}
+                          disabled={isStartingTest}
+                          min={0}
+                          style={{
+                            width: '90px',
+                            padding: '4px 8px',
+                            border: '1px solid #ccc',
+                            borderRadius: '3px',
+                            fontSize: '12px'
+                          }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
                 <div style={{ marginTop: '6px', fontSize: '11px', color: '#666' }}>
-                  ℹ️ Aktivierte Ventile werden im Test berücksichtigt. Deaktivierte Ventile werden in VentilSperre gesetzt.
+                  ℹ️ Aktivierte Ventile werden im Test berücksichtigt. Deaktivierte Ventile werden in VentilSperre gesetzt. Der Startzähler wird beim Start in den PLC geschrieben (Standard 0).
                 </div>
               </div>
             </div>

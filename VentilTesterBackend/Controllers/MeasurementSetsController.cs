@@ -86,7 +86,8 @@ namespace VentilTesterBackend.Controllers
                     {
                         vc.VentilNumber,
                         vc.Enabled,
-                        vc.Comment
+                        vc.Comment,
+                        vc.StartCounterValue
                     }).ToList()
                 } : null
             });

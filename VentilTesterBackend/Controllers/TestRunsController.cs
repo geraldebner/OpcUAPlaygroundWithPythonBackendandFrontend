@@ -87,7 +87,8 @@ public class TestRunsController : ControllerBase
                         {
                             VentilNumber = vc.Number,
                             Enabled = vc.Enabled,
-                            Comment = vc.Comment
+                            Comment = vc.Comment,
+                            StartCounterValue = vc.StartCounterValue
                         }).ToList();
                     }
                 }
@@ -270,4 +271,5 @@ public class VentilConfigData
     public int Number { get; set; }
     public bool Enabled { get; set; }
     public string? Comment { get; set; }
+    public int StartCounterValue { get; set; } = 0;
 }

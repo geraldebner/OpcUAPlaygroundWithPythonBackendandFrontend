@@ -11,11 +11,13 @@ public class TestRunService
 {
     private readonly AppDbContext _context;
     private readonly ILogger<TestRunService> _logger;
+    private readonly OpcUaService _opcUaService;
 
-    public TestRunService(AppDbContext context, ILogger<TestRunService> logger)
+    public TestRunService(AppDbContext context, ILogger<TestRunService> logger, OpcUaService opcUaService)
     {
         _context = context;
         _logger = logger;
+        _opcUaService = opcUaService;
     }
 
     /// <summary>
@@ -184,6 +186,52 @@ public class TestRunService
     /// </summary>
     public async Task<bool> StartTestRunAsync(int messID)
     {
+        // Fetch test run including ventil configs
+        var testRun = await _context.TestRuns
+            .Include(tr => tr.VentilConfigs)
+            .FirstOrDefaultAsync(tr => tr.MessID == messID);
+
+        if (testRun == null)
+        {
+            _logger.LogWarning("Test run with MessID {MessID} not found", messID);
+            return false;
+        }
+
+        // Write start counter values to OPC UA for each ventil
+        try
+        {
+            int blockIndex = testRun.BlockIndex;
+            // If no configs provided, still initialize 1..16 to 0
+            var configsByVentil = (testRun.VentilConfigs ?? new List<TestRunVentilConfig>())
+                .ToDictionary(vc => vc.VentilNumber, vc => vc);
+
+            for (int v = 1; v <= 16; v++)
+            {
+                int startValue = 0;
+                if (configsByVentil.TryGetValue(v, out var cfg))
+                {
+                    startValue = cfg.StartCounterValue;
+                }
+                try
+                {
+                    // Group: Daten_Langzeittest; Param: ZaehlerVentil_{v}
+                    var paramName = $"ZaehlerVentil_{v}";
+                    _opcUaService.WriteNode(blockIndex, "Daten_Langzeittest", paramName, startValue.ToString());
+                    _logger.LogInformation("Initialized OPC UA counter {Param} to {Value} for block {Block}", paramName, startValue, blockIndex);
+                }
+                catch (Exception ex)
+                {
+                    // Log and continue; do not fail entire start if a single write fails
+                    _logger.LogWarning(ex, "Failed to write OPC UA counter for ventil {Ventil} on block {Block}", v, blockIndex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error while initializing OPC UA start counters for test run {MessID}", messID);
+        }
+
+        // Now set status to Running
         return await UpdateTestRunStatusAsync(messID, "Running");
     }
 

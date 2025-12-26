@@ -38,6 +38,12 @@ public class TestRunVentilConfig
     /// </summary>
     public string? Comment { get; set; }
 
+    /// <summary>
+    /// Start counting value for this ventil when the test run starts.
+    /// Defaults to 0 if not provided.
+    /// </summary>
+    public int StartCounterValue { get; set; } = 0;
+
     // Navigation property
     public TestRun TestRun { get; set; } = null!;
 }
