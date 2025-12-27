@@ -197,7 +197,15 @@ namespace VentilTesterBackend.Controllers
                 _logger.LogWarning("Dataset {id} payload deserialized to null", id);
                 return BadRequest(new { error = "Parameter set payload is empty or invalid" });
             }
-            var ok = _opc.WriteBlock(ps.BlockIndex, block);
+            
+            // If BlockIndex is null, we cannot write to OPC UA without knowing which block
+            if (!ps.BlockIndex.HasValue)
+            {
+                _logger.LogWarning("Dataset {id} has no BlockIndex specified for writing to OPC UA", id);
+                return BadRequest(new { error = "Dataset has no BlockIndex specified; cannot write to OPC UA" });
+            }
+            
+            var ok = _opc.WriteBlock(ps.BlockIndex.Value, block);
             if (!ok)
             {
                 _logger.LogError("OPC UA write failed for dataset {id} (block {block})", id, ps.BlockIndex);
