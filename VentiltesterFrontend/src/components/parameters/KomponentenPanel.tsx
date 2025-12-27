@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import EditableGroupsPanel from '../EditableGroupsPanel';
+import SaveDatasetModal from './SaveDatasetModal';
 import { Dataset } from '../../types';
 
 interface KomponentenPanelProps {
@@ -26,6 +27,15 @@ export default function KomponentenPanel({
   setKomponentenDirty,
   onSaveSuccess
 }: KomponentenPanelProps) {
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+
+  const getPayload = () => {
+    return JSON.stringify({
+      groups: Object.fromEntries(
+        Object.entries(komponentenGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
+      )
+    });
+  };
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -41,23 +51,7 @@ export default function KomponentenPanel({
           ))}
         </select>
         <button
-          onClick={async () => {
-            if (!selectedKomponentenConfig) { alert('Kein Komponenten-Dataset gewählt'); return; }
-            const payload = {
-              groups: Object.fromEntries(
-                Object.entries(komponentenGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
-              )
-            };
-            const name = `Komponenten_${new Date().toISOString()}`;
-            try {
-              await axios.post(`${apiBase}/api/datasets`, { name, type: 'Komponenten', jsonPayload: JSON.stringify(payload) });
-              alert('Komponenten als neues Dataset gespeichert');
-              onSaveSuccess();
-            } catch (e) {
-              console.error('Save Komponenten dataset failed', e);
-              alert('Speichern fehlgeschlagen');
-            }
-          }}
+          onClick={() => setShowSaveModal(true)}
           style={{ padding: '6px 10px' }}
         >Als neues Dataset speichern</button>
       </div>
@@ -66,6 +60,15 @@ export default function KomponentenPanel({
         groups={komponentenGroups}
         setGroups={(g) => { setKomponentenGroups(g); setKomponentenDirty(true); }}
         onDirty={(d) => setKomponentenDirty(d)}
+      />
+
+      <SaveDatasetModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSaveSuccess={onSaveSuccess}
+        apiBase={apiBase}
+        type="Komponenten"
+        jsonPayload={getPayload()}
       />
     </div>
   );

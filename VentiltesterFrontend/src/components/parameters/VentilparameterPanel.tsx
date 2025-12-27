@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import EditableGroupsPanel from '../EditableGroupsPanel';
+import SaveDatasetModal from './SaveDatasetModal';
 import { Dataset } from '../../types';
 
 interface VentilparameterPanelProps {
@@ -26,6 +27,18 @@ export default function VentilparameterPanel({
   setVentilDirty,
   onSaveSuccess
 }: VentilparameterPanelProps) {
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+
+  const getPayload = () => {
+    const payload = {
+      groups: Object.fromEntries(
+        Object.entries(ventilGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
+      )
+    };
+    const jsonString = JSON.stringify(payload);
+    console.log('Ventil payload:', jsonString);
+    return jsonString;
+  };
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -41,23 +54,7 @@ export default function VentilparameterPanel({
           ))}
         </select>
         <button
-          onClick={async () => {
-            if (!selectedVentilConfig) { alert('Kein Ventil-Dataset gewählt'); return; }
-            const payload = {
-              groups: Object.fromEntries(
-                Object.entries(ventilGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
-              )
-            };
-            const name = `Ventilkonfig_${new Date().toISOString()}`;
-            try {
-              await axios.post(`${apiBase}/api/datasets`, { name, type: 'VentilAnsteuerparameter', jsonPayload: JSON.stringify(payload) });
-              alert('Ventilparameter als neues Dataset gespeichert');
-              onSaveSuccess();
-            } catch (e) {
-              console.error('Save Ventil dataset failed', e);
-              alert('Speichern fehlgeschlagen');
-            }
-          }}
+          onClick={() => setShowSaveModal(true)}
           style={{ padding: '6px 10px' }}
         >Als neues Dataset speichern</button>
       </div>
@@ -66,6 +63,15 @@ export default function VentilparameterPanel({
         groups={ventilGroups}
         setGroups={(g) => { setVentilGroups(g); setVentilDirty(true); }}
         onDirty={(d) => setVentilDirty(d)}
+      />
+
+      <SaveDatasetModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSaveSuccess={onSaveSuccess}
+        apiBase={apiBase}
+        type="VentilAnsteuerparameter"
+        jsonPayload={getPayload()}
       />
     </div>
   );

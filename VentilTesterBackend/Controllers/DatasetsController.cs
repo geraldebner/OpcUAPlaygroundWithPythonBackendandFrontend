@@ -101,7 +101,7 @@ namespace VentilTesterBackend.Controllers
                     if (body.TryGetProperty("type", out var t))
                         type = t.GetString() ?? "All";
                     if (
-                           body.TryGetProperty("blockIndex", out var bi) && bi.TryGetInt32(out var bix) && bix > 0
+                           body.TryGetProperty("blockIndex", out var bi) && bi.TryGetInt32(out var bix) && bix >= 0
                     )
                         blockIndex = bix;
                     if (
@@ -144,7 +144,12 @@ namespace VentilTesterBackend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create dataset: {message}", ex.Message);
-                return BadRequest(new { error = "invalid body", detail = ex.Message });
+                // Log inner exception for debugging
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError(ex.InnerException, "Inner exception: {message}", ex.InnerException.Message);
+                }
+                return BadRequest(new { error = "invalid body", detail = ex.Message, innerException = ex.InnerException?.Message });
             }
         }
 

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import EditableGroupsPanel from '../EditableGroupsPanel';
+import SaveDatasetModal from './SaveDatasetModal';
 import { Dataset } from '../../types';
 
 interface TestparameterPanelProps {
@@ -40,6 +41,24 @@ export default function TestparameterPanel({
   setDetailDirty,
   onSaveSuccess
 }: TestparameterPanelProps) {
+  const [showLangzeitSaveModal, setShowLangzeitSaveModal] = useState<boolean>(false);
+  const [showDetailSaveModal, setShowDetailSaveModal] = useState<boolean>(false);
+
+  const getLangzeitPayload = () => {
+    return JSON.stringify({
+      groups: Object.fromEntries(
+        Object.entries(langzeitGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
+      )
+    });
+  };
+
+  const getDetailPayload = () => {
+    return JSON.stringify({
+      groups: Object.fromEntries(
+        Object.entries(detailGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
+      )
+    });
+  };
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -55,23 +74,7 @@ export default function TestparameterPanel({
           ))}
         </select>
         <button
-          onClick={async () => {
-            if (!selectedLangzeitConfig) { alert('Kein Langzeittest-Dataset gewählt'); return; }
-            const payload = {
-              groups: Object.fromEntries(
-                Object.entries(langzeitGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
-              )
-            };
-            const name = `Langzeittest_${new Date().toISOString()}`;
-            try {
-              await axios.post(`${apiBase}/api/datasets`, { name, type: 'Langzeittestparameter', jsonPayload: JSON.stringify(payload) });
-              alert('Langzeittestparameter als neues Dataset gespeichert');
-              onSaveSuccess();
-            } catch (e) {
-              console.error('Save Langzeittest dataset failed', e);
-              alert('Speichern fehlgeschlagen');
-            }
-          }}
+          onClick={() => setShowLangzeitSaveModal(true)}
           style={{ padding: '6px 10px' }}
         >Als neues Dataset speichern</button>
       </div>
@@ -95,23 +98,7 @@ export default function TestparameterPanel({
           ))}
         </select>
         <button
-          onClick={async () => {
-            if (!selectedDetailConfig) { alert('Kein Detailtest-Dataset gewählt'); return; }
-            const payload = {
-              groups: Object.fromEntries(
-                Object.entries(detailGroups).map(([k, arr]) => [k, arr.map(p => ({ name: p.name, value: p.value }))])
-              )
-            };
-            const name = `Detailtest_${new Date().toISOString()}`;
-            try {
-              await axios.post(`${apiBase}/api/datasets`, { name, type: 'Detailtestparameter', jsonPayload: JSON.stringify(payload) });
-              alert('Detailtestparameter als neues Dataset gespeichert');
-              onSaveSuccess();
-            } catch (e) {
-              console.error('Save Detailtest dataset failed', e);
-              alert('Speichern fehlgeschlagen');
-            }
-          }}
+          onClick={() => setShowDetailSaveModal(true)}
           style={{ padding: '6px 10px' }}
         >Als neues Dataset speichern</button>
       </div>
@@ -120,6 +107,24 @@ export default function TestparameterPanel({
         groups={detailGroups}
         setGroups={(g) => { setDetailGroups(g); setDetailDirty(true); }}
         onDirty={(d) => setDetailDirty(d)}
+      />
+
+      <SaveDatasetModal
+        isOpen={showLangzeitSaveModal}
+        onClose={() => setShowLangzeitSaveModal(false)}
+        onSaveSuccess={onSaveSuccess}
+        apiBase={apiBase}
+        type="Langzeittestparameter"
+        jsonPayload={getLangzeitPayload()}
+      />
+
+      <SaveDatasetModal
+        isOpen={showDetailSaveModal}
+        onClose={() => setShowDetailSaveModal(false)}
+        onSaveSuccess={onSaveSuccess}
+        apiBase={apiBase}
+        type="Detailtestparameter"
+        jsonPayload={getDetailPayload()}
       />
     </div>
   );
