@@ -7,6 +7,11 @@ interface TestRun {
   testType: string;
   status: string;
   startedAt: string;
+  completedAt?: string;
+  ventilkonfigurationId?: number;
+  konfigurationLangzeittestId?: number;
+  konfigurationDetailtestId?: number;
+  comment?: string;
 }
 
 interface ParameterSet {
@@ -27,26 +32,18 @@ interface TestRunControlProps {
   apiBase: string;
   selectedBlock: number;
   messMode: number | null;
-  
-  // Active test run
   activeTestRun: TestRun | null;
   setActiveTestRun: (run: TestRun | null) => void;
   stopTest: () => void;
-  
-  // Test configuration
   testType: 'Langzeittest' | 'Detailtest' | 'Einzeltest';
   setTestType: (type: 'Langzeittest' | 'Detailtest' | 'Einzeltest') => void;
   testComment: string;
   setTestComment: (comment: string) => void;
   nextMessID: number | null;
-  
-  // Parameter sets
   ventilParameterSets: ParameterSet[];
   langzeittestParameterSets: ParameterSet[];
   detailtestParameterSets: ParameterSet[];
   komponentenParameterSets: ParameterSet[];
-  
-  // Selected configurations
   selectedVentilConfig: number | null;
   setSelectedVentilConfig: (id: number | null) => void;
   selectedLangzeitConfig: number | null;
@@ -55,33 +52,24 @@ interface TestRunControlProps {
   setSelectedDetailConfig: (id: number | null) => void;
   selectedKomponentenConfig: number | null;
   setSelectedKomponentenConfig: (id: number | null) => void;
-  
-  // Editable groups
   ventilGroups: Record<string, { name: string; value: string }[]>;
   setVentilGroups: (groups: Record<string, { name: string; value: string }[]>) => void;
   ventilDirty: boolean;
   setVentilDirty: (dirty: boolean) => void;
-  
   langzeitGroups: Record<string, { name: string; value: string }[]>;
   setLangzeitGroups: (groups: Record<string, { name: string; value: string }[]>) => void;
   langzeitDirty: boolean;
   setLangzeitDirty: (dirty: boolean) => void;
-  
   detailGroups: Record<string, { name: string; value: string }[]>;
   setDetailGroups: (groups: Record<string, { name: string; value: string }[]>) => void;
   detailDirty: boolean;
   setDetailDirty: (dirty: boolean) => void;
-  
   komponentenGroups: Record<string, { name: string; value: string }[]>;
   setKomponentenGroups: (groups: Record<string, { name: string; value: string }[]>) => void;
   komponentenDirty: boolean;
   setKomponentenDirty: (dirty: boolean) => void;
-  
-  // Ventil configuration
   ventilConfigs: VentilConfig[];
   setVentilConfigs: (configs: VentilConfig[]) => void;
-  
-  // Langzeittest live values
   langzeitLiveValues: {
     anzahlGesamtSchlagzahlen: string | null;
     anzahlSchlagzahlenDetailtest: string | null;
@@ -97,8 +85,6 @@ interface TestRunControlProps {
   langzeitLoading: boolean;
   loadLangzeitValues: () => void;
   writeLangzeitValue: (paramName: string, value: string) => void;
-  
-  // Test control
   isStartingTest: boolean;
   statusMessage: string;
   startTest: () => void;
@@ -292,7 +278,6 @@ export default function TestRunControl(props: TestRunControlProps) {
           <div style={{ display: 'flex', gap: '16px' }}>
             {/* Left Column - Parameter Configurations */}
             <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
               {/* Ventilkonfiguration Selection */}
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
@@ -393,119 +378,76 @@ export default function TestRunControl(props: TestRunControlProps) {
 
               {/* Langzeittest Live OPC UA Values */}
               {testType === 'Langzeittest' && (
-                <div style={{
-                  padding: '12px',
-                  backgroundColor: '#f0f8ff',
-                  border: '2px solid #4169e1',
-                  borderRadius: '6px'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <label style={{ fontWeight: 'bold', color: '#1e40af' }}>
-                      📊 Langzeittest OPC UA Parameter (Live)
-                    </label>
-                    <button
-                      onClick={() => loadLangzeitValues()}
-                      disabled={langzeitLoading}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: langzeitLoading ? '#95a5a6' : '#3498db',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: langzeitLoading ? 'not-allowed' : 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {langzeitLoading ? '⏳ Laden...' : '🔄 Aktualisieren'}
-                    </button>
-                  </div>
+                <div style={{ padding: '10px 12px', border: '1px solid #dfe6ee', borderRadius: '6px', background: '#f9fbff' }}>
+                  
 
-                  {/* AnzahlGesamtSchlagzahlen */}
-                  <div style={{ marginBottom: '10px' }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
-                      Anzahl Gesamt Schlagzahlen
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '6px', alignItems: 'center' }}>
+                  {([
+                    {
+                      label: 'AnzahlGesamtSchlagzahlen',
+                      live: langzeitLiveValues.anzahlGesamtSchlagzahlen,
+                      value: langzeitEditValues.anzahlGesamtSchlagzahlen,
+                      setValue: (val: string) => setLangzeitEditValues({ ...langzeitEditValues, anzahlGesamtSchlagzahlen: val }),
+                      param: 'AnzahlGesamtSchlagzahlen'
+                    },
+                    {
+                      label: 'AnzahlSchlagzahlenDetailtest',
+                      live: langzeitLiveValues.anzahlSchlagzahlenDetailtest,
+                      value: langzeitEditValues.anzahlSchlagzahlenDetailtest,
+                      setValue: (val: string) => setLangzeitEditValues({ ...langzeitEditValues, anzahlSchlagzahlenDetailtest: val }),
+                      param: 'AnzahlSchlagzahlenDetailtest'
+                    }
+                  ] as const).map((row) => (
+                    <div key={row.param} style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 1fr auto auto', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ fontSize: '12px', color: '#333' }}>{row.label}</div>
+                      <div style={{ fontSize: '11px', color: '#555' }}>Live: <strong>{row.live ?? '--'}</strong></div>
                       <input
                         type="text"
-                        value={langzeitEditValues.anzahlGesamtSchlagzahlen}
-                        onChange={(e) => setLangzeitEditValues({
-                          ...langzeitEditValues,
-                          anzahlGesamtSchlagzahlen: e.target.value
-                        })}
+                        value={row.value}
+                        onChange={(e) => row.setValue(e.target.value)}
                         disabled={langzeitLoading}
                         style={{
-                          padding: '6px 8px',
+                          padding: '4px 6px',
                           border: '1px solid #ccc',
                           borderRadius: '4px',
                           fontSize: '12px'
                         }}
                       />
                       <button
-                        onClick={() => writeLangzeitValue('AnzahlGesamtSchlagzahlen', langzeitEditValues.anzahlGesamtSchlagzahlen)}
+                        onClick={() => {
+                          const liveVal = row.live ?? '';
+                          row.setValue(String(liveVal));
+                        }}
                         disabled={langzeitLoading}
                         style={{
-                          padding: '6px 12px',
-                          backgroundColor: langzeitLoading ? '#95a5a6' : '#27ae60',
-                          color: 'white',
-                          border: 'none',
+                          padding: '4px 10px',
+                          backgroundColor: '#e5e7eb',
+                          color: '#111827',
+                          border: '1px solid #cbd5e1',
                           borderRadius: '4px',
                           cursor: langzeitLoading ? 'not-allowed' : 'pointer',
-                          fontSize: '11px',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        ✓ Schreiben
-                      </button>
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                      Aktuell: <strong>{langzeitLiveValues.anzahlGesamtSchlagzahlen === null ? '--' : langzeitLiveValues.anzahlGesamtSchlagzahlen === '' ? '(leer)' : langzeitLiveValues.anzahlGesamtSchlagzahlen}</strong>
-                    </div>
-                  </div>
-
-                  {/* AnzahlSchlagzahlenDetailtest */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
-                      Anzahl Schlagzahlen Detailtest
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '6px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        value={langzeitEditValues.anzahlSchlagzahlenDetailtest}
-                        onChange={(e) => setLangzeitEditValues({
-                          ...langzeitEditValues,
-                          anzahlSchlagzahlenDetailtest: e.target.value
-                        })}
-                        disabled={langzeitLoading}
-                        style={{
-                          padding: '6px 8px',
-                          border: '1px solid #ccc',
-                          borderRadius: '4px',
                           fontSize: '12px'
                         }}
-                      />
+                      >
+                        Read
+                      </button>
                       <button
-                        onClick={() => writeLangzeitValue('AnzahlSchlagzahlenDetailtest', langzeitEditValues.anzahlSchlagzahlenDetailtest)}
+                        onClick={() => writeLangzeitValue(row.param, row.value)}
                         disabled={langzeitLoading}
                         style={{
-                          padding: '6px 12px',
+                          padding: '4px 10px',
                           backgroundColor: langzeitLoading ? '#95a5a6' : '#27ae60',
                           color: 'white',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: langzeitLoading ? 'not-allowed' : 'pointer',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           fontWeight: 'bold'
                         }}
                       >
-                        ✓ Schreiben
+                        Write
                       </button>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                      Aktuell: <strong>{langzeitLiveValues.anzahlSchlagzahlenDetailtest === null ? '--' : langzeitLiveValues.anzahlSchlagzahlenDetailtest === '' ? '(leer)' : langzeitLiveValues.anzahlSchlagzahlenDetailtest}</strong>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
 
