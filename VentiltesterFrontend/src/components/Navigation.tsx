@@ -22,9 +22,9 @@ export default function Navigation({
   operationMode
 }: NavigationProps) {
   const tabs = [
+    { id: 'testrun' as const, label: 'Test Run', icon: '📡' },
     { id: 'parameters' as const, label: 'Parameters', icon: '📊' },
     { id: 'commandsandmeasurements' as const, label: 'Commands & Measurements', icon: '⚙️' },
-    { id: 'testrun' as const, label: 'Test Run', icon: '📡' },
     { id: 'historical' as const, label: 'Historical Data', icon: '📈' },
     { id: 'status' as const, label: 'Status', icon: '🔍' },
     { id: 'settings' as const, label: 'Settings', icon: '⚙️' }
