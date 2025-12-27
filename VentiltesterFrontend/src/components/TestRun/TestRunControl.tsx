@@ -167,7 +167,6 @@ export default function TestRunControl(props: TestRunControlProps) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px' }}>
             <div><strong>MessID:</strong> {activeTestRun.messID}</div>
             <div><strong>Typ:</strong> {activeTestRun.testType}</div>
-            <div><strong>Status:</strong> {activeTestRun.status}</div>
             <div><strong>Gestartet:</strong> {new Date(activeTestRun.startedAt).toLocaleString()}</div>
           </div>
           <button
