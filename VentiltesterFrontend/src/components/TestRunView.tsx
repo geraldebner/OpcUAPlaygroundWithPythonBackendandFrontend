@@ -744,19 +744,95 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   async function stopTest() {
     if (!activeTestRun) return;
     try {
+      setStatusMessage('Sende Stop-Befehl an PLC...');
+      
+      // Determine stop command based on test type from activeTestRun
       let stopCommand = 'Stop';
-      if (messMode === 1) stopCommand = 'Langzeittest_Stop';
-      else if (messMode === 2) stopCommand = 'Detailtest_Stop';
-      else if (messMode === 3) stopCommand = 'Einzeltest_Stop';
-      await axios.post(`${apiBase}/api/parameters/${selectedBlock}/value?group=Kommandos&name=${stopCommand}`, { value: 'true' });
+      if (activeTestRun.testType === 'Langzeittest') {
+        stopCommand = 'Langzeittest_Stop';
+      } else if (activeTestRun.testType === 'Detailtest') {
+        stopCommand = 'Detailtest_Stop';
+      } else if (activeTestRun.testType === 'Einzeltest') {
+        stopCommand = 'Einzeltest_Stop';
+      }
+      
+      console.log(`Sending stop command: ${stopCommand} to block ${selectedBlock}`);
+      
+      const response = await axios.post(
+        `${apiBase}/api/parameters/${selectedBlock}/value?group=${encodeURIComponent('Kommandos')}&name=${encodeURIComponent(stopCommand)}`,
+        { value: 'true' }
+      );
+      
+      console.log('Stop command response:', response.data);
+      
+      setStatusMessage('Warte auf Bestätigung vom PLC (MessMode und OperationMode müssen auf 0 gehen)...');
+      
+      // Wait for MessMode and OperationMode to become 0
+      const testStopped = await waitForTestStop(30000);
+      
+      if (!testStopped) {
+        setStatusMessage('⚠️ Warnung: Test-Stop-Befehl gesendet, aber PLC antwortet nicht. MessMode oder OperationMode sind noch nicht 0.');
+        console.warn('Test stop not confirmed by PLC');
+      } else {
+        setStatusMessage('Test erfolgreich gestoppt!');
+      }
+      
       await axios.post(`${apiBase}/api/testruns/${activeTestRun.messID}/complete`);
       await axios.delete(`${apiBase}/api/measurementmonitoring/active-testrun`, { params: { blockIndex: selectedBlock } });
       setActiveTestRun(null);
-      setStatusMessage('Test gestoppt');
-      setTimeout(() => setStatusMessage(''), 3000);
+      
+      setTimeout(() => setStatusMessage(''), 5000);
     } catch (error: any) {
-      alert(`Fehler beim Stoppen des Tests: ${error.message}`);
+      console.error('Error stopping test:', error);
+      setStatusMessage(`Fehler beim Stoppen des Tests: ${error.message}`);
+      setTimeout(() => setStatusMessage(''), 5000);
     }
+  }
+
+  async function waitForTestStop(timeoutMs: number): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const startTime = Date.now();
+    let intervalMs = 500;
+    
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        // Try to get fresh data from cache
+        try {
+          const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
+          const freshData = response.data;
+          const currentMessMode = freshData?.allgemeineParameter?.messMode;
+          const currentOperationMode = freshData?.allgemeineParameter?.operationMode;
+          
+          if (currentMessMode === 0 && currentOperationMode === 0) {
+            refresh();
+            return true;
+          }
+        } catch (e) { }
+        
+        // Try to get from parameters endpoint
+        try {
+          const grp = encodeURIComponent('AllgemeineParameter');
+          const paramsResp = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${grp}`);
+          const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
+          
+          const messModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'messmode');
+          const operationModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'operationmode');
+          
+          const directMessMode = messModeParam != null ? Number(messModeParam.value) : undefined;
+          const directOperationMode = operationModeParam != null ? Number(operationModeParam.value) : undefined;
+          
+          if (directMessMode === 0 && directOperationMode === 0) {
+            refresh();
+            return true;
+          }
+        } catch (e) { }
+      } catch (error) { }
+      
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      intervalMs = Math.min(2500, Math.round(intervalMs * 1.5));
+    }
+    
+    return false;
   }
 
   return (
