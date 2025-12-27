@@ -138,6 +138,19 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     loadActiveTestRun();
   }, [selectedBlock]);
 
+  // Load running test when messMode or operationMode changes
+  useEffect(() => {
+    const loadRunning = async () => {
+      if (messMode !== 0 && messMode !== null) {
+        const running = await findRunningTestRun();
+        if (running) {
+          setActiveTestRun(running);
+        }
+      }
+    };
+    loadRunning();
+  }, [messMode, operationMode, selectedBlock]);
+
   useEffect(() => {
     const load = async () => {
       if (!selectedVentilConfig) { setVentilGroups({}); setVentilDirty(false); return; }
@@ -314,6 +327,65 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }
   }
 
+  async function findRunningTestRun(): Promise<TestRun | null> {
+    try {
+      // Check if messMode indicates a running test
+      if (messMode === 0) return null;
+
+      let messIDParamName: string;
+      let expectedTestType: string;
+
+      // Determine which MessID to read based on operationMode and messMode
+      if (operationMode === 1) {
+        // Langzeittest
+        messIDParamName = 'MessIDLongterm';
+        expectedTestType = 'Langzeittest';
+      } else if (operationMode === 2) {
+        // Detailtest or Einzeltest - check messMode
+        if (messMode === 2) {
+          messIDParamName = 'MessIDDetail';
+          expectedTestType = 'Detailtest';
+        } else if (messMode === 3) {
+          messIDParamName = 'MessIDSingle';
+          expectedTestType = 'Einzeltest';
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+
+      // Read MessID from OPC UA
+      const grp = encodeURIComponent('Kommandos');
+      const paramsResp = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${grp}`);
+      const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
+      const messIDParam = list.find((p: any) => (p?.name || '') === messIDParamName);
+      
+      if (!messIDParam) {
+        console.warn(`${messIDParamName} nicht gefunden in OPC UA`);
+        return null;
+      }
+
+      const messID = Number(messIDParam.value);
+      if (isNaN(messID) || messID <= 0) {
+        console.warn(`Ungültige MessID: ${messIDParam.value}`);
+        return null;
+      }
+
+      // Look up this MessID in the TestRuns table
+      try {
+        const testRes = await axios.get(`${apiBase}/api/testruns/${messID}`);
+        return testRes.data;
+      } catch (e) {
+        console.warn(`TestRun mit MessID ${messID} nicht gefunden in DB`);
+        return null;
+      }
+    } catch (error) {
+      console.error('Fehler beim Suchen des laufenden Tests:', error);
+      return null;
+    }
+  }
+
   function parseDatasetToGroups(payloadJson?: string): Record<string, { name: string; value: string }[]> {
     if (!payloadJson) return {};
     try {
@@ -362,7 +434,21 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }
     if (!canStartTest) {
       const currentTest = getMessModeText(messMode);
-      alert(`Kann keinen Test starten!\n\nAktueller Status: ${currentTest}\n\nBitte stoppen Sie zuerst den laufenden Test.`);
+      const runningTest = await findRunningTestRun();
+      
+      let message = `Kann keinen Test starten!\n\nAktueller Status: ${currentTest}\n`;
+      
+      if (runningTest) {
+        message += `\nLaufender Test:\n`;
+        message += `  MessID: ${runningTest.messID}\n`;
+        message += `  Typ: ${runningTest.testType}\n`;
+        message += `  Status: ${runningTest.status}\n`;
+        message += `  Gestartet: ${new Date(runningTest.startedAt).toLocaleString()}\n`;
+      }
+      
+      message += `\nBitte stoppen Sie zuerst den laufenden Test.`;
+      
+      alert(message);
       return;
     }
 
@@ -527,16 +613,22 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
 
       setStatusMessage('Warte auf Bestätigung vom PLC...');
       const expectedMessMode = testType === 'Langzeittest' ? 1 : testType === 'Detailtest' ? 2 : 3;
-      const testStarted = await waitForMessModeChange(expectedMessMode, 30000);
+      const result = await waitForMessModeChange(expectedMessMode, 30000);
 
-      if (!testStarted) {
+      if (!result.started) {
         await axios.post(`${apiBase}/api/testruns/${newTestRun.messID}/fail`);
         await axios.delete(`${apiBase}/api/measurementmonitoring/active-testrun`, { params: { blockIndex: selectedBlock } });
         setActiveTestRun(null);
         throw new Error('PLC hat den Test nicht gestartet. MessMode wurde nicht geändert.');
       }
 
-      setStatusMessage(`Prüflauf ${newTestRun.messID} erfolgreich gestartet!`);
+      if (!result.correctType) {
+        const actualType = result.actualMessMode === 1 ? 'Langzeittest' : result.actualMessMode === 2 ? 'Detailtest' : 'Einzeltest';
+        console.warn(`Warnung: PLC startete ${actualType} (MessMode ${result.actualMessMode}) statt ${testType} (MessMode ${expectedMessMode})`);
+        setStatusMessage(`⚠️ Prüflauf ${newTestRun.messID} gestartet, aber als ${actualType} statt ${testType}!`);
+      } else {
+        setStatusMessage(`Prüflauf ${newTestRun.messID} erfolgreich gestartet!`);
+      }
       await loadNextMessID();
       setTimeout(() => setStatusMessage(''), 5000);
 
@@ -549,7 +641,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }
   }
 
-  async function waitForMessModeChange(expectedMode: number, timeoutMs: number): Promise<boolean> {
+  async function waitForMessModeChange(expectedMode: number, timeoutMs: number): Promise<{ started: boolean; correctType: boolean; actualMessMode: number | null }> {
     await new Promise(resolve => setTimeout(resolve, 1500));
     const startTime = Date.now();
     let intervalMs = 500;
@@ -559,9 +651,13 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
           const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
           const freshData = response.data;
           const currentMessMode = freshData?.allgemeineParameter?.messMode;
-          if (currentMessMode === expectedMode) {
+          if (currentMessMode != null && currentMessMode > 0) {
             refresh();
-            return true;
+            return {
+              started: true,
+              correctType: currentMessMode === expectedMode,
+              actualMessMode: currentMessMode
+            };
           }
         } catch (e) { }
         try {
@@ -570,16 +666,20 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
           const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
           const messModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'messmode');
           const directMessMode = messModeParam != null ? Number(messModeParam.value) : undefined;
-          if (directMessMode === expectedMode) {
+          if (directMessMode != null && directMessMode > 0) {
             refresh();
-            return true;
+            return {
+              started: true,
+              correctType: directMessMode === expectedMode,
+              actualMessMode: directMessMode
+            };
           }
         } catch (e) { }
       } catch (error) { }
       await new Promise(resolve => setTimeout(resolve, intervalMs));
       intervalMs = Math.min(2500, Math.round(intervalMs * 1.5));
     }
-    return false;
+    return { started: false, correctType: false, actualMessMode: null };
   }
 
   async function sendParametersToOPCUA(payloadJson: string, groupName: string) {
