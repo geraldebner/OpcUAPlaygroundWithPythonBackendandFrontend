@@ -299,10 +299,10 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     
     // send as legacy dataset shape to /api/datasets
     try {
+      // Note: blockIndex is not sent to API - datasets are now block-independent
       await axios.post(`${apiBase}/api/datasets`, { 
         name, 
         comment, 
-        blockIndex, 
         type, 
         block: filteredBlock 
       });

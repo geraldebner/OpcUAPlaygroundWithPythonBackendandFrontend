@@ -303,13 +303,12 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
 
   async function loadParameterSets() {
     try {
-      const res = await axios.get(`${apiBase}/api/datasets`, {
-        params: { blockIndex: selectedBlock }
-      });
+      // Load datasets without blockIndex filter - make them available across all blocks
+      const res = await axios.get(`${apiBase}/api/datasets`);
       const sets = res.data || [];
       setVentilParameterSets(sets.filter((s: ParameterSet) => s.type === 'VentilAnsteuerparameter'));
-      setLangzeittestParameterSets(sets.filter((s: ParameterSet) => s.type === 'VentilLangzeittestparameter'));
-      setDetailtestParameterSets(sets.filter((s: ParameterSet) => s.type === 'VentilDetailtestparameter'));
+      setLangzeittestParameterSets(sets.filter((s: ParameterSet) => s.type === 'Langzeittestparameter'));
+      setDetailtestParameterSets(sets.filter((s: ParameterSet) => s.type === 'Detailtestparameter'));
       setKomponentenParameterSets(sets.filter((s: ParameterSet) => s.type === 'Komponenten'));
     } catch (error) {
       console.error('Failed to load parameter sets:', error);
@@ -411,7 +410,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   }
 
   async function createDataset(name: string, type: string, blockIndex: number, jsonPayload: string, comment?: string): Promise<number> {
-    const res = await axios.post(`${apiBase}/api/datasets`, { name, type, blockIndex, jsonPayload, comment });
+      // Note: blockIndex is not sent to API anymore - datasets are now block-independent
+      const res = await axios.post(`${apiBase}/api/datasets`, { name, type, jsonPayload, comment });
     return res.data?.id ?? 0;
   }
 

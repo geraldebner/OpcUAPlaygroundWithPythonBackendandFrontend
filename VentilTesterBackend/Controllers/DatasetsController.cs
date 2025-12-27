@@ -88,7 +88,7 @@ namespace VentilTesterBackend.Controllers
                 // body may contain either jsonPayload (string) or a 'block' object
                 string name = string.Empty;
                 string? comment = null;
-                int blockIndex = 1;
+                   int? blockIndex = null;
                 string type = "All";
                 string jsonPayload = "{}";
 
@@ -101,7 +101,7 @@ namespace VentilTesterBackend.Controllers
                     if (body.TryGetProperty("type", out var t))
                         type = t.GetString() ?? "All";
                     if (
-                        body.TryGetProperty("blockIndex", out var bi) && bi.TryGetInt32(out var bix)
+                           body.TryGetProperty("blockIndex", out var bi) && bi.TryGetInt32(out var bix) && bix > 0
                     )
                         blockIndex = bix;
                     if (

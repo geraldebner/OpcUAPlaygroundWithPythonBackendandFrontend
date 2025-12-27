@@ -11,7 +11,7 @@ public class ParameterSet
     public string? Comment { get; set; }
 
     // The block index this set belongs to (1..4)
-    public int BlockIndex { get; set; }
+    public int? BlockIndex { get; set; }
 
     // Type of parameter set: All, VentilAnsteuerparameter, VentilLangzeittestparameter, VentilDetailtestparameter, VentilEinzeltestparameter
     public string Type { get; set; } = "All";
