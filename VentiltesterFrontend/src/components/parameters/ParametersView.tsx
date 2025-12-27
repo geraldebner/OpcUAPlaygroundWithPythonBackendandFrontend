@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ParameterLiveDataPanel from './ParameterLiveDataPanel';
 import ParameterDataSetPanel from './ParameterDataSetPanel';
+import EditableGroupsPanel from '../EditableGroupsPanel';
+import VentilparameterPanel from './VentilparameterPanel';
+import TestparameterPanel from './TestparameterPanel';
+import KomponentenPanel from './KomponentenPanel';
 import {
   Block,
   Dataset,
@@ -50,7 +54,7 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
 
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [edits, setEdits] = useState<Edits>({});
-  const [paramInnerTab, setParamInnerTab] = useState<TabType>('live');
+  const [paramInnerTab, setParamInnerTab] = useState<TabType>('ventil');
   // start with auto-refresh disabled to avoid background polling by default
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [parameterDatasets, setParameterDatasets] = useState<Dataset[]>([]);
@@ -58,11 +62,56 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
   const [busyGroups, setBusyGroups] = useState<BusyGroups>({});
   const [datasetsLoading, setDatasetsLoading] = useState<boolean>(false);
   
+  // Panels state: Ventilparameter, Testparameter (Langzeit + Detail), Komponenten
+  const [ventilSets, setVentilSets] = useState<Dataset[]>([]);
+  const [langzeitSets, setLangzeitSets] = useState<Dataset[]>([]);
+  const [detailSets, setDetailSets] = useState<Dataset[]>([]);
+  const [komponentenSets, setKomponentenSets] = useState<Dataset[]>([]);
+
+  const [selectedVentilConfig, setSelectedVentilConfig] = useState<number | null>(null);
+  const [selectedLangzeitConfig, setSelectedLangzeitConfig] = useState<number | null>(null);
+  const [selectedDetailConfig, setSelectedDetailConfig] = useState<number | null>(null);
+  const [selectedKomponentenConfig, setSelectedKomponentenConfig] = useState<number | null>(null);
+
+  const [ventilGroups, setVentilGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [ventilDirty, setVentilDirty] = useState<boolean>(false);
+  const [langzeitGroups, setLangzeitGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [langzeitDirty, setLangzeitDirty] = useState<boolean>(false);
+  const [detailGroups, setDetailGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [detailDirty, setDetailDirty] = useState<boolean>(false);
+  const [komponentenGroups, setKomponentenGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [komponentenDirty, setKomponentenDirty] = useState<boolean>(false);
+  
   // State for dataset save modal
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveModalData, setSaveModalData] = useState({ name: '', comment: '', type: ParameterSetType.All, blockIndex: 0 });
 
   useEffect(() => { fetchParameterDatasets(); }, []); // wird nur einmal ausgeführt
+
+  // Helper: parse dataset payload to groups
+  function parseDatasetToGroups(payloadJson?: string): Record<string, { name: string; value: string }[]> {
+    if (!payloadJson) return {};
+    try {
+      const payload = JSON.parse(payloadJson);
+      const groups: Record<string, { name: string; value: string }[]> = {};
+      const g = payload.groups || {};
+      Object.keys(g).forEach(k => {
+        const arr = Array.isArray(g[k]) ? g[k] : [];
+        groups[k] = arr.map((p: any) => ({ name: String(p.name), value: String(p.value ?? '') }));
+      });
+      return groups;
+    } catch {
+      return {};
+    }
+  }
+
+  function buildPayloadFromGroups(groups: Record<string, { name: string; value: string }[]>): string {
+    const payload = { groups: {} as any };
+    Object.entries(groups).forEach(([k, arr]) => {
+      payload.groups[k] = (arr || []).map(p => ({ name: p.name, value: p.value }));
+    });
+    return JSON.stringify(payload);
+  }
 
   // when selectedBlock changes, ensure we have a placeholder entry so UI can show parameters even if live data is not loaded
   useEffect(() => {
@@ -199,13 +248,107 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     setDatasetsLoading(true);
     try {
       const res = await axios.get(`${apiBase}/api/datasets`);
-      setParameterDatasets(res.data || []);
+      const all = res.data || [];
+      setParameterDatasets(all);
+      setVentilSets(all.filter((s: Dataset) => s.type === 'VentilAnsteuerparameter'));
+      setLangzeitSets(all.filter((s: Dataset) => s.type === 'Langzeittestparameter' || s.type === 'VentilLangzeittestparameter'));
+      setDetailSets(all.filter((s: Dataset) => s.type === 'Detailtestparameter' || s.type === 'VentilDetailtestparameter'));
+      setKomponentenSets(all.filter((s: Dataset) => s.type === 'Komponenten'));
     } catch (e) {
       console.error('fetchParameterDatasets', e);
     } finally {
       setDatasetsLoading(false);
     }
   }
+
+  // Load selected datasets into editable groups
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedVentilConfig) { setVentilGroups({}); setVentilDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedVentilConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if ((g || '').toLowerCase().includes('ventilkonfiguration')) filtered[g] = arr as any;
+        });
+        setVentilGroups(filtered);
+        setVentilDirty(false);
+      } catch (e) {
+        console.error('Failed to load Ventil dataset payload', e);
+        setVentilGroups({});
+        setVentilDirty(false);
+      }
+    };
+    load();
+  }, [selectedVentilConfig, apiBase]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedLangzeitConfig) { setLangzeitGroups({}); setLangzeitDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedLangzeitConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if ((g || '').toLowerCase().includes('langzeittest')) filtered[g] = arr as any;
+        });
+        setLangzeitGroups(filtered);
+        setLangzeitDirty(false);
+      } catch (e) {
+        console.error('Failed to load Langzeittest dataset payload', e);
+        setLangzeitGroups({});
+        setLangzeitDirty(false);
+      }
+    };
+    load();
+  }, [selectedLangzeitConfig, apiBase]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedDetailConfig) { setDetailGroups({}); setDetailDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedDetailConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if ((g || '').toLowerCase().includes('detailtest')) filtered[g] = arr as any;
+        });
+        setDetailGroups(filtered);
+        setDetailDirty(false);
+      } catch (e) {
+        console.error('Failed to load Detailtest dataset payload', e);
+        setDetailGroups({});
+        setDetailDirty(false);
+      }
+    };
+    load();
+  }, [selectedDetailConfig, apiBase]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedKomponentenConfig) { setKomponentenGroups({}); setKomponentenDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedKomponentenConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if (g === 'Ventilkonfiguration/Sensor-Regler') filtered[g] = arr as any;
+        });
+        setKomponentenGroups(filtered);
+        setKomponentenDirty(false);
+      } catch (e) {
+        console.error('Failed to load Komponenten dataset payload', e);
+        setKomponentenGroups({});
+        setKomponentenDirty(false);
+      }
+    };
+    load();
+  }, [selectedKomponentenConfig, apiBase]);
 
   function getEditKey(blockIndex: number, group: string, name: string): string {
     return `${blockIndex}||${group}||${name}`;
@@ -462,7 +605,10 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     <div>
       <div className="actions">
         <div className="tabs">
-          <button className={paramInnerTab === 'live' ? 'active' : ''} onClick={() => setParamInnerTab('live')}>Live</button>
+          <button className={paramInnerTab === 'ventil' ? 'active' : ''} onClick={() => setParamInnerTab('ventil')}>Ventilparameter</button>
+          <button className={paramInnerTab === 'test' ? 'active' : ''} onClick={() => setParamInnerTab('test')} style={{ marginLeft: 8 }}>Testparameter</button>
+          <button className={paramInnerTab === 'komponenten' ? 'active' : ''} onClick={() => setParamInnerTab('komponenten')} style={{ marginLeft: 8 }}>Komponenten</button>
+          <button className={paramInnerTab === 'live' ? 'active' : ''} onClick={() => setParamInnerTab('live')} style={{ marginLeft: 8 }}>Live</button>
           <button className={paramInnerTab === 'stored' ? 'active' : ''} onClick={() => setParamInnerTab('stored')} style={{ marginLeft: 8 }}>Stored</button>
         </div>
       </div>
@@ -502,6 +648,58 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
           loadParameterDataset={loadParameterDataset}
           writeDatasetToOpc={writeDatasetToOpc}
           deleteDataset={deleteDataset}
+        />
+      )}
+
+      {/* Ventilparameter Panel */}
+      {paramInnerTab === 'ventil' && (
+        <VentilparameterPanel
+          apiBase={apiBase}
+          ventilSets={ventilSets}
+          selectedVentilConfig={selectedVentilConfig}
+          setSelectedVentilConfig={setSelectedVentilConfig}
+          ventilGroups={ventilGroups}
+          setVentilGroups={setVentilGroups}
+          ventilDirty={ventilDirty}
+          setVentilDirty={setVentilDirty}
+          onSaveSuccess={fetchParameterDatasets}
+        />
+      )}
+
+      {/* Testparameter Panel (Langzeittest + Detailtest) */}
+      {paramInnerTab === 'test' && (
+        <TestparameterPanel
+          apiBase={apiBase}
+          langzeitSets={langzeitSets}
+          detailSets={detailSets}
+          selectedLangzeitConfig={selectedLangzeitConfig}
+          setSelectedLangzeitConfig={setSelectedLangzeitConfig}
+          selectedDetailConfig={selectedDetailConfig}
+          setSelectedDetailConfig={setSelectedDetailConfig}
+          langzeitGroups={langzeitGroups}
+          setLangzeitGroups={setLangzeitGroups}
+          langzeitDirty={langzeitDirty}
+          setLangzeitDirty={setLangzeitDirty}
+          detailGroups={detailGroups}
+          setDetailGroups={setDetailGroups}
+          detailDirty={detailDirty}
+          setDetailDirty={setDetailDirty}
+          onSaveSuccess={fetchParameterDatasets}
+        />
+      )}
+
+      {/* Komponenten Panel */}
+      {paramInnerTab === 'komponenten' && (
+        <KomponentenPanel
+          apiBase={apiBase}
+          komponentenSets={komponentenSets}
+          selectedKomponentenConfig={selectedKomponentenConfig}
+          setSelectedKomponentenConfig={setSelectedKomponentenConfig}
+          komponentenGroups={komponentenGroups}
+          setKomponentenGroups={setKomponentenGroups}
+          komponentenDirty={komponentenDirty}
+          setKomponentenDirty={setKomponentenDirty}
+          onSaveSuccess={fetchParameterDatasets}
         />
       )}
 

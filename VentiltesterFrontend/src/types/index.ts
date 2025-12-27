@@ -34,7 +34,7 @@ export interface Edits {
   [key: string]: string;
 }
 
-export type TabType = 'live' | 'stored';
+export type TabType = 'live' | 'stored' | 'ventil' | 'test' | 'komponenten';
 
 // Props interfaces for components
 export interface ParametersViewProps {
