@@ -151,6 +151,26 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     loadRunning();
   }, [messMode, operationMode, selectedBlock]);
 
+  // Handle natural test completion: if test is active in DB but PLC shows MessMode=0, clean up
+  useEffect(() => {
+    const handleNaturalCompletion = async () => {
+      if (activeTestRun && messMode === 0 && operationMode === 0) {
+        // Test finished naturally on PLC - mark it as complete in DB
+        try {
+          console.log(`Test ${activeTestRun.messID} completed naturally on PLC`);
+          await axios.post(`${apiBase}/api/testruns/${activeTestRun.messID}/complete`);
+          await axios.delete(`${apiBase}/api/measurementmonitoring/active-testrun`, { 
+            params: { blockIndex: selectedBlock } 
+          });
+          setActiveTestRun(null);
+        } catch (error) {
+          console.error('Failed to mark test as complete:', error);
+        }
+      }
+    };
+    handleNaturalCompletion();
+  }, [messMode, operationMode, activeTestRun, selectedBlock, apiBase]);
+
   useEffect(() => {
     const load = async () => {
       if (!selectedVentilConfig) { setVentilGroups({}); setVentilDirty(false); return; }
