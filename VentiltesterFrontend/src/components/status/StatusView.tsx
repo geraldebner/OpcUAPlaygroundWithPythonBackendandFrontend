@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import "../../App.css";
+import { useCache } from "../../hooks/useCache";
+import StatusPanel from "./StatusPanel";
+import VentilStatusOverview from "./VentilStatusOverview";
 
 // Keep the same API_BASE resolution as App.tsx so this component works standalone
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -9,6 +12,10 @@ export default function StatusView() {
   const [cacheStatus, setCacheStatus] = useState<any>(null);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [intervalSec, setIntervalSec] = useState<number>(5);
+  const [selectedBlock, setSelectedBlock] = useState<number>(1);
+
+  // Cached block data for detailed status components
+  const { data, error, refresh } = useCache(API_BASE, selectedBlock, autoRefresh, Math.max(1, intervalSec) * 1000);
 
   useEffect(() => {
     fetchStatus();
@@ -23,6 +30,11 @@ export default function StatusView() {
     }, Math.max(1, intervalSec) * 1000);
     return () => clearInterval(id);
   }, [autoRefresh, intervalSec]);
+
+  // Trigger initial cache fetch and on block change when autoRefresh is off
+  useEffect(() => {
+    refresh();
+  }, [selectedBlock]);
 
   async function fetchStatus() {
     try {
@@ -54,12 +66,15 @@ export default function StatusView() {
     <div style={{ marginTop: 8 }}>
       <h3>System Status</h3>
       <div style={{ marginBottom: 12, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <button onClick={() => { fetchStatus(); fetchCacheStatus(); }}>Refresh Status</button>
+        <button onClick={() => { fetchStatus(); fetchCacheStatus(); refresh(); }}>Refresh Status</button>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} /> Auto-refresh
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           Interval (s): <input type="number" value={intervalSec} min={1} onChange={e => setIntervalSec(Number(e.target.value) || 5)} style={{ width: 64 }} />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Block: <input type="number" value={selectedBlock} min={1} onChange={e => setSelectedBlock(Math.max(1, Number(e.target.value) || 1))} style={{ width: 64 }} />
         </label>
       </div>
       {!status && <div>Loading status...</div>}
@@ -104,6 +119,41 @@ export default function StatusView() {
           )}
         </div>
       )}
+
+      {/* Detailed Status for selected block */}
+      <div style={{ marginTop: 16 }}>
+        {error && (
+          <div style={{ padding: 12, background: '#fee', border: '1px solid #fcc', borderRadius: 6, color: '#c33', marginBottom: 8 }}>
+            {error}
+          </div>
+        )}
+        <StatusPanel
+          selectedBlock={selectedBlock}
+          data={data}
+          getMessModeText={(mode: number | null) => {
+            if (mode === null) return 'Unbekannt';
+            switch (mode) {
+              case 0: return 'Keine Messung aktiv';
+              case 1: return 'Langzeittest aktiv';
+              case 2: return 'Detailtest aktiv';
+              case 3: return 'Einzeltest aktiv';
+              default: return `Unbekannt (${mode})`;
+            }
+          }}
+          getOperationModeText={(mode: number | null) => {
+            if (mode === null) return 'Unbekannt';
+            switch (mode) {
+              case 0: return 'Leerlauf (Bereit)';
+              case 1: return 'Automatik Modus';
+              case 2: return 'Manuell Modus';
+              case 3: return 'Reset';
+              default: return `Unbekannt (${mode})`;
+            }
+          }}
+        />
+
+        <VentilStatusOverview ventilData={data?.ventilData || []} />
+      </div>
     </div>
   );
 }

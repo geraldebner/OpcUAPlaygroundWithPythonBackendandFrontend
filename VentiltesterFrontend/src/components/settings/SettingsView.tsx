@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MappingSection from './MappingSection';
 import BlockSelector from '../shared/BlockSelector';
+import CacheInfo from '../TestRun/CacheInfo';
+import { useCache } from '../../hooks/useCache';
 
 interface SettingsViewProps {
   apiBase: string;
@@ -19,6 +21,9 @@ export default function SettingsView({ apiBase, selectedBlock, onBlockChange }: 
   const [settings, setSettings] = useState<MeasurementServiceSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [pollingInterval, setPollingInterval] = useState<string>('1000');
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+
+  const { data } = useCache(apiBase, (selectedBlock ?? 1), autoRefresh, 2000);
 
   useEffect(() => {
     fetchSettings();
@@ -98,6 +103,13 @@ export default function SettingsView({ apiBase, selectedBlock, onBlockChange }: 
   return (
     <div style={{ padding: '20px' }}>
       <h2 style={{ marginTop: 0, marginBottom: '24px', color: '#1e3a5f' }}>Settings</h2>
+
+      {/* Using Cached Data Control */}
+      {selectedBlock != null && (
+        <div style={{ marginBottom: '16px' }}>
+          <CacheInfo data={data} autoRefresh={autoRefresh} setAutoRefresh={setAutoRefresh} />
+        </div>
+      )}
 
       {/* Block Selection */}
       <div style={{
