@@ -764,6 +764,17 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
       );
       
       console.log('Stop command response:', response.data);
+
+      // If PLC does not go to idle quickly, send one retry after 4 seconds
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      const stoppedEarly = await isTestStopped();
+      if (!stoppedEarly) {
+        console.warn('Test still running after first stop command; sending retry...');
+        await axios.post(
+          `${apiBase}/api/parameters/${selectedBlock}/value?group=${encodeURIComponent('Kommandos')}&name=${encodeURIComponent(stopCommand)}`,
+          { value: 'true' }
+        );
+      }
       
       setStatusMessage('Warte auf Bestätigung vom PLC (MessMode und OperationMode müssen auf 0 gehen)...');
       
@@ -789,6 +800,32 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }
   }
 
+  async function isTestStopped(): Promise<boolean> {
+    try {
+      // Try cache first
+      try {
+        const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
+        const freshData = response.data;
+        const currentMessMode = freshData?.allgemeineParameter?.messMode;
+        const currentOperationMode = freshData?.allgemeineParameter?.operationMode;
+        if (currentMessMode === 0 && currentOperationMode === 0) return true;
+      } catch {}
+
+      // Fallback: parameters endpoint
+      try {
+        const grp = encodeURIComponent('AllgemeineParameter');
+        const paramsResp = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${grp}`);
+        const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
+        const messModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'messmode');
+        const operationModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'operationmode');
+        const directMessMode = messModeParam != null ? Number(messModeParam.value) : undefined;
+        const directOperationMode = operationModeParam != null ? Number(operationModeParam.value) : undefined;
+        if (directMessMode === 0 && directOperationMode === 0) return true;
+      } catch {}
+    } catch {}
+    return false;
+  }
+
   async function waitForTestStop(timeoutMs: number): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 1000));
     const startTime = Date.now();
@@ -796,36 +833,11 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     
     while (Date.now() - startTime < timeoutMs) {
       try {
-        // Try to get fresh data from cache
-        try {
-          const response = await axios.get(`${apiBase}/api/cache/${selectedBlock}`);
-          const freshData = response.data;
-          const currentMessMode = freshData?.allgemeineParameter?.messMode;
-          const currentOperationMode = freshData?.allgemeineParameter?.operationMode;
-          
-          if (currentMessMode === 0 && currentOperationMode === 0) {
-            refresh();
-            return true;
-          }
-        } catch (e) { }
-        
-        // Try to get from parameters endpoint
-        try {
-          const grp = encodeURIComponent('AllgemeineParameter');
-          const paramsResp = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${grp}`);
-          const list = Array.isArray(paramsResp.data) ? paramsResp.data : [];
-          
-          const messModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'messmode');
-          const operationModeParam = list.find((p: any) => (p?.name || '').toLowerCase() === 'operationmode');
-          
-          const directMessMode = messModeParam != null ? Number(messModeParam.value) : undefined;
-          const directOperationMode = operationModeParam != null ? Number(operationModeParam.value) : undefined;
-          
-          if (directMessMode === 0 && directOperationMode === 0) {
-            refresh();
-            return true;
-          }
-        } catch (e) { }
+        const stopped = await isTestStopped();
+        if (stopped) {
+          refresh();
+          return true;
+        }
       } catch (error) { }
       
       await new Promise(resolve => setTimeout(resolve, intervalMs));
