@@ -29,7 +29,7 @@ export default function CacheInfo({ data, autoRefresh, setAutoRefresh }: CacheIn
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
           />
-          <span>Auto Refresh (2s)</span>
+          <span>Auto Refresh (1s)</span>
         </label>
       </div>
     </div>

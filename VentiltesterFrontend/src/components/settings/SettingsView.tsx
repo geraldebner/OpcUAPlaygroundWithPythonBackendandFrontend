@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MappingSection from './MappingSection';
 import BlockSelector from '../shared/BlockSelector';
-import CacheInfo from '../TestRun/CacheInfo';
+import CacheInfo from './CacheInfo';
 import { useCache } from '../../hooks/useCache';
 
 interface SettingsViewProps {
@@ -21,9 +21,9 @@ export default function SettingsView({ apiBase, selectedBlock, onBlockChange }: 
   const [settings, setSettings] = useState<MeasurementServiceSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [pollingInterval, setPollingInterval] = useState<string>('1000');
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
 
-  const { data } = useCache(apiBase, (selectedBlock ?? 1), autoRefresh, 2000);
+  const { data } = useCache(apiBase, (selectedBlock ?? 1), autoRefresh, 1000);
 
   useEffect(() => {
     fetchSettings();
