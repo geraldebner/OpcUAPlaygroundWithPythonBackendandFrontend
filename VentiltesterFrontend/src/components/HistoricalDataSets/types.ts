@@ -3,8 +3,7 @@ export interface Snapshot {
   name: string;
   createdAt: string;
   comment?: string;
-  identifierNumber?: number;
-  testRunMessID?: number;
+  messID?: number;
 }
 
 export interface VentilConfig {
@@ -27,7 +26,7 @@ export interface LoadedData {
   id: number;
   name: string;
   comment?: string;
-  identifierNumber?: number;
+  messID?: number;
   createdAt: string;
   data: any;
   testRun?: TestRunInfo;

@@ -13,11 +13,13 @@ namespace VentilTesterBackend.Controllers
     {
         private readonly AppDbContext _db;
         private readonly OpcUaService _opc;
+        private readonly ILogger<MeasurementSetsController> _logger;
 
-        public MeasurementSetsController(AppDbContext db, OpcUaService opc)
+        public MeasurementSetsController(AppDbContext db, OpcUaService opc, ILogger<MeasurementSetsController> logger)
         {
             _db = db;
             _opc = opc;
+            _logger = logger;
         }
 
         // GET api/measurementsets?blockIndex=1
@@ -39,8 +41,7 @@ namespace VentilTesterBackend.Controllers
                 m.BlockIndex, 
                 m.CreatedAt, 
                 m.Comment, 
-                m.IdentifierNumber,
-                TestRunMessID = m.TestRunMessID,
+                m.MessID,
                 TestRun = m.TestRun != null ? new
                 {
                     m.TestRun.MessID,
@@ -64,6 +65,14 @@ namespace VentilTesterBackend.Controllers
             
             if (item == null) return NotFound();
             
+            _logger.LogInformation(
+                "MeasurementSet {Id}: Name={Name}, MessID={MessID}, TestRun is {TestRunStatus}",
+                item.Id,
+                item.Name,
+                item.MessID,
+                item.TestRun == null ? "NULL" : $"MessID={item.TestRun.MessID}"
+            );
+            
             return Ok(new 
             { 
                 item.Id, 
@@ -71,9 +80,8 @@ namespace VentilTesterBackend.Controllers
                 item.BlockIndex, 
                 item.CreatedAt, 
                 item.Comment, 
-                item.IdentifierNumber, 
+                MessID = item.MessID,
                 payload = item.JsonPayload,
-                TestRunMessID = item.TestRunMessID,
                 TestRun = item.TestRun != null ? new
                 {
                     item.TestRun.MessID,
@@ -104,12 +112,12 @@ namespace VentilTesterBackend.Controllers
                 BlockIndex = req.BlockIndex,
                 CreatedAt = DateTime.UtcNow,
                 Comment = req.Comment,
-                IdentifierNumber = req.IdentifierNumber,
+                MessID = req.MessID,
                 JsonPayload = req.JsonPayload ?? "{}"
             };
             _db.MeasurementSets.Add(m);
             await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = m.Id }, new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment, m.IdentifierNumber });
+            return CreatedAtAction(nameof(GetById), new { id = m.Id }, new { m.Id, m.Name, m.BlockIndex, m.CreatedAt, m.Comment, m.MessID });
         }
 
         // DELETE api/measurementsets/5
@@ -151,7 +159,7 @@ namespace VentilTesterBackend.Controllers
         public string Name { get; set; } = string.Empty;
         public int BlockIndex { get; set; }
         public string? Comment { get; set; }
-        public int? IdentifierNumber { get; set; }
+        public int? MessID { get; set; }
         public string? JsonPayload { get; set; }
     }
 }

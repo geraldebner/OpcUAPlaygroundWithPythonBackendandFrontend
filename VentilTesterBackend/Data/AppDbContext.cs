@@ -47,7 +47,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<MeasurementSet>()
             .HasOne(ms => ms.TestRun)
             .WithMany()
-            .HasForeignKey(ms => ms.TestRunMessID)
+            .HasForeignKey(ms => ms.MessID)
             .OnDelete(DeleteBehavior.SetNull);
 
         // Configure TestRunVentilConfig relationship to TestRun

@@ -39,7 +39,7 @@ export default function LoadedDataDisplay({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <strong style={{ fontSize: '16px' }}>{loadedData.name}</strong>
-              {loadedData.identifierNumber && (
+              {loadedData.messID && (
                 <span style={{
                   backgroundColor: '#e3f2fd',
                   color: '#1976d2',
@@ -47,7 +47,7 @@ export default function LoadedDataDisplay({
                   borderRadius: '4px',
                   fontSize: '12px'
                 }}>
-                  #{loadedData.identifierNumber}
+                  #{loadedData.messID}
                 </span>
               )}
             </div>
@@ -127,9 +127,9 @@ export default function LoadedDataDisplay({
               </div>
             </div>
           )}
-          {loadedData.testRun?.ventilConfigs && loadedData.identifierNumber && (() => {
+          {loadedData.testRun?.ventilConfigs && loadedData.messID && (() => {
             const ventilConfig = loadedData.testRun.ventilConfigs.find(
-              vc => vc.ventilNumber === loadedData.identifierNumber
+              vc => vc.ventilNumber === loadedData.messID
             );
             return ventilConfig ? (
               <div style={{
@@ -140,7 +140,7 @@ export default function LoadedDataDisplay({
                 borderRadius: '4px'
               }}>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#01579b', marginBottom: '4px' }}>
-                  🔧 Ventil {loadedData.identifierNumber} Konfiguration
+                  🔧 Ventil {loadedData.messID} Konfiguration
                 </div>
                 <div style={{ fontSize: '11px', color: '#555', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px' }}>
                   <span style={{ fontWeight: 'bold' }}>Status:</span>

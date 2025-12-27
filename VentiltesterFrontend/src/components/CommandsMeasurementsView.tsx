@@ -183,10 +183,10 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         }
       };
 
-      // Parse identifier number if provided
-      const identifierNumber = groupSnapshotIdentifier.trim() ? parseInt(groupSnapshotIdentifier.trim()) : undefined;
-      if (groupSnapshotIdentifier.trim() && isNaN(identifierNumber!)) {
-        alert('Identifier number must be a valid integer.');
+      // Parse MessID if provided
+      const messID = groupSnapshotIdentifier.trim() ? parseInt(groupSnapshotIdentifier.trim()) : undefined;
+      if (groupSnapshotIdentifier.trim() && isNaN(messID!)) {
+        alert('MessID must be a valid integer.');
         return;
       }
 
@@ -194,7 +194,7 @@ export default function CommandsMeasurementsView({ apiBase, selectedBlock }: Com
         name: groupSnapshotName.trim() || `${group}_${new Date().toISOString()}`,
         blockIndex: selectedBlock,
         comment: groupSnapshotComment.trim() || undefined,
-        identifierNumber: identifierNumber,
+        messID: messID,
         jsonPayload: JSON.stringify(groupData),
       };
       

@@ -71,8 +71,8 @@ export function exportToCSV(loadedData: LoadedData | null): void {
   rows.push(`Name,${loadedData.name}`);
   rows.push(`ID,${loadedData.id}`);
   rows.push(`Created At,${new Date(loadedData.createdAt).toLocaleString()}`);
-  if (loadedData.identifierNumber) {
-    rows.push(`Identifier Number,${loadedData.identifierNumber}`);
+  if (loadedData.messID) {
+    rows.push(`MessID,${loadedData.messID}`);
   }
   if (loadedData.comment) {
     rows.push(`Comment,"${loadedData.comment.replace(/"/g, '""')}"`);

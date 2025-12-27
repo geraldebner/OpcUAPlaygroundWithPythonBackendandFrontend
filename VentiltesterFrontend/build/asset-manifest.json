@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/static/css/main.111be07b.css",
-    "main.js": "/static/js/main.cf3afdc3.js",
+    "main.js": "/static/js/main.97c5b8c6.js",
     "static/media/binder_logo_2.png": "/static/media/binder_logo_2.1513f52a5b28642cffe3.png",
     "index.html": "/index.html",
     "main.111be07b.css.map": "/static/css/main.111be07b.css.map",
-    "main.cf3afdc3.js.map": "/static/js/main.cf3afdc3.js.map"
+    "main.97c5b8c6.js.map": "/static/js/main.97c5b8c6.js.map"
   },
   "entrypoints": [
     "static/css/main.111be07b.css",
-    "static/js/main.cf3afdc3.js"
+    "static/js/main.97c5b8c6.js"
   ]
 }

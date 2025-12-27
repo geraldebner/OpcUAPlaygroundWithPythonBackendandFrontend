@@ -68,6 +68,8 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
       console.log('TestRunMessID:', dataset.testRunMessID, dataset.TestRunMessID);
       console.log('testRun:', dataset.testRun);
       console.log('TestRun:', dataset.TestRun);
+      console.log('Is TestRun null?', dataset.TestRun === null);
+      console.log('Is TestRun undefined?', dataset.TestRun === undefined);
       console.log('==============================');
       
       if (!dataset) {
@@ -91,7 +93,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
         id: dataset.id,
         name: dataset.name,
         comment: dataset.comment,
-        identifierNumber: dataset.identifierNumber,
+        messID: dataset.messID,
         createdAt: dataset.createdAt,
         data: parsedData,
         testRun: testRunData ? {
@@ -155,7 +157,7 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
       (snapshot.comment && snapshot.comment.toLowerCase().includes(commentFilter.toLowerCase()));
     
     const identifierMatch = !identifierFilter.trim() || 
-      (snapshot.identifierNumber && snapshot.identifierNumber.toString().includes(identifierFilter));
+      (snapshot.messID && snapshot.messID.toString().includes(identifierFilter));
     
     return commentMatch && identifierMatch;
   });

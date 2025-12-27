@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using VentilTesterBackend.Data;
@@ -415,6 +416,24 @@ public class MeasurementDataService : IDisposable
 
             // Get active test run for this block
             var activeTestRunMessID = GetActiveTestRun(blockIndex);
+            
+            // If no active test run, try to find TestRun by MessID from the measurement
+            if (activeTestRunMessID == null && messId > 0)
+            {
+                // Check if there's a TestRun with this MessID
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    var testRunExists = await db.TestRuns.AnyAsync(tr => tr.MessID == messId);
+                    if (testRunExists)
+                    {
+                        activeTestRunMessID = messId;
+                        _logger?.LogInformation(
+                            "No active test run set, but found TestRun with MessID={MessID} matching measurement identifier",
+                            messId);
+                    }
+                }
+            }
 
             // Create dataset entry
             var dataset = new MeasurementSet
@@ -422,17 +441,16 @@ public class MeasurementDataService : IDisposable
                 Name = $"{groupName}_Auto_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}",
                 BlockIndex = blockIndex,
                 Comment = $"Auto-saved by MeasurementDataService (DatenReady={datenReadyValue}, MessID={messId})",
-                IdentifierNumber = messId,
+                MessID = messId, // Single field for identifier and foreign key to TestRun
                 JsonPayload = jsonPayload,
-                CreatedAt = DateTime.UtcNow,
-                TestRunMessID = activeTestRunMessID // Link to active test run
+                CreatedAt = DateTime.UtcNow
             };
 
             _logger?.LogDebug(
-                "Creating dataset for block {Block} group {Group} with TestRunMessID={TestRunMessID}",
+                "Creating dataset for block {Block} group {Group} with MessID={MessID}",
                 blockIndex,
                 groupName,
-                activeTestRunMessID);
+                messId);
 
             // Create a scope to access the DbContext
             using (var scope = _scopeFactory.CreateScope())

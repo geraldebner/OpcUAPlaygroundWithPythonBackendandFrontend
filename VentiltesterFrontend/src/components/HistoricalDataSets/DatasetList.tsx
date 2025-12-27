@@ -40,7 +40,7 @@ export default function DatasetList({
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <strong>{snapshot.name}</strong>
-                    {snapshot.identifierNumber && (
+                    {snapshot.messID && (
                       <span style={{
                         backgroundColor: '#e3f2fd',
                         color: '#1976d2',
@@ -48,7 +48,7 @@ export default function DatasetList({
                         borderRadius: '4px',
                         fontSize: '11px'
                       }}>
-                        #{snapshot.identifierNumber}
+                        #{snapshot.messID}
                       </span>
                     )}
                   </div>
@@ -58,19 +58,6 @@ export default function DatasetList({
                   {snapshot.comment && (
                     <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', marginTop: '4px' }}>
                       {snapshot.comment}
-                    </div>
-                  )}
-                  {snapshot.testRunMessID && (
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#2e7d32',
-                      backgroundColor: '#e8f5e9',
-                      padding: '2px 6px',
-                      borderRadius: '3px',
-                      marginTop: '4px',
-                      display: 'inline-block'
-                    }}>
-                      🔬 Prüflauf MessID: {snapshot.testRunMessID}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace VentilTesterBackend.Models;
 
@@ -51,5 +52,6 @@ public class TestRunVentilConfig
     public int? EndCounterValue { get; set; }
 
     // Navigation property
+    [JsonIgnore]
     public TestRun TestRun { get; set; } = null!;
 }

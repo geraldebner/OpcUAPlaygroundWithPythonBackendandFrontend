@@ -66,59 +66,6 @@ public class TestRunsController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new test run
-    /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<TestRun>> CreateTestRun([FromBody] CreateTestRunRequest request)
-    {
-        try
-        {
-            // Parse ventil configs from additionalInfo if not provided directly
-            List<TestRunVentilConfig>? ventilConfigs = request.VentilConfigs;
-            
-            if (ventilConfigs == null && !string.IsNullOrEmpty(request.AdditionalInfo))
-            {
-                try
-                {
-                    var additionalData = System.Text.Json.JsonSerializer.Deserialize<AdditionalInfoData>(request.AdditionalInfo);
-                    if (additionalData?.VentilConfigs != null)
-                    {
-                        ventilConfigs = additionalData.VentilConfigs.Select(vc => new TestRunVentilConfig
-                        {
-                            VentilNumber = vc.Number,
-                            Enabled = vc.Enabled,
-                            Comment = vc.Comment,
-                            StartCounterValue = vc.StartCounterValue
-                        }).ToList();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to parse ventil configs from additionalInfo");
-                }
-            }
-
-            var testRun = await _testRunService.CreateTestRunAsync(
-                request.TestType,
-                request.BlockIndex,
-                request.VentilkonfigurationId,
-                request.KonfigurationLangzeittestId,
-                request.KonfigurationDetailtestId,
-                request.Comment,
-                request.AdditionalInfo,
-                ventilConfigs
-            );
-
-            return CreatedAtAction(nameof(GetTestRun), new { messID = testRun.MessID }, testRun);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating test run");
-            return StatusCode(500, new { message = "Error creating test run", error = ex.Message });
-        }
-    }
-
-    /// <summary>
     /// Update a test run
     /// </summary>
     [HttpPut("{messID}")]
@@ -232,6 +179,68 @@ public class TestRunsController : ControllerBase
             return NotFound(new { message = $"Test run with MessID {messID} not found" });
         }
         return Ok(new { message = "Test run deleted successfully" });
+    }
+
+    /// <summary>
+    /// Create a new test run
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<TestRun>> CreateTestRun([FromBody] CreateTestRunRequest request)
+    {
+        try
+        {
+            // Parse ventil configs from additionalInfo if not provided directly
+            List<TestRunVentilConfig>? ventilConfigs = request.VentilConfigs;
+            
+            _logger.LogInformation("CreateTestRun - AdditionalInfo: {AdditionalInfo}", request.AdditionalInfo);
+            
+            if (ventilConfigs == null && !string.IsNullOrEmpty(request.AdditionalInfo))
+            {
+                try
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    };
+                    var additionalData = System.Text.Json.JsonSerializer.Deserialize<AdditionalInfoData>(request.AdditionalInfo, options);
+                    _logger.LogInformation("Parsed additionalData: {AdditionalData}", System.Text.Json.JsonSerializer.Serialize(additionalData));
+                    
+                    if (additionalData?.VentilConfigs != null)
+                    {
+                        ventilConfigs = additionalData.VentilConfigs.Select(vc => new TestRunVentilConfig
+                        {
+                            VentilNumber = vc.Number,
+                            Enabled = vc.Enabled,
+                            Comment = vc.Comment,
+                            StartCounterValue = vc.StartCounterValue
+                        }).ToList();
+                        _logger.LogInformation("Created {ConfigCount} ventil configs from additionalInfo", ventilConfigs.Count);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse ventil configs from additionalInfo");
+                }
+            }
+
+            var testRun = await _testRunService.CreateTestRunAsync(
+                request.TestType,
+                request.BlockIndex,
+                request.VentilkonfigurationId,
+                request.KonfigurationLangzeittestId,
+                request.KonfigurationDetailtestId,
+                request.Comment,
+                request.AdditionalInfo,
+                ventilConfigs
+            );
+
+            return CreatedAtAction(nameof(GetTestRun), new { messID = testRun.MessID }, testRun);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating test run");
+            return StatusCode(500, new { message = "Error creating test run", error = ex.Message });
+        }
     }
 }
 
