@@ -10,6 +10,8 @@ export interface VentilConfig {
   ventilNumber: number;
   enabled: boolean;
   comment?: string;
+  startCounterValue?: number;
+  endCounterValue?: number;
 }
 
 export interface TestRunInfo {
@@ -20,6 +22,7 @@ export interface TestRunInfo {
   completedAt?: string;
   comment?: string;
   ventilConfigs?: VentilConfig[];
+  ventilConfig?: VentilConfig;
 }
 
 export interface LoadedData {

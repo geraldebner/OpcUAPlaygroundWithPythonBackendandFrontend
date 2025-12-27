@@ -52,6 +52,34 @@ public class TestRunsController : ControllerBase
     }
 
     /// <summary>
+    /// Get a single ventil configuration for a given test run and ventil number
+    /// </summary>
+    [HttpGet("{messID}/ventils/{ventilNumber}")]
+    public async Task<ActionResult<TestRunVentilConfig>> GetVentilConfig(int messID, int ventilNumber)
+    {
+        if (ventilNumber <= 0)
+        {
+            return BadRequest(new { message = "VentilNumber must be greater than 0" });
+        }
+
+        var config = await _testRunService.GetVentilConfigAsync(messID, ventilNumber);
+        if (config == null)
+        {
+            return NotFound(new { message = $"No ventil config found for MessID {messID} and Ventil {ventilNumber}" });
+        }
+
+        return Ok(new
+        {
+            config.TestRunMessID,
+            config.VentilNumber,
+            config.Enabled,
+            config.Comment,
+            config.StartCounterValue,
+            config.EndCounterValue
+        });
+    }
+
+    /// <summary>
     /// Get the current active test run for a specific block
     /// </summary>
     [HttpGet("active")]

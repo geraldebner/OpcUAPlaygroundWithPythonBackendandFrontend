@@ -112,6 +112,16 @@ public class TestRunService
     }
 
     /// <summary>
+    /// Get a single ventil configuration for a given test run and ventil number
+    /// </summary>
+    public async Task<TestRunVentilConfig?> GetVentilConfigAsync(int messID, int ventilNumber)
+    {
+        return await _context.TestRunVentilConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(vc => vc.TestRunMessID == messID && vc.VentilNumber == ventilNumber);
+    }
+
+    /// <summary>
     /// Update test run status
     /// </summary>
     public async Task<bool> UpdateTestRunStatusAsync(int messID, string status, DateTime? completedAt = null)

@@ -106,12 +106,45 @@ export default function HistoricalDataSetsView({ apiBase, selectedBlock }: Histo
           ventilConfigs: (testRunData.VentilConfigs || testRunData.ventilConfigs || []).map((vc: any) => ({
             ventilNumber: vc.VentilNumber || vc.ventilNumber,
             enabled: vc.Enabled !== undefined ? vc.Enabled : vc.enabled,
-            comment: vc.Comment || vc.comment
+            comment: vc.Comment || vc.comment,
+            startCounterValue: vc.StartCounterValue ?? vc.startCounterValue,
+            endCounterValue: vc.EndCounterValue ?? vc.endCounterValue
           }))
         } : undefined
       };
 
       console.log('Final loadedDataset.testRun:', loadedDataset.testRun);
+
+      // derive ventil number from dataset name (e.g., "Ventil11") else fallback to messID
+      const ventilMatch = typeof loadedDataset.name === 'string' ? loadedDataset.name.match(/Ventil(\d+)/i) : null;
+      const ventilNumber = ventilMatch ? parseInt(ventilMatch[1], 10) : loadedDataset.messID;
+
+      // If we have identifiers, fetch the specific ventil config to enrich data
+      if (loadedDataset.messID && ventilNumber) {
+        try {
+          const ventilRes = await axios.get(`${apiBase}/api/testruns/${loadedDataset.messID}/ventils/${ventilNumber}`);
+          if (ventilRes.status >= 200 && ventilRes.status < 300 && ventilRes.data) {
+            loadedDataset.testRun = {
+              ...(loadedDataset.testRun ?? {
+                messID: loadedDataset.messID,
+                testType: '',
+                status: '',
+                startedAt: '',
+              }),
+              ventilConfig: {
+                ventilNumber: ventilRes.data.ventilNumber ?? ventilRes.data.VentilNumber ?? ventilNumber,
+                enabled: ventilRes.data.enabled ?? ventilRes.data.Enabled,
+                comment: ventilRes.data.comment ?? ventilRes.data.Comment,
+                startCounterValue: ventilRes.data.startCounterValue ?? ventilRes.data.StartCounterValue,
+                endCounterValue: ventilRes.data.endCounterValue ?? ventilRes.data.EndCounterValue
+              }
+            };
+          }
+        } catch (e) {
+          console.warn('Failed to load ventil config for dataset', loadedDataset.messID, e);
+        }
+      }
+
       setLoadedData(loadedDataset);
     } catch (e) {
       console.error('Failed to load dataset', e);

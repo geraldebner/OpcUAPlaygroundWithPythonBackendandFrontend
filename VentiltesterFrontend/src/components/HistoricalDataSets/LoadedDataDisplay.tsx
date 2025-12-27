@@ -127,10 +127,11 @@ export default function LoadedDataDisplay({
               </div>
             </div>
           )}
-          {loadedData.testRun?.ventilConfigs && loadedData.messID && (() => {
-            const ventilConfig = loadedData.testRun.ventilConfigs.find(
-              vc => vc.ventilNumber === loadedData.messID
-            );
+          {loadedData.testRun && loadedData.messID && (() => {
+            const ventilMatch = typeof loadedData.name === 'string' ? loadedData.name.match(/Ventil(\d+)/i) : null;
+            const ventilNumber = ventilMatch ? parseInt(ventilMatch[1], 10) : loadedData.messID;
+            const ventilConfig = loadedData.testRun.ventilConfig
+              ?? loadedData.testRun.ventilConfigs?.find(vc => vc.ventilNumber === ventilNumber);
             return ventilConfig ? (
               <div style={{
                 marginTop: '8px',
@@ -154,6 +155,18 @@ export default function LoadedDataDisplay({
                     <>
                       <span style={{ fontWeight: 'bold' }}>Kommentar:</span>
                       <span>{ventilConfig.comment}</span>
+                    </>
+                  )}
+                  {ventilConfig.startCounterValue !== undefined && (
+                    <>
+                      <span style={{ fontWeight: 'bold' }}>Start Counter:</span>
+                      <span>{ventilConfig.startCounterValue}</span>
+                    </>
+                  )}
+                  {ventilConfig.endCounterValue !== undefined && (
+                    <>
+                      <span style={{ fontWeight: 'bold' }}>End Counter:</span>
+                      <span>{ventilConfig.endCounterValue}</span>
                     </>
                   )}
                 </div>
