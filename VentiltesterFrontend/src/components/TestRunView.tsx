@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCache } from '../hooks/useCache';
 import CommandsPanel from './shared/CommandsPanel';
+import EditableGroupsPanel from './EditableGroupsPanel';
 import axios from 'axios';
 
 interface TestRunViewProps {
@@ -228,7 +229,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         // Keep only groups named "Ventilkonfiguration Sensor-Regler"
         const filtered: Record<string, { name: string; value: string }[]> = {};
         Object.entries(groups).forEach(([g, arr]) => {
-          if (g === 'Ventilkonfiguration Sensor-Regler') filtered[g] = arr as any;
+          if (g === 'Ventilkonfiguration/Sensor-Regler') filtered[g] = arr as any;
         });
         setKomponentenGroups(filtered);
         setKomponentenDirty(false);
@@ -372,49 +373,6 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   async function createDataset(name: string, type: string, blockIndex: number, jsonPayload: string, comment?: string): Promise<number> {
     const res = await axios.post(`${apiBase}/api/datasets`, { name, type, blockIndex, jsonPayload, comment });
     return res.data?.id ?? 0;
-  }
-
-  function EditableGroupsPanel({
-    title,
-    groups,
-    setGroups,
-    onDirty
-  }: {
-    title: string;
-    groups: Record<string, { name: string; value: string }[]>;
-    setGroups: (g: Record<string, { name: string; value: string }[]>) => void;
-    onDirty: (dirty: boolean) => void;
-  }) {
-    const updateValue = (groupKey: string, index: number, value: string) => {
-      const copy = { ...groups };
-      copy[groupKey] = [...(copy[groupKey] || [])];
-      copy[groupKey][index] = { ...copy[groupKey][index], value };
-      setGroups(copy);
-      onDirty(true);
-    };
-    const groupKeys = Object.keys(groups);
-    if (groupKeys.length === 0) return null;
-    return (
-      <div style={{ marginTop: '8px' }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '6px'  }}>{title} – Parameter (editierbar)</div>
-        {groupKeys.map(gk => (
-          <div key={gk} style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: 4, padding: 8, background: '#fafafa', maxHeight: '250px', overflowY: 'auto'  }}>
-            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>{gk}</div>
-            {(groups[gk] || []).map((p, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 12, color: '#555' }}>{p.name}</div>
-                <input
-                  type="text"
-                  value={p.value}
-                  onChange={e => updateValue(gk, idx, e.target.value)}
-                  style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: 3, fontSize: 12 }}
-                />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
   }
 
   async function startTest() {
