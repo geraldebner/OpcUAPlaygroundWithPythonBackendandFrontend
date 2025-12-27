@@ -19,6 +19,11 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Configure ParameterSet with unique index on Name
+        modelBuilder.Entity<ParameterSet>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+
         // Configure TestRun relationships
         modelBuilder.Entity<TestRun>()
             .HasOne(tr => tr.VentilkonfigurationParameterSet)

@@ -69,6 +69,7 @@ export default function KomponentenPanel({
         apiBase={apiBase}
         type="Komponenten"
         jsonPayload={getPayload()}
+        existingNames={komponentenSets.map(s => s.name)}
       />
     </div>
   );

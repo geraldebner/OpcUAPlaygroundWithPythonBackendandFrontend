@@ -8,6 +8,7 @@ interface SaveDatasetModalProps {
   apiBase: string;
   type: string;
   jsonPayload: string;
+  existingNames?: string[];  // List of existing dataset names for validation
 }
 
 export default function SaveDatasetModal({
@@ -16,7 +17,8 @@ export default function SaveDatasetModal({
   onSaveSuccess,
   apiBase,
   type,
-  jsonPayload
+  jsonPayload,
+  existingNames = []
 }: SaveDatasetModalProps) {
   const [name, setName] = useState<string>('');
   const [comment, setComment] = useState<string>('');
@@ -25,6 +27,12 @@ export default function SaveDatasetModal({
   const handleSave = async () => {
     if (!name.trim()) {
       alert('Bitte geben Sie einen Namen ein');
+      return;
+    }
+
+    // Check for duplicate names
+    if (existingNames.includes(name.trim())) {
+      alert(`Ein Dataset mit dem Namen "${name.trim()}" existiert bereits. Bitte wählen Sie einen anderen Namen.`);
       return;
     }
 

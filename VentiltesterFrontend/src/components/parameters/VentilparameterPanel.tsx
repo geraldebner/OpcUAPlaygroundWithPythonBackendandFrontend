@@ -72,6 +72,7 @@ export default function VentilparameterPanel({
         apiBase={apiBase}
         type="VentilAnsteuerparameter"
         jsonPayload={getPayload()}
+        existingNames={ventilSets.map(s => s.name)}
       />
     </div>
   );

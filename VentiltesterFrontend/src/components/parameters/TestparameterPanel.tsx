@@ -116,6 +116,7 @@ export default function TestparameterPanel({
         apiBase={apiBase}
         type="Langzeittestparameter"
         jsonPayload={getLangzeitPayload()}
+        existingNames={langzeitSets.map(s => s.name)}
       />
 
       <SaveDatasetModal
@@ -125,6 +126,7 @@ export default function TestparameterPanel({
         apiBase={apiBase}
         type="Detailtestparameter"
         jsonPayload={getDetailPayload()}
+        existingNames={detailSets.map(s => s.name)}
       />
     </div>
   );
