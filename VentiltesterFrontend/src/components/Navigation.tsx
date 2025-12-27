@@ -8,6 +8,8 @@ interface NavigationProps {
   selectedBlock: number | null;
   blocks: Array<{ index: number }>;
   onBlockChange: (block: number | null) => void;
+  messMode: number | null;
+  operationMode: number | null;
 }
 
 export default function Navigation({
@@ -15,7 +17,9 @@ export default function Navigation({
   onTabChange,
   selectedBlock,
   blocks,
-  onBlockChange
+  onBlockChange,
+  messMode,
+  operationMode
 }: NavigationProps) {
   const tabs = [
     { id: 'parameters' as const, label: 'Parameters', icon: '📊' },
@@ -88,11 +92,7 @@ export default function Navigation({
         </div>
 
         {/* Block Selector and Backend Check */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
           <BlockSelector
             selectedBlock={selectedBlock}
             onBlockChange={onBlockChange}
@@ -100,6 +100,18 @@ export default function Navigation({
               color: 'rgba(255,255,255,0.9)'
             }}
           />
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            padding: '6px 8px',
+            background: 'rgba(255,255,255,0.08)',
+            borderRadius: 8,
+            fontSize: '12px',
+            color: 'rgba(255,255,255,0.9)'
+          }}>
+            <span><strong>Mess Mode:</strong> {formatMessMode(messMode)} ({messMode ?? '-'})</span>
+            <span><strong>Operation Mode:</strong> {formatOperationMode(operationMode)} ({operationMode ?? '-'})</span>
+          </div>
         </div>
       </div>
 
@@ -150,4 +162,26 @@ export default function Navigation({
       </div>
     </nav>
   );
+}
+
+function formatMessMode(mode: number | null) {
+  if (mode === null) return 'Unbekannt';
+  switch (mode) {
+    case 0: return 'Keine Messung aktiv';
+    case 1: return 'Langzeittest aktiv';
+    case 2: return 'Detailtest aktiv';
+    case 3: return 'Einzeltest aktiv';
+    default: return `Unbekannt (${mode})`;
+  }
+}
+
+function formatOperationMode(mode: number | null) {
+  if (mode === null) return 'Unbekannt';
+  switch (mode) {
+    case 0: return 'Leerlauf (Bereit)';
+    case 1: return 'Automatik Modus';
+    case 2: return 'Manuell Modus';
+    case 3: return 'Reset';
+    default: return `Unbekannt (${mode})`;
+  }
 }

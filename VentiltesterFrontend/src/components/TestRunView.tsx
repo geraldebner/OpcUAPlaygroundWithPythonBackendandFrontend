@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useCache } from '../hooks/useCache';
+import { useStatusStore } from '../hooks/useStatusStore';
 import TestRunControl from './TestRun/TestRunControl';
-import SystemStatusPanel from './TestRun/SystemStatusPanel';
 // Status components moved to status view
 
 interface TestRunViewProps {
@@ -37,8 +36,7 @@ interface VentilConfig {
 }
 
 export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps) {
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const { data, error, refresh } = useCache(apiBase, selectedBlock, autoRefresh, 2000);
+  const { data, error, refresh, messMode, operationMode, batteryStatus, autoRefresh, setAutoRefresh } = useStatusStore(apiBase, selectedBlock, true);
 
   // Test Run State
   const [nextMessID, setNextMessID] = useState<number | null>(null);
@@ -110,10 +108,6 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }))
   );
   
-  // System status from AllgemeineParameter
-  const messMode = data?.allgemeineParameter?.messMode ?? null;
-  const operationMode = data?.allgemeineParameter?.operationMode ?? null;
-
   const canStartTest = messMode === 0;
   
   const getMessModeText = (mode: number | null) => {
@@ -720,23 +714,11 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         startTest={startTest}
       />
 
-      {/* Using Cached Data control moved to SettingsView */}
-
       {error && (
         <div style={{ padding: '16px', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
           {error}
         </div>
       )}
-
-      <SystemStatusPanel
-        selectedBlock={selectedBlock}
-        messMode={messMode}
-        operationMode={operationMode}
-        batteryStatus={data?.globalData?.batteryStatus}
-        getMessModeText={getMessModeText}
-        getOperationModeText={getOperationModeText}
-      />
-      
     </div>
   );
 }

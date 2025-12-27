@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../../App.css";
-import { useCache } from "../../hooks/useCache";
+import { useStatusStore } from "../../hooks/useStatusStore";
 import StatusPanel from "./StatusPanel";
 import VentilStatusOverview from "./VentilStatusOverview";
 
@@ -15,7 +15,7 @@ export default function StatusView() {
   const [selectedBlock, setSelectedBlock] = useState<number>(1);
 
   // Cached block data for detailed status components
-  const { data, error, refresh } = useCache(API_BASE, selectedBlock, autoRefresh, Math.max(1, intervalSec) * 1000);
+  const { data, error, refresh } = useStatusStore(API_BASE, selectedBlock, autoRefresh, Math.max(1, intervalSec) * 1000);
 
   useEffect(() => {
     fetchStatus();
@@ -30,11 +30,6 @@ export default function StatusView() {
     }, Math.max(1, intervalSec) * 1000);
     return () => clearInterval(id);
   }, [autoRefresh, intervalSec]);
-
-  // Trigger initial cache fetch and on block change when autoRefresh is off
-  useEffect(() => {
-    refresh();
-  }, [selectedBlock]);
 
   async function fetchStatus() {
     try {
@@ -128,28 +123,9 @@ export default function StatusView() {
           </div>
         )}
         <StatusPanel
+          apiBase={API_BASE}
           selectedBlock={selectedBlock}
           data={data}
-          getMessModeText={(mode: number | null) => {
-            if (mode === null) return 'Unbekannt';
-            switch (mode) {
-              case 0: return 'Keine Messung aktiv';
-              case 1: return 'Langzeittest aktiv';
-              case 2: return 'Detailtest aktiv';
-              case 3: return 'Einzeltest aktiv';
-              default: return `Unbekannt (${mode})`;
-            }
-          }}
-          getOperationModeText={(mode: number | null) => {
-            if (mode === null) return 'Unbekannt';
-            switch (mode) {
-              case 0: return 'Leerlauf (Bereit)';
-              case 1: return 'Automatik Modus';
-              case 2: return 'Manuell Modus';
-              case 3: return 'Reset';
-              default: return `Unbekannt (${mode})`;
-            }
-          }}
         />
 
         <VentilStatusOverview ventilData={data?.ventilData || []} />

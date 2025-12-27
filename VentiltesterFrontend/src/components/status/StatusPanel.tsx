@@ -1,21 +1,71 @@
 import React from 'react';
+import { useStatusStore } from '../../hooks/useStatusStore';
+import { TestOverviewData } from '../../hooks/useCache';
 
 interface StatusPanelProps {
+  apiBase: string;
   selectedBlock: number;
-  data: any;
-  getMessModeText: (mode: number | null) => string;
-  getOperationModeText: (mode: number | null) => string;
+  data?: TestOverviewData | null;
+  getMessModeText?: (mode: number | null) => string;
+  getOperationModeText?: (mode: number | null) => string;
 }
 
-export default function StatusPanel({ 
-  selectedBlock, 
-  data, 
-  getMessModeText, 
-  getOperationModeText 
-}: StatusPanelProps) {
+export default function StatusPanel({ apiBase, selectedBlock, data: externalData, getMessModeText, getOperationModeText }: StatusPanelProps) {
+  // If the parent supplies data, render directly without fetching to avoid duplicate requests.
+  if (externalData !== undefined) {
+    return (
+      <StatusPanelContent
+        data={externalData}
+        selectedBlock={selectedBlock}
+        getMessModeText={getMessModeText}
+        getOperationModeText={getOperationModeText}
+      />
+    );
+  }
+
+  // Fallback: fetch on demand when no external data is provided.
+  const { data } = useStatusStore(apiBase, selectedBlock, false);
+  return (
+    <StatusPanelContent
+      data={data}
+      selectedBlock={selectedBlock}
+      getMessModeText={getMessModeText}
+      getOperationModeText={getOperationModeText}
+    />
+  );
+}
+
+function StatusPanelContent({ data, selectedBlock, getMessModeText: messTextFn, getOperationModeText: opTextFn }: {
+  data: TestOverviewData | null | undefined;
+  selectedBlock: number;
+  getMessModeText?: (mode: number | null) => string;
+  getOperationModeText?: (mode: number | null) => string;
+}) {
   if (!data?.globalData && !data?.allgemeineParameter) {
     return null;
   }
+
+  const getMessModeText = messTextFn ?? ((mode: number | null) => {
+    if (mode === null) return 'Unbekannt';
+    switch (mode) {
+      case 0: return 'Keine Messung aktiv';
+      case 1: return 'Langzeittest aktiv';
+      case 2: return 'Detailtest aktiv';
+      case 3: return 'Einzeltest aktiv';
+      default: return `Unbekannt (${mode})`;
+    }
+  });
+  
+  const getOperationModeText = opTextFn ?? ((mode: number | null) => {
+    if (mode === null) return 'Unbekannt';
+    switch (mode) {
+      case 0: return 'Leerlauf (Bereit)';
+      case 1: return 'Automatik Modus';
+      case 2: return 'Manuell Modus';
+      case 3: return 'Reset';
+      default: return `Unbekannt (${mode})`;
+    }
+  });
 
   return (
     <div style={{

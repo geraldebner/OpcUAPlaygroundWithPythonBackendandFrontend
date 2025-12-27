@@ -7,6 +7,7 @@ import CommandsMeasurementsView from './components/CommandsMeasurementsView';
 import HistoricalDataSetsView from './components/HistoricalDataSetsView';
 import SettingsView from './components/settings/SettingsView';
 import TestRunView from './components/TestRunView';
+import { useStatusStore } from './hooks/useStatusStore';
 
 // API base URL: you can set `window.__API_BASE = 'https://...'` in the browser for overrides.
 const API_BASE = (window as any).__API_BASE || (window as any).REACT_APP_API_BASE || "http://localhost:5000";
@@ -24,10 +25,24 @@ export default function App() {
   ]);
   const [selectedBlock, setSelectedBlock] = useState<number | null>(1); // Default to block 1
 
+  const {
+    messMode,
+    operationMode,
+    batteryStatus,
+    setBlock: setStatusBlock,
+  } = useStatusStore(API_BASE, selectedBlock ?? 1, true);
+
   useEffect(() => {
     // Check backend availability on startup
     checkBackend();
   }, []);
+
+  // Keep status store in sync with currently selected block
+  useEffect(() => {
+    if (selectedBlock != null) {
+      setStatusBlock(selectedBlock);
+    }
+  }, [selectedBlock, setStatusBlock]);
 
   async function checkBackend() {
     try {
@@ -38,7 +53,8 @@ export default function App() {
     } catch (e) {
       console.warn('Backend not reachable');
     }
-  }  return (
+    }
+    return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <Navigation
         selectedTab={selectedTab}
@@ -46,6 +62,8 @@ export default function App() {
         selectedBlock={selectedBlock}
         blocks={blocks}
         onBlockChange={setSelectedBlock}
+        messMode={messMode}
+        operationMode={operationMode}
       />
 
       <div style={{ padding: '24px' }}>
@@ -93,4 +111,26 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+function formatMessMode(mode: number | null) {
+  if (mode === null) return 'Unbekannt';
+  switch (mode) {
+    case 0: return 'Keine Messung aktiv';
+    case 1: return 'Langzeittest aktiv';
+    case 2: return 'Detailtest aktiv';
+    case 3: return 'Einzeltest aktiv';
+    default: return `Unbekannt (${mode})`;
+  }
+}
+
+function formatOperationMode(mode: number | null) {
+  if (mode === null) return 'Unbekannt';
+  switch (mode) {
+    case 0: return 'Leerlauf (Bereit)';
+    case 1: return 'Automatik Modus';
+    case 2: return 'Manuell Modus';
+    case 3: return 'Reset';
+    default: return `Unbekannt (${mode})`;
+  }
 }
