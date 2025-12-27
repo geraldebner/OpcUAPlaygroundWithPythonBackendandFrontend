@@ -11,6 +11,26 @@ import {
   TabType
 } from '../../types';
 
+// Enum for parameter set types
+enum ParameterSetType {
+  All = 'All',
+  VentilAnsteuerparameter = 'VentilAnsteuerparameter',
+  Langzeittestparameter = 'Langzeittestparameter',
+  Detailtestparameter = 'Detailtestparameter',
+  Einzeltestparameter = 'Einzeltestparameter',
+  Komponenten = 'Komponenten'
+}
+
+// Type options with descriptions
+const TYPE_OPTIONS = [
+  { value: ParameterSetType.All, label: 'All (alle Parameter)', group: null },
+  { value: ParameterSetType.VentilAnsteuerparameter, label: 'VentilAnsteuerparameter', group: 'Ventilkonfiguration/Ansteuerparameter' },
+  { value: ParameterSetType.Langzeittestparameter, label: 'Langzeittestparameter', group: 'Ventilkonfiguration/Langzeittest' },
+  { value: ParameterSetType.Detailtestparameter, label: 'Detailtestparameter', group: 'Ventilkonfiguration/Detailtest' },
+  { value: ParameterSetType.Einzeltestparameter, label: 'Einzeltestparameter', group: 'Ventilkonfiguration/Einzeltest' },
+  { value: ParameterSetType.Komponenten, label: 'Komponenten (Sensor-Regler)', group: 'Ventilkonfiguration/Sensor-Regler' }
+];
+
 export default function ParametersView({ apiBase, selectedBlock }: ParametersViewProps) {
   function formatValue(v: any): string {
     if (v === null || v === undefined) return '';
@@ -37,6 +57,10 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [busyGroups, setBusyGroups] = useState<BusyGroups>({});
   const [datasetsLoading, setDatasetsLoading] = useState<boolean>(false);
+  
+  // State for dataset save modal
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalData, setSaveModalData] = useState({ name: '', comment: '', type: ParameterSetType.All, blockIndex: 0 });
 
   useEffect(() => { fetchParameterDatasets(); }, []); // wird nur einmal ausgeführt
 
@@ -68,6 +92,15 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
             outGroups['AllgemeineParameter'] = (ap || []).map((p: any) => ({ name: p.name, value: p.value }));
           }
         } catch { /* ignore fetch errors */ }
+        
+        // also try to load Ventilkonfiguration Sensor-Regler group if it exists
+        try {
+          const sensorRes = await axios.get(`${apiBase}/api/parameters/${selectedBlock}/group/${encodeURIComponent('Ventilkonfiguration/Sensor-Regler')}`);
+          const sp = sensorRes.data;
+          if (Array.isArray(sp)) {
+            outGroups['Ventilkonfiguration/Sensor-Regler'] = (sp || []).map((p: any) => ({ name: p.name, value: p.value }));
+          }
+        } catch { /* ignore fetch errors if group doesn't exist */ }
         if (mounted && selectedBlock !== null) setBlocks(prev => {
           const others = prev.filter(x => x.index !== selectedBlock);
           return [...others, { index: selectedBlock, groups: outGroups }];
@@ -223,47 +256,30 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
     const b = blocks.find(x => x.index === selectedBlock);
     if (!b) return;
     
-    // Show a custom dialog for name, comment, and type
-    const name = prompt('Name for dataset', `Snapshot_${selectedBlock}_${new Date().toISOString()}`) || '';
-    if (!name) return; // User cancelled
-    
-    const comment = prompt('Comment (optional)', '') || '';
-    
-    // Ask for type - show options based on requirements
-    const typeOptions = [
-      'All',
-      'VentilAnsteuerparameter',
-      'VentilLangzeittestparameter',
-      'VentilDetailtestparameter',
-      'VentilEinzeltestparameter'
-    ];
-    
-    const typeChoice = prompt(
-      'Select parameter set type:\n' +
-      '1 = All (all parameters)\n' +
-      '2 = VentilAnsteuerparameter (Ventilkonfiguration/Ansteuerparameter)\n' +
-      '3 = VentilLangzeittestparameter (Ventilkonfiguration/Langzeittest)\n' +
-      '4 = VentilDetailtestparameter (Ventilkonfiguration/Detailtest)\n' +
-      '5 = VentilEinzeltestparameter (Ventilkonfiguration/Einzeltest)\n\n' +
-      'Enter number (1-5):',
-      '1'
-    );
-    
-    const typeIndex = parseInt(typeChoice || '1', 10) - 1;
-    const type = typeOptions[Math.max(0, Math.min(typeIndex, typeOptions.length - 1))];
-    
+    // Open modal for dataset configuration
+    setSaveModalData({ 
+      name: `Snapshot_${selectedBlock}_${new Date().toISOString()}`, 
+      comment: '', 
+      type: ParameterSetType.All,
+      blockIndex: selectedBlock 
+    });
+    setShowSaveModal(true);
+  }
+
+  async function confirmSaveDataset(): Promise<void> {
+    const { name, comment, type, blockIndex } = saveModalData;
+    if (!name.trim()) {
+      alert('Please enter a name for the dataset');
+      return;
+    }
+
+    const b = blocks.find(x => x.index === blockIndex);
+    if (!b) return;
+
     // Filter the block based on the selected type
     let filteredBlock = b;
-    if (type !== 'All') {
-      // Map type to the specific group name
-      const groupMapping: { [key: string]: string } = {
-        'VentilAnsteuerparameter': 'Ventilkonfiguration/Ansteuerparameter',
-        'VentilLangzeittestparameter': 'Ventilkonfiguration/Langzeittest',
-        'VentilDetailtestparameter': 'Ventilkonfiguration/Detailtest',
-        'VentilEinzeltestparameter': 'Ventilkonfiguration/Einzeltest'
-      };
-      
-      const targetGroup = groupMapping[type];
+    if (type !== ParameterSetType.All) {
+      const targetGroup = TYPE_OPTIONS.find(opt => opt.value === type)?.group;
       if (targetGroup && b?.groups) {
         // Create a filtered block with only the target group
         filteredBlock = {
@@ -281,16 +297,17 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
       }
     }
     
-    // send as legacy dataset shape to /api/datasets (supports { block: ... } for backwards compatibility)
+    // send as legacy dataset shape to /api/datasets
     try {
       await axios.post(`${apiBase}/api/datasets`, { 
         name, 
         comment, 
-        blockIndex: selectedBlock, 
+        blockIndex, 
         type, 
         block: filteredBlock 
       });
       alert(`Dataset saved with type: ${type}`);
+      setShowSaveModal(false);
     } catch (e) {
       console.error('saveParameterDataset', e);
       alert('Save dataset failed');
@@ -486,6 +503,128 @@ export default function ParametersView({ apiBase, selectedBlock }: ParametersVie
           writeDatasetToOpc={writeDatasetToOpc}
           deleteDataset={deleteDataset}
         />
+      )}
+
+      {/* Save Dataset Modal */}
+      {showSaveModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Save Parameter Dataset</h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px' }}>
+                Dataset Name: *
+              </label>
+              <input
+                type="text"
+                value={saveModalData.name}
+                onChange={(e) => setSaveModalData({ ...saveModalData, name: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px' }}>
+                Comment:
+              </label>
+              <input
+                type="text"
+                value={saveModalData.comment}
+                onChange={(e) => setSaveModalData({ ...saveModalData, comment: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px' }}>
+                Parameter Set Type: *
+              </label>
+              <select
+                value={saveModalData.type}
+                onChange={(e) => setSaveModalData({ ...saveModalData, type: e.target.value as ParameterSetType })}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {TYPE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSaveDataset}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#27ae60',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Save Dataset
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

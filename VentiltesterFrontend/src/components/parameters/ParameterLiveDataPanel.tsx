@@ -32,7 +32,7 @@ export default function ParameterLiveDataPanel({
           /> Auto-refresh
         </label>
         <button onClick={() => selectedBlock && refreshBlock(selectedBlock)} disabled={isRefreshing}>
-          Refresh
+          Read All
         </button>
         <button onClick={() => selectedBlock && saveDataset(selectedBlock)} style={{ marginLeft: 8 }}>
           Save dataset
