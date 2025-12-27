@@ -48,6 +48,14 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   const [selectedVentilConfig, setSelectedVentilConfig] = useState<number | null>(null);
   const [selectedLangzeitConfig, setSelectedLangzeitConfig] = useState<number | null>(null);
   const [selectedDetailConfig, setSelectedDetailConfig] = useState<number | null>(null);
+
+  // Editable parameter groups for selected datasets
+  const [ventilGroups, setVentilGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [ventilDirty, setVentilDirty] = useState(false);
+  const [langzeitGroups, setLangzeitGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [langzeitDirty, setLangzeitDirty] = useState(false);
+  const [detailGroups, setDetailGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [detailDirty, setDetailDirty] = useState(false);
   
   const [testComment, setTestComment] = useState<string>('');
   const [isStartingTest, setIsStartingTest] = useState(false);
@@ -102,6 +110,76 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     loadActiveTestRun();
   }, [selectedBlock]);
 
+  // Load dataset payload into editable groups when a selection changes
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedVentilConfig) { setVentilGroups({}); setVentilDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedVentilConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        // Show only groups related to Ventilkonfiguration
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if (g.toLowerCase().includes('ventilkonfiguration')) filtered[g] = arr as any;
+        });
+        setVentilGroups(filtered);
+        setVentilDirty(false);
+      } catch (e) {
+        console.error('Failed to load Ventilkonfiguration payload', e);
+        setVentilGroups({});
+        setVentilDirty(false);
+      }
+    };
+    load();
+  }, [selectedVentilConfig, apiBase]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedLangzeitConfig) { setLangzeitGroups({}); setLangzeitDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedLangzeitConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        // Keep only langzeittest groups
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if (g.toLowerCase().includes('langzeittest')) filtered[g] = arr as any;
+        });
+        setLangzeitGroups(filtered);
+        setLangzeitDirty(false);
+      } catch (e) {
+        console.error('Failed to load Langzeittest payload', e);
+        setLangzeitGroups({});
+        setLangzeitDirty(false);
+      }
+    };
+    if (testType === 'Langzeittest') load(); else { setLangzeitGroups({}); setLangzeitDirty(false); }
+  }, [selectedLangzeitConfig, apiBase, testType]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedDetailConfig) { setDetailGroups({}); setDetailDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedDetailConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        // Keep only detailtest groups
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if (g.toLowerCase().includes('detailtest')) filtered[g] = arr as any;
+        });
+        setDetailGroups(filtered);
+        setDetailDirty(false);
+      } catch (e) {
+        console.error('Failed to load Detailtest payload', e);
+        setDetailGroups({});
+        setDetailDirty(false);
+      }
+    };
+    if (testType === 'Detailtest') load(); else { setDetailGroups({}); setDetailDirty(false); }
+  }, [selectedDetailConfig, apiBase, testType]);
+
   async function loadNextMessID() {
     try {
       const res = await axios.get(`${apiBase}/api/testruns/next-messid`);
@@ -142,6 +220,78 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     }
   }
 
+  function parseDatasetToGroups(payloadJson?: string): Record<string, { name: string; value: string }[]> {
+    if (!payloadJson) return {};
+    try {
+      const payload = JSON.parse(payloadJson);
+      const groups: Record<string, { name: string; value: string }[]> = {};
+      const g = payload.groups || {};
+      Object.keys(g).forEach(k => {
+        const arr = Array.isArray(g[k]) ? g[k] : [];
+        groups[k] = arr.map((p: any) => ({ name: String(p.name), value: String(p.value ?? '') }));
+      });
+      return groups;
+    } catch {
+      return {};
+    }
+  }
+
+  function buildPayloadFromGroups(groups: Record<string, { name: string; value: string }[]>): string {
+    const payload = { groups: {} as any };
+    Object.entries(groups).forEach(([k, arr]) => {
+      payload.groups[k] = (arr || []).map(p => ({ name: p.name, value: p.value }));
+    });
+    return JSON.stringify(payload);
+  }
+
+  async function createDataset(name: string, type: string, blockIndex: number, jsonPayload: string, comment?: string): Promise<number> {
+    const res = await axios.post(`${apiBase}/api/datasets`, { name, type, blockIndex, jsonPayload, comment });
+    return res.data?.id ?? 0;
+  }
+
+  function EditableGroupsPanel({
+    title,
+    groups,
+    setGroups,
+    onDirty
+  }: {
+    title: string;
+    groups: Record<string, { name: string; value: string }[]>;
+    setGroups: (g: Record<string, { name: string; value: string }[]>) => void;
+    onDirty: (dirty: boolean) => void;
+  }) {
+    const updateValue = (groupKey: string, index: number, value: string) => {
+      const copy = { ...groups };
+      copy[groupKey] = [...(copy[groupKey] || [])];
+      copy[groupKey][index] = { ...copy[groupKey][index], value };
+      setGroups(copy);
+      onDirty(true);
+    };
+    const groupKeys = Object.keys(groups);
+    if (groupKeys.length === 0) return null;
+    return (
+      <div style={{ marginTop: '8px' }}>
+        <div style={{ fontWeight: 'bold', marginBottom: '6px'  }}>{title} – Parameter (editierbar)</div>
+        {groupKeys.map(gk => (
+          <div key={gk} style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: 4, padding: 8, background: '#fafafa', maxHeight: '250px', overflowY: 'auto'  }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>{gk}</div>
+            {(groups[gk] || []).map((p, idx) => (
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: '#555' }}>{p.name}</div>
+                <input
+                  type="text"
+                  value={p.value}
+                  onChange={e => updateValue(gk, idx, e.target.value)}
+                  style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: 3, fontSize: 12 }}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   async function startTest() {
     if (!selectedVentilConfig) {
       alert('Bitte wählen Sie eine Ventilkonfiguration aus!');
@@ -169,47 +319,70 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     setStatusMessage('Test wird vorbereitet...');
 
     try {
-      // Step 1: Load and send Ventilkonfiguration
+      // Step 1: Prepare and send Ventilkonfiguration (use edited values if present)
       setStatusMessage('Lade Ventilkonfiguration...');
-      console.log('Loading Ventilkonfiguration, ID:', selectedVentilConfig);
-      
-      const ventilConfig = await axios.get(`${apiBase}/api/datasets/${selectedVentilConfig}`);
-      console.log('Ventilkonfiguration loaded:', ventilConfig.data);
-      
-      if (!ventilConfig.data.payload) {
-        throw new Error('Ventilkonfiguration hat kein Payload');
+      let ventilPayloadJson: string | null = null;
+      try {
+        if (Object.keys(ventilGroups).length > 0) {
+          ventilPayloadJson = buildPayloadFromGroups(ventilGroups);
+          // Persist adjusted set with MessID in the name if user edited
+          if (ventilDirty && nextMessID != null) {
+            const newId = await createDataset(`Ventilkonfig_MessID_${nextMessID}`, 'VentilAnsteuerparameter', selectedBlock, ventilPayloadJson, testComment);
+            setSelectedVentilConfig(newId);
+          }
+        } else {
+          const ventilConfig = await axios.get(`${apiBase}/api/datasets/${selectedVentilConfig}`);
+          ventilPayloadJson = ventilConfig.data?.payload;
+        }
+      } catch (e: any) {
+        throw new Error(`Fehler beim Laden/Speichern der Ventilkonfiguration: ${e.message || e}`);
       }
-      
-      await sendParametersToOPCUA(ventilConfig.data.payload, 'Ventilkonfiguration');
-      await verifyParameters(ventilConfig.data.payload, 'Ventilkonfiguration');
 
-      // Step 2: Load and send test-specific configuration
+      if (!ventilPayloadJson) throw new Error('Ventilkonfiguration hat kein Payload');
+      await sendParametersToOPCUA(ventilPayloadJson, 'Ventilkonfiguration');
+      await verifyParameters(ventilPayloadJson, 'Ventilkonfiguration');
+
+      // Step 2: Prepare and send test-specific configuration (use edited values if present)
       if (testType === 'Langzeittest' && selectedLangzeitConfig) {
         setStatusMessage('Lade Langzeittest-Konfiguration...');
-        console.log('Loading Langzeittest config, ID:', selectedLangzeitConfig);
-        
-        const langzeitConfig = await axios.get(`${apiBase}/api/datasets/${selectedLangzeitConfig}`);
-        console.log('Langzeittest config loaded:', langzeitConfig.data);
-        
-        if (!langzeitConfig.data.payload) {
-          throw new Error('Langzeittest-Konfiguration hat kein Payload');
+        let lzPayloadJson: string | null = null;
+        try {
+          if (Object.keys(langzeitGroups).length > 0) {
+            lzPayloadJson = buildPayloadFromGroups(langzeitGroups);
+            if (langzeitDirty && nextMessID != null) {
+              const newId = await createDataset(`Langzeittest_MessID_${nextMessID}`, 'VentilLangzeittestparameter', selectedBlock, lzPayloadJson, testComment);
+              setSelectedLangzeitConfig(newId);
+            }
+          } else {
+            const langzeitConfig = await axios.get(`${apiBase}/api/datasets/${selectedLangzeitConfig}`);
+            lzPayloadJson = langzeitConfig.data?.payload;
+          }
+        } catch (e: any) {
+          throw new Error(`Fehler beim Laden/Speichern der Langzeittest-Konfiguration: ${e.message || e}`);
         }
-        
-        await sendParametersToOPCUA(langzeitConfig.data.payload, 'Konfiguration_Langzeittest');
-        await verifyParameters(langzeitConfig.data.payload, 'Konfiguration_Langzeittest');
+        if (!lzPayloadJson) throw new Error('Langzeittest-Konfiguration hat kein Payload');
+        await sendParametersToOPCUA(lzPayloadJson, 'Konfiguration_Langzeittest');
+        await verifyParameters(lzPayloadJson, 'Konfiguration_Langzeittest');
       } else if (testType === 'Detailtest' && selectedDetailConfig) {
         setStatusMessage('Lade Detailtest-Konfiguration...');
-        console.log('Loading Detailtest config, ID:', selectedDetailConfig);
-        
-        const detailConfig = await axios.get(`${apiBase}/api/datasets/${selectedDetailConfig}`);
-        console.log('Detailtest config loaded:', detailConfig.data);
-        
-        if (!detailConfig.data.payload) {
-          throw new Error('Detailtest-Konfiguration hat kein Payload');
+        let dtPayloadJson: string | null = null;
+        try {
+          if (Object.keys(detailGroups).length > 0) {
+            dtPayloadJson = buildPayloadFromGroups(detailGroups);
+            if (detailDirty && nextMessID != null) {
+              const newId = await createDataset(`Detailtest_MessID_${nextMessID}`, 'VentilDetailtestparameter', selectedBlock, dtPayloadJson, testComment);
+              setSelectedDetailConfig(newId);
+            }
+          } else {
+            const detailConfig = await axios.get(`${apiBase}/api/datasets/${selectedDetailConfig}`);
+            dtPayloadJson = detailConfig.data?.payload;
+          }
+        } catch (e: any) {
+          throw new Error(`Fehler beim Laden/Speichern der Detailtest-Konfiguration: ${e.message || e}`);
         }
-        
-        await sendParametersToOPCUA(detailConfig.data.payload, 'Konfiguration_Detailtest');
-        await verifyParameters(detailConfig.data.payload, 'Konfiguration_Detailtest');
+        if (!dtPayloadJson) throw new Error('Detailtest-Konfiguration hat kein Payload');
+        await sendParametersToOPCUA(dtPayloadJson, 'Konfiguration_Detailtest');
+        await verifyParameters(dtPayloadJson, 'Konfiguration_Detailtest');
       }
 
       // Step 3: Create TestRun entry in database
@@ -741,15 +914,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
             <div style={{ display: 'flex', gap: '16px' }}>
               {/* Left Column - Parameter Configurations */}
               <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Next MessID Display */}
-                <div style={{
-                  padding: '12px',
-                  backgroundColor: '#e8f4f8',
-                  borderRadius: '6px',
-                  border: '1px solid #b3d9e6'
-                }}>
-                  <strong>Nächste MessID:</strong> {nextMessID !== null ? nextMessID : 'Laden...'}
-                </div>
+                
+              
 
                 {/* Ventilkonfiguration Selection */}
                 <div>
@@ -775,6 +941,12 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                       </option>
                     ))}
                   </select>
+                  <EditableGroupsPanel
+                    title="Ventilkonfiguration"
+                    groups={ventilGroups}
+                    setGroups={setVentilGroups}
+                    onDirty={setVentilDirty}
+                  />
                 </div>
 
                 {/* Langzeittest Configuration */}
@@ -802,6 +974,12 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                         </option>
                       ))}
                     </select>
+                    <EditableGroupsPanel
+                      title="Langzeittest"
+                      groups={langzeitGroups}
+                      setGroups={setLangzeitGroups}
+                      onDirty={setLangzeitDirty}
+                    />
                   </div>
                 )}
 
@@ -830,6 +1008,12 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                         </option>
                       ))}
                     </select>
+                    <EditableGroupsPanel
+                      title="Detailtest"
+                      groups={detailGroups}
+                      setGroups={setDetailGroups}
+                      onDirty={setDetailDirty}
+                    />
                   </div>
                 )}
 
@@ -845,13 +1029,22 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                     disabled={isStartingTest}
                     placeholder="Optional: Beschreibung des Tests"
                     style={{
-                      width: '100%',
+                      width: '97%',
                       padding: '8px',
                       border: '1px solid #ccc',
                       borderRadius: '4px',
                       fontSize: '14px'
                     }}
                   />
+                </div>
+                {/* Next MessID Display */}
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#e8f4f8',
+                  borderRadius: '6px',
+                  border: '1px solid #b3d9e6'
+                }}>
+                  <strong>Nächste MessID:</strong> {nextMessID !== null ? nextMessID : 'Laden...'}
                 </div>
               </div>
 
@@ -861,7 +1054,7 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                   Ventil-Konfiguration (16 Ventile):
                 </label>
                 <div style={{
-                  maxHeight: '300px',
+                  maxHeight: '800px',
                   overflowY: 'auto',
                   border: '1px solid #ddd',
                   borderRadius: '4px',
