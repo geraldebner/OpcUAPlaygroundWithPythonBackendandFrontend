@@ -149,7 +149,7 @@ export default function TestRunControl(props: TestRunControlProps) {
       border: '2px solid #3498db'
     }}>
       <h2 style={{ margin: '0 0 16px 0', color: '#2c3e50', fontSize: '16px', fontWeight: 'bold' }}>
-        🚀 Test Run Control - Block {selectedBlock}
+        Test Run Control - Block {selectedBlock}
       </h2>
 
       {/* Active Test Run Display */}
