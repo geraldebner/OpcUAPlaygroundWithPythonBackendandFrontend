@@ -44,10 +44,12 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   const [ventilParameterSets, setVentilParameterSets] = useState<ParameterSet[]>([]);
   const [langzeittestParameterSets, setLangzeittestParameterSets] = useState<ParameterSet[]>([]);
   const [detailtestParameterSets, setDetailtestParameterSets] = useState<ParameterSet[]>([]);
+  const [komponentenParameterSets, setKomponentenParameterSets] = useState<ParameterSet[]>([]);
   
   const [selectedVentilConfig, setSelectedVentilConfig] = useState<number | null>(null);
   const [selectedLangzeitConfig, setSelectedLangzeitConfig] = useState<number | null>(null);
   const [selectedDetailConfig, setSelectedDetailConfig] = useState<number | null>(null);
+  const [selectedKomponentenConfig, setSelectedKomponentenConfig] = useState<number | null>(null);
 
   // Editable parameter groups for selected datasets
   const [ventilGroups, setVentilGroups] = useState<Record<string, { name: string; value: string }[]>>({});
@@ -56,11 +58,47 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
   const [langzeitDirty, setLangzeitDirty] = useState(false);
   const [detailGroups, setDetailGroups] = useState<Record<string, { name: string; value: string }[]>>({});
   const [detailDirty, setDetailDirty] = useState(false);
+  const [komponentenGroups, setKomponentenGroups] = useState<Record<string, { name: string; value: string }[]>>({});
+  const [komponentenDirty, setKomponentenDirty] = useState(false);
+  
+  // Langzeittest live OPC UA values
+  const [langzeitLiveValues, setLangzeitLiveValues] = useState<{
+    anzahlGesamtSchlagzahlen: string | null;
+    anzahlSchlagzahlenDetailtest: string | null;
+  }>({
+    anzahlGesamtSchlagzahlen: null,
+    anzahlSchlagzahlenDetailtest: null
+  });
+  const [langzeitEditValues, setLangzeitEditValues] = useState<{
+    anzahlGesamtSchlagzahlen: string;
+    anzahlSchlagzahlenDetailtest: string;
+  }>({
+    anzahlGesamtSchlagzahlen: '',
+    anzahlSchlagzahlenDetailtest: ''
+  });
+  const [langzeitLoading, setLangzeitLoading] = useState(false);
   
   const [testComment, setTestComment] = useState<string>('');
   const [isStartingTest, setIsStartingTest] = useState(false);
   const [activeTestRun, setActiveTestRun] = useState<TestRun | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  
+  // Helper function to format OPC UA values
+  function formatValue(v: any): string {
+    if (v === null || v === undefined) return '';
+    // if it's already an array
+    if (Array.isArray(v)) return v.join(', ');
+    if (typeof v === 'string') {
+      // try parse JSON arrays
+      try {
+        const p = JSON.parse(v);
+        if (Array.isArray(p)) return p.join(', ');
+        if (typeof p === 'object') return JSON.stringify(p);
+      } catch { }
+      return v;
+    }
+    return String(v);
+  }
   
   // Ventil configuration (16 valves)
   const [ventilConfigs, setVentilConfigs] = useState<VentilConfig[]>(
@@ -180,6 +218,91 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
     if (testType === 'Detailtest') load(); else { setDetailGroups({}); setDetailDirty(false); }
   }, [selectedDetailConfig, apiBase, testType]);
 
+  useEffect(() => {
+    const load = async () => {
+      if (!selectedKomponentenConfig) { setKomponentenGroups({}); setKomponentenDirty(false); return; }
+      try {
+        const res = await axios.get(`${apiBase}/api/datasets/${selectedKomponentenConfig}`);
+        const payload = res.data?.payload;
+        const groups = parseDatasetToGroups(payload);
+        // Keep only groups named "Ventilkonfiguration Sensor-Regler"
+        const filtered: Record<string, { name: string; value: string }[]> = {};
+        Object.entries(groups).forEach(([g, arr]) => {
+          if (g === 'Ventilkonfiguration Sensor-Regler') filtered[g] = arr as any;
+        });
+        setKomponentenGroups(filtered);
+        setKomponentenDirty(false);
+      } catch (e) {
+        console.error('Failed to load Komponenten payload', e);
+        setKomponentenGroups({});
+        setKomponentenDirty(false);
+      }
+    };
+    load();
+  }, [selectedKomponentenConfig, apiBase]);
+
+  // Load Langzeittest live OPC UA values when testType changes to Langzeittest
+  useEffect(() => {
+    if (testType === 'Langzeittest') {
+      loadLangzeitValues();
+    }
+  }, [testType, selectedBlock]);
+
+  async function loadLangzeitValues() {
+    setLangzeitLoading(true);
+    try {
+      // Read each parameter individually from AllgemeineParameter group
+      const group = 'AllgemeineParameter';
+      
+      // Read AnzahlGesamtSchlagzahlen
+      const gesamtRes = await axios.get(
+        `${apiBase}/api/parameters/${selectedBlock}/value?group=${encodeURIComponent(group)}&name=${encodeURIComponent('AnzahlGesamtSchlagzahlen')}`
+      );
+      const gesamtVal = formatValue(gesamtRes.data?.value);
+      
+      // Read AnzahlSchlagzahlenDetailtest
+      const detailRes = await axios.get(
+        `${apiBase}/api/parameters/${selectedBlock}/value?group=${encodeURIComponent(group)}&name=${encodeURIComponent('AnzahlSchlagzahlenDetailtest')}`
+      );
+      const detailVal = formatValue(detailRes.data?.value);
+      
+      setLangzeitLiveValues({
+        anzahlGesamtSchlagzahlen: gesamtVal || null,
+        anzahlSchlagzahlenDetailtest: detailVal || null
+      });
+      
+      setLangzeitEditValues({
+        anzahlGesamtSchlagzahlen: gesamtVal || '',
+        anzahlSchlagzahlenDetailtest: detailVal || ''
+      });
+    } catch (e) {
+      console.error('Failed to load Langzeittest values:', e);
+      setLangzeitLiveValues({
+        anzahlGesamtSchlagzahlen: null,
+        anzahlSchlagzahlenDetailtest: null
+      });
+    } finally {
+      setLangzeitLoading(false);
+    }
+  }
+
+  async function writeLangzeitValue(paramName: string, value: string) {
+    try {
+      const group = 'AllgemeineParameter';
+      await axios.post(
+        `${apiBase}/api/parameters/${selectedBlock}/value?group=${encodeURIComponent(group)}&name=${encodeURIComponent(paramName)}`,
+        { value: value }
+      );
+      setStatusMessage(`${paramName} erfolgreich geschrieben`);
+      // Reload values to confirm write
+      await loadLangzeitValues();
+      setTimeout(() => setStatusMessage(''), 3000);
+    } catch (e: any) {
+      setStatusMessage(`Fehler beim Schreiben von ${paramName}: ${e.message}`);
+      setTimeout(() => setStatusMessage(''), 3000);
+    }
+  }
+
   async function loadNextMessID() {
     try {
       const res = await axios.get(`${apiBase}/api/testruns/next-messid`);
@@ -203,6 +326,8 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
         s.type === 'VentilLangzeittestparameter'));
       setDetailtestParameterSets(sets.filter((s: ParameterSet) => 
         s.type === 'VentilDetailtestparameter'));
+      setKomponentenParameterSets(sets.filter((s: ParameterSet) => 
+        s.type === 'Komponenten'));
     } catch (error) {
       console.error('Failed to load parameter sets:', error);
     }
@@ -298,6 +423,11 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
       return;
     }
 
+    if (!selectedKomponentenConfig) {
+      alert('Bitte wählen Sie eine Komponenten-Konfiguration aus!');
+      return;
+    }
+
     if (testType === 'Langzeittest' && !selectedLangzeitConfig) {
       alert('Bitte wählen Sie eine Langzeittest-Konfiguration aus!');
       return;
@@ -341,6 +471,29 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
       if (!ventilPayloadJson) throw new Error('Ventilkonfiguration hat kein Payload');
       await sendParametersToOPCUA(ventilPayloadJson, 'Ventilkonfiguration');
       await verifyParameters(ventilPayloadJson, 'Ventilkonfiguration');
+
+      // Step 1.5: Prepare and send Komponenten (use edited values if present)
+      setStatusMessage('Lade Komponenten-Konfiguration...');
+      let komponentenPayloadJson: string | null = null;
+      try {
+        if (Object.keys(komponentenGroups).length > 0) {
+          komponentenPayloadJson = buildPayloadFromGroups(komponentenGroups);
+          // Persist adjusted set with MessID in the name if user edited
+          if (komponentenDirty && nextMessID != null) {
+            const newId = await createDataset(`Komponenten_MessID_${nextMessID}`, 'Komponenten', selectedBlock, komponentenPayloadJson, testComment);
+            setSelectedKomponentenConfig(newId);
+          }
+        } else {
+          const komponentenConfig = await axios.get(`${apiBase}/api/datasets/${selectedKomponentenConfig}`);
+          komponentenPayloadJson = komponentenConfig.data?.payload;
+        }
+      } catch (e: any) {
+        throw new Error(`Fehler beim Laden/Speichern der Komponenten-Konfiguration: ${e.message || e}`);
+      }
+
+      if (!komponentenPayloadJson) throw new Error('Komponenten-Konfiguration hat kein Payload');
+      await sendParametersToOPCUA(komponentenPayloadJson, 'Ventilkonfiguration Sensor-Regler');
+      await verifyParameters(komponentenPayloadJson, 'Ventilkonfiguration Sensor-Regler');
 
       // Step 2: Prepare and send test-specific configuration (use edited values if present)
       if (testType === 'Langzeittest' && selectedLangzeitConfig) {
@@ -949,6 +1102,38 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                   />
                 </div>
 
+                {/* Komponenten Configuration */}
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold' }}>
+                    Komponenten (Sensor-Regler): *
+                  </label>
+                  <select
+                    value={selectedKomponentenConfig || ''}
+                    onChange={(e) => setSelectedKomponentenConfig(Number(e.target.value) || null)}
+                    disabled={isStartingTest}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="">-- Bitte auswählen --</option>
+                    {komponentenParameterSets.map(ps => (
+                      <option key={ps.id} value={ps.id}>
+                        {ps.name} {ps.comment && `(${ps.comment})`}
+                      </option>
+                    ))}
+                  </select>
+                  <EditableGroupsPanel
+                    title="Komponenten"
+                    groups={komponentenGroups}
+                    setGroups={setKomponentenGroups}
+                    onDirty={setKomponentenDirty}
+                  />
+                </div>
+
                 {/* Langzeittest Configuration */}
                 {testType === 'Langzeittest' && (
                   <div>
@@ -980,6 +1165,124 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
                       setGroups={setLangzeitGroups}
                       onDirty={setLangzeitDirty}
                     />
+                  </div>
+                )}
+
+                {/* Langzeittest Live OPC UA Values */}
+                {testType === 'Langzeittest' && (
+                  <div style={{
+                    padding: '12px',
+                    backgroundColor: '#f0f8ff',
+                    border: '2px solid #4169e1',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <label style={{ fontWeight: 'bold', color: '#1e40af' }}>
+                        📊 Langzeittest OPC UA Parameter (Live)
+                      </label>
+                      <button
+                        onClick={() => loadLangzeitValues()}
+                        disabled={langzeitLoading}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: langzeitLoading ? '#95a5a6' : '#3498db',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: langzeitLoading ? 'not-allowed' : 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {langzeitLoading ? '⏳ Laden...' : '🔄 Aktualisieren'}
+                      </button>
+                    </div>
+
+                    {/* AnzahlGesamtSchlagzahlen */}
+                    <div style={{ marginBottom: '10px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
+                        Anzahl Gesamt Schlagzahlen
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={langzeitEditValues.anzahlGesamtSchlagzahlen}
+                          onChange={(e) => setLangzeitEditValues({
+                            ...langzeitEditValues,
+                            anzahlGesamtSchlagzahlen: e.target.value
+                          })}
+                          disabled={langzeitLoading}
+                          style={{
+                            padding: '6px 8px',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}
+                        />
+                        <button
+                          onClick={() => writeLangzeitValue('AnzahlGesamtSchlagzahlen', langzeitEditValues.anzahlGesamtSchlagzahlen)}
+                          disabled={langzeitLoading}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: langzeitLoading ? '#95a5a6' : '#27ae60',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: langzeitLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ✓ Schreiben
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                        Aktuell: <strong>{langzeitLiveValues.anzahlGesamtSchlagzahlen === null ? '--' : langzeitLiveValues.anzahlGesamtSchlagzahlen === '' ? '(leer)' : langzeitLiveValues.anzahlGesamtSchlagzahlen}</strong>
+                      </div>
+                    </div>
+
+                    {/* AnzahlSchlagzahlenDetailtest */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
+                        Anzahl Schlagzahlen Detailtest
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={langzeitEditValues.anzahlSchlagzahlenDetailtest}
+                          onChange={(e) => setLangzeitEditValues({
+                            ...langzeitEditValues,
+                            anzahlSchlagzahlenDetailtest: e.target.value
+                          })}
+                          disabled={langzeitLoading}
+                          style={{
+                            padding: '6px 8px',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}
+                        />
+                        <button
+                          onClick={() => writeLangzeitValue('AnzahlSchlagzahlenDetailtest', langzeitEditValues.anzahlSchlagzahlenDetailtest)}
+                          disabled={langzeitLoading}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: langzeitLoading ? '#95a5a6' : '#27ae60',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: langzeitLoading ? 'not-allowed' : 'pointer',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ✓ Schreiben
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                        Aktuell: <strong>{langzeitLiveValues.anzahlSchlagzahlenDetailtest === null ? '--' : langzeitLiveValues.anzahlSchlagzahlenDetailtest === '' ? '(leer)' : langzeitLiveValues.anzahlSchlagzahlenDetailtest}</strong>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1138,14 +1441,14 @@ export default function TestRunView({ apiBase, selectedBlock }: TestRunViewProps
             {/* Start Button */}
             <button
               onClick={startTest}
-              disabled={isStartingTest || !selectedVentilConfig}
+              disabled={isStartingTest || !selectedVentilConfig || !selectedKomponentenConfig}
               style={{
                 padding: '12px 24px',
-                backgroundColor: isStartingTest || !selectedVentilConfig ? '#95a5a6' : '#28a745',
+                backgroundColor: isStartingTest || !selectedVentilConfig || !selectedKomponentenConfig ? '#95a5a6' : '#28a745',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: isStartingTest || !selectedVentilConfig ? 'not-allowed' : 'pointer',
+                cursor: isStartingTest || !selectedVentilConfig || !selectedKomponentenConfig ? 'not-allowed' : 'pointer',
                 fontSize: '16px',
                 fontWeight: 'bold'
               }}
