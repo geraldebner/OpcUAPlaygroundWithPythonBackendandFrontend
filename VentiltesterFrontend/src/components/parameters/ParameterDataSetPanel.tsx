@@ -72,7 +72,9 @@ export default function ParameterDataSetPanel({
               </div>
               <div className="dataset-actions">
                 <button onClick={() => loadParameterDataset(ds.id)}>Load into UI</button>
-                <button onClick={() => writeDatasetToOpc(ds.id)} style={{ marginLeft: 8 }}>Write to OPC</button>
+                
+                {/* <button onClick={() => writeDatasetToOpc(ds.id)} style={{ marginLeft: 8 }}>Write to OPC</button> */}
+                
                 <button style={{ marginLeft: 8 }} onClick={() => deleteDataset(ds.id)}>Delete</button>
               </div>
             </li>
